@@ -1,0 +1,9 @@
+# endorseService Info
+endorseServiceHost: "x.x.x.x:8080"
+complianceCheck:
+  # fees to be paid for compliance check 
+  complianceCheckEndorseServiceFee: 10 
+  # Address of endorsement charge
+  complianceCheckEndorseServiceFeeAddr: xxxxx
+  # Address of endorsement signature
+  complianceCheckEndorseServiceAddr: xxxxx
