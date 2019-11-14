@@ -95,14 +95,14 @@ func (xc *Xchain) PreExecWithSelecUTXO() (*pb.PreExecWithSelectUTXOResponse, err
 func (xc *Xchain) GenComplianceCheckTx(response *pb.PreExecWithSelectUTXOResponse) (
 	*pb.Transaction, error) {
 
-	totalNeed := new(big.Int).SetInt64(int64(config.GetInstance().ComplianceCheck.ComplianceCheckEndorseServiceFee))
+	totalNeed := new(big.Int).SetInt64(int64(xc.Cfg.ComplianceCheck.ComplianceCheckEndorseServiceFee))
 	txInputs, deltaTxOutput, err := xc.GenerateTxInput(response.GetUtxoOutput(), totalNeed)
 	if err != nil {
 		log.Printf("GenerateComplianceTx GenerateTxInput failed.")
 		return nil, fmt.Errorf("GenerateComplianceTx GenerateTxInput err: %v", err)
 	}
 
-	checkAmount := strconv.Itoa(config.GetInstance().ComplianceCheck.ComplianceCheckEndorseServiceFee)
+	checkAmount := strconv.Itoa(xc.Cfg.ComplianceCheck.ComplianceCheckEndorseServiceFee)
 	txOutputs, err := xc.GenerateTxOutput(xc.Cfg.ComplianceCheck.ComplianceCheckEndorseServiceFeeAddr, checkAmount, "0")
 	if err != nil {
 		log.Printf("GenerateComplianceTx GenerateTxOutput failed.")
