@@ -55,7 +55,7 @@ github.com/syndtr/goleveldb/leveldb/storage
 github.com/syndtr/goleveldb/leveldb/util
 # github.com/xuperchain/log15 v0.0.0-20190620081506-bc88a9198230
 github.com/xuperchain/log15
-# github.com/xuperchain/xuperunion v0.0.0-20191105074652-dfd463807d8b
+# github.com/xuperchain/xuperunion v0.0.0-20191217122640-70bbc0e10f66
 github.com/xuperchain/xuperunion/hdwallet/rand
 github.com/xuperchain/xuperunion/pb
 github.com/xuperchain/xuperunion/common/log

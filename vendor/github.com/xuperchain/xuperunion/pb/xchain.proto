@@ -72,6 +72,13 @@ service Xchain {
     };
   }
 
+  rpc QueryUtxoRecord(UtxoRecordDetail) returns (UtxoRecordDetail) {
+    option (google.api.http) = {
+      post : "/v1/query_utxo_record"
+      body : "*"
+    };
+  }
+
   rpc GetAccountContracts(GetAccountContractsRequest)
       returns (GetAccountContractsResponse) {
     option (google.api.http) = {
@@ -437,6 +444,14 @@ message UtxoMeta {
   int64 new_account_resource_amount = 9;	// the resource amount of creating an account
   int64 irreversibleBlockHeight = 10;	// 当前不可逆区块高度，与utxo对齐
   int64 irreversibleSlideWindow = 11;	// 当前不可逆区块高度调整窗口
+  GasPrice gasPrice = 12;
+}
+
+message GasPrice {
+  int64 cpu_rate = 1;
+  int64 mem_rate = 2;
+  int64 disk_rate = 3;
+  int64 xfee_rate = 4;
 }
 
 // The internal block struct
@@ -494,6 +509,8 @@ message BCStatus {
   InternalBlock block = 4;
   // Utox information
   UtxoMeta utxoMeta = 5;
+  // Branch info
+  repeated string branchBlockid = 6;
 }
 
 message BCTipStatus {
@@ -941,3 +958,24 @@ message ModifyBlock {
   string sign = 5;
 }
 
+message UtxoRecordDetail {
+  Header header = 1;
+  string bcname = 2;
+  string accountName = 3; 
+  UtxoRecord openUtxoRecord = 4;
+  UtxoRecord lockedUtxoRecord = 5;
+  UtxoRecord frozenUtxoRecord = 6;
+  int64 displayCount = 7;
+}
+
+message UtxoRecord {
+  string utxoCount = 1;
+  string utxoAmount = 2;
+  repeated UtxoKey item = 3;
+}
+
+message UtxoKey {
+  string refTxid = 1;
+  string offset = 2;
+  string amount = 3;
+}
