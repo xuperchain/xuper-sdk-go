@@ -340,10 +340,8 @@ github.com/xordataexchange/crypt v0.0.3-0.20170626215501-b2862e3d0a77/go.mod h1:
 github.com/xuperchain/log15 v0.0.0-20190620081506-bc88a9198230 h1:AWFZFbmLhY6VG6IIHD+9ZCgTCuvVRKoK+PRNaxqahl0=
 github.com/xuperchain/log15 v0.0.0-20190620081506-bc88a9198230/go.mod h1:90Da9GDXy9Yle79ZHSJY1c7X+1meBKsoX0vkRy09xis=
 github.com/xuperchain/wagon v0.6.1-0.20191119040003-bba145e02197/go.mod h1:8p/h74Ohk2V9iMgKYx0bf8PX1JTmJFMoZFlAsNqotJk=
-github.com/xuperchain/xuperunion v0.0.0-20191105074652-dfd463807d8b h1:QIiCsf2jPhafFaED4lkSuwU1fTuUUDgVUd85SAfUUoc=
-github.com/xuperchain/xuperunion v0.0.0-20191105074652-dfd463807d8b/go.mod h1:zhZfqSDuBlBe2xPh1XZ/V9udEAuk46jBkv5O3sPLLAs=
-github.com/xuperchain/xuperunion v0.0.0-20191209133214-ecb87736183b h1:dW6SHFWJ1tHZQ+jpfq/XGr9dpAtdzOPH43GqPKUHmmA=
-github.com/xuperchain/xuperunion v0.0.0-20191209133214-ecb87736183b/go.mod h1:rwhi0WjNFmEY+U/kBwl691t+EWAetjg5APgCxko/bx0=
+github.com/xuperchain/xuperunion v0.0.0-20191217122640-70bbc0e10f66 h1:192dZ7CAEZlgrn+sJRIcygFF22OwIaqVLzjYvhy9gAw=
+github.com/xuperchain/xuperunion v0.0.0-20191217122640-70bbc0e10f66/go.mod h1:dfXvTCumcumEjg3EqniBXnUZ6qjx8ZRQGdi/RE5ah8A=
 go.etcd.io/bbolt v1.3.2/go.mod h1:IbVyRI1SCnLcuJnV2u8VeU0CEYM7e686BmAb1XKL+uU=
 go.opencensus.io v0.21.0/go.mod h1:mSImk1erAIZhrmZN+AvHh14ztQfjbGwt4TtuofqLduU=
 go.opencensus.io v0.22.1/go.mod h1:Ap50jQcDJrx6rB6VgeeFPtuPIf3wMRvRfrfYDO6+BmA=

@@ -17,7 +17,7 @@ github.com/golang/protobuf/protoc-gen-go/plugin
 github.com/grpc-ecosystem/grpc-gateway/runtime
 github.com/grpc-ecosystem/grpc-gateway/utilities
 github.com/grpc-ecosystem/grpc-gateway/internal
-# github.com/xuperchain/xuperunion v0.0.0-20191209133214-ecb87736183b
+# github.com/xuperchain/xuperunion v0.0.0-20191217122640-70bbc0e10f66
 github.com/xuperchain/xuperunion/hdwallet/rand
 github.com/xuperchain/xuperunion/pb
 github.com/xuperchain/xuperunion/crypto/client/base
