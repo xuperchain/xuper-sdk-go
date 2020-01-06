@@ -1,5 +1,5 @@
 # endorseService Info
-# testNet addrs
+# XuperOS addrs
 endorseServiceHost: "39.156.69.83:37100"
 complianceCheck:
   complianceCheckEndorseServiceFee: 100
