@@ -36,11 +36,11 @@ func GetInstance() *CommConfig {
 func GetConfig(configPath string, confName string) *CommConfig {
 	// default config
 	commConfig := &CommConfig{
-		EndorseServiceHost: "14.215.179.74:37101",
+		EndorseServiceHost: "39.156.69.83:37100",
 		ComplianceCheck: ComplianceCheckConfig{
-			ComplianceCheckEndorseServiceFee:     10,
-			ComplianceCheckEndorseServiceFeeAddr: "XBbhR82cB6PvaLJs3D4uB9f12bhmKkHeX",
-			ComplianceCheckEndorseServiceAddr:    "TYyA3y8wdFZyzExtcbRNVd7ZZ2XXcfjdw",
+			ComplianceCheckEndorseServiceFee:     100,
+			ComplianceCheckEndorseServiceFeeAddr: "aB2hpHnTBDxko3UoP2BpBZRujwhdcAFoT",
+			ComplianceCheckEndorseServiceAddr:    "jknGxa6eyum1JrATWvSJKW3thJ9GKHA9n",
 		},
 	}
 
