@@ -40,12 +40,11 @@
       },
       "init_proposer_neturl": {
         "1": [
-          "/ip4/127.0.0.1/tcp/47101/p2p/QmdQkwikG4FjMmsPm9n3PAaxn6hTzA9wrkNAiDomBJVspU",
-          "/ip4/127.0.0.1/tcp/47102/p2p/QmWWCadfZQrBdAg48G9hjZSKp2L7RgfDQoSJQYnMjTj7L3",
-          "/ip4/127.0.0.1/tcp/47103/p2p/QmXShnsbUTcKL9vnjfxhNqvwFdcV5MgcLfyYk7mf2CLUPN"
+ 	  "/ip4/127.0.0.1/tcp/47101/p2p/QmUDzssUMaHpTvFmmSorg6hJ7Y5ggok6Cgz9C3RK5PTA8b",
+	  "/ip4/127.0.0.1/tcp/47102/p2p/QmTnYJRaHDNao6FpeXpVEm9n6tmAvVCufH2jPHw5QPkMYH",
+	  "/ip4/127.0.0.1/tcp/47103/p2p/QmRPJhYtRnU2NDBDPxJGz7a6Gni27LA7UiBit453mT67Jp"
         ]
-      },
-      "bft_config": {}
+      }
     }
   },
   "permission": {

@@ -12,9 +12,8 @@ import (
 	"github.com/xuperchain/xuper-sdk-go/transfer"
 )
 
-var Mnemonics = ""
 var language = 1
-var contractAcc = "XC1111111111111222@xuper"
+var contractAcc = "XC1111111111111122@xuper"
 var transactionId = ""
 
 // define blockchain node and blockchain name
@@ -25,7 +24,7 @@ var (
 )
 
 func testAccount() {
-	if _, err := os.Stat("./keys"); err != nil && os.IsExist(err) {
+	if _, err := os.Stat("./keys"); err != nil && os.IsNotExist(err) {
 	} else {
 		println("existed, pass")
 		return
@@ -42,7 +41,6 @@ func testAccount() {
 	fmt.Println(acc)
 	fmt.Println("hello, Mnemonic: ", acc.Mnemonic)
 
-	Mnemonics = acc.Mnemonic
 	// retrieve the account by mnemonics
 	acc, err = account.RetrieveAccount(acc.Mnemonic, 1)
 	if err != nil {
@@ -107,20 +105,6 @@ func testContractAccount() {
 		os.Exit(-1)
 	}
 	fmt.Println(txid)
-	/*
-		// the 2nd way to create contract account
-		preSelectUTXOResponse, err := ca.PreCreateContractAccount(contractAccount)
-		if err != nil {
-			log.Printf("PreCreateContractAccount failed, err: %v", err)
-			os.Exit(-1)
-		}
-		txid, err := ca.PostCreateContractAccount(preSelectUTXOResponse)
-		if err != nil {
-			log.Printf("PostCreateContractAccount failed, err: %v", err)
-			os.Exit(-1)
-		}
-		log.Printf("txid: %v", txid)
-	*/
 	return
 }
 
@@ -179,7 +163,7 @@ func testDeployWasmContract() {
 	args := map[string]string{
 		"creator": "xchain",
 	}
-	codePath := "example/contract_code/counter.wasm"
+	codePath := "example/contract_code/trust_counter.wasm"
 
 	// deploy wasm contract
 	txid, err := wasmContract.DeployWasmContract(args, codePath, "c")
@@ -188,21 +172,6 @@ func testDeployWasmContract() {
 		panic(err)
 	}
 	fmt.Printf("DeployWasmContract txid: %v\n", txid)
-
-	/*
-		// the 2nd way to deploy wasm contract, preDeploy and Post
-		preSelectUTXOResponse, err := wasmContract.PreDeployWasmContract(args, codePath, "c")
-		if err != nil {
-			log.Printf("DeployWasmContract GetPreDeployWasmContractRes failed, err: %v", err)
-			os.Exit(-1)
-		}
-		txid, err := wasmContract.PostWasmContract(preSelectUTXOResponse)
-		if err != nil {
-			log.Printf("DeployWasmContract PostWasmContract failed, err: %v", err)
-			os.Exit(-1)
-		}
-		log.Printf("txid: %v", txid)
-	*/
 	return
 }
 
@@ -218,16 +187,16 @@ func testInvokeWasmContract() {
 	fmt.Printf("account: %v\n", acc)
 
 	// initialize a client to operate the contract
-	contractAccount := ""
+	contractAccount := contractAcc
 	wasmContract := contract.InitWasmContract(acc, node, bcname, contractName, contractAccount)
 
-	// set invoke function method and args
+	// test store
+	log.Println("......start store......")
 	args := map[string]string{
-		"key": "counter",
+		"duan": "25",
+		"bing": "12",
 	}
-	methodName := "increase"
-
-	// invoke contract
+	methodName := "store"
 	txid, err := wasmContract.InvokeWasmContract(methodName, args)
 	if err != nil {
 		log.Printf("InvokeWasmContract PostWasmContract failed, err: %v", err)
@@ -235,21 +204,64 @@ func testInvokeWasmContract() {
 	}
 	log.Printf("txid: %v", txid)
 	transactionId = txid
-	/*
-		// the 2nd way to invoke wasm contract, preInvoke and Post
-		preSelectUTXOResponse, err := wasmContract.PreInvokeWasmContract(methodName, args)
-		if err != nil {
-			log.Printf("InvokeWasmContract GetPreMethodWasmContractRes failed, err: %v", err)
-			os.Exit(-1)
-		}
-		txid, err := wasmContract.PostWasmContract(preSelectUTXOResponse)
-		if err != nil {
-			log.Printf("InvokeWasmContract PostWasmContract failed, err: %v", err)
-			os.Exit(-1)
-		}
-		log.Printf("txid: %v", txid)
-	*/
+	log.Printf("check for duan: %v", check("duan", args["duan"]))
+	log.Printf("check for bing: %v", check("bing", args["bing"]))
+	log.Printf("......store finished......\n\n")
+
+	// test addition
+	log.Println("start addition......")
+	addArgs := map[string]string{
+		"l": "duan",
+		"r": "bing",
+		"o": "duanbing",
+	}
+	methodName = "add"
+	txid, err = wasmContract.InvokeWasmContract(methodName, addArgs)
+	if err != nil {
+		log.Printf("InvokeWasmContract PostWasmContract failed, err: %v", err)
+		os.Exit(-1)
+	}
+	log.Printf("txid: %v", txid)
+	transactionId = txid
+
+	log.Printf("check for addition: %v", check("duanbing", "37"))
+	log.Printf(" ......addition finished......\n\n")
 	return
+}
+
+func queryPlainValue(key string) string{
+	acc, err := usingAccount()
+	if err != nil {
+		fmt.Printf("retrieveAccount err: %v\n", err)
+	}
+
+	// initialize a client to operate the contract
+	wasmContract := contract.InitWasmContract(acc, node, bcname, contractName, contractAcc)
+	// set query function method and args
+	args := map[string]string{
+		"key": key,
+	}
+	methodName := "get"
+
+	// 获取加密的数据
+	preExeRPCRes, err := wasmContract.QueryWasmContract(methodName, args)
+	if err != nil {
+		log.Printf("QueryWasmContract failed, err: %v", err)
+		os.Exit(-1)
+	}
+	// 对加密数据解密
+	resPlain,err := wasmContract.DecryptResponse(preExeRPCRes)
+	if err != nil {
+		log.Printf("QueryWasmContractPlain failed, err: %v", err)
+		os.Exit(-1)
+	}
+    // 返回解密的value
+	return string(resPlain.GetResponse().GetResponse()[0])
+}
+
+func check(key, plain string) bool {
+    value := queryPlainValue(key)
+    return value == plain
 }
 
 func testQueryWasmContract() {
@@ -264,12 +276,11 @@ func testQueryWasmContract() {
 	fmt.Printf("account: %v\n", acc)
 
 	// initialize a client to operate the contract
-	contractAccount := ""
-	wasmContract := contract.InitWasmContract(acc, node, bcname, contractName, contractAccount)
+	wasmContract := contract.InitWasmContract(acc, node, bcname, contractName, contractAcc)
 
 	// set query function method and args
 	args := map[string]string{
-		"key": "counter",
+		"key": "duan",
 	}
 	methodName := "get"
 
@@ -309,6 +320,7 @@ func testGetBalance() {
 
 func testQueryTx() {
 	// initialize a client to operate the transaction
+	time.Sleep(10 * time.Second)
 	trans := transfer.InitTrans(nil, node, bcname)
 
 	// query tx by txid
@@ -318,7 +330,6 @@ func testQueryTx() {
 }
 
 func main() {
-
 	contractName = contractName + fmt.Sprintf("%d", time.Now().Unix()%1000000)
 
 	//testContractAccount()
@@ -326,8 +337,8 @@ func main() {
 	testTransfer()
 	testDeployWasmContract()
 	testInvokeWasmContract()
+	testQueryTx()
 	testQueryWasmContract()
 	testGetBalance()
-	testQueryTx()
 	println("contractname: ", contractName)
 }

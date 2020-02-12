@@ -2,52 +2,54 @@
 github.com/btcsuite/btcutil/base58
 # github.com/golang/protobuf v1.3.2
 github.com/golang/protobuf/proto
-github.com/golang/protobuf/jsonpb
-github.com/golang/protobuf/protoc-gen-go/generator
+github.com/golang/protobuf/ptypes/struct
+github.com/golang/protobuf/protoc-gen-go/descriptor
+github.com/golang/protobuf/protoc-gen-go/generator/internal/remap
+github.com/golang/protobuf/protoc-gen-go/plugin
 github.com/golang/protobuf/ptypes/any
 github.com/golang/protobuf/ptypes/duration
 github.com/golang/protobuf/ptypes/timestamp
+github.com/golang/protobuf/jsonpb
+github.com/golang/protobuf/protoc-gen-go/generator
 github.com/golang/protobuf/ptypes/wrappers
-github.com/golang/protobuf/protoc-gen-go/descriptor
 github.com/golang/protobuf/ptypes
-github.com/golang/protobuf/ptypes/struct
-github.com/golang/protobuf/protoc-gen-go/generator/internal/remap
-github.com/golang/protobuf/protoc-gen-go/plugin
 # github.com/grpc-ecosystem/grpc-gateway v1.9.2
-github.com/grpc-ecosystem/grpc-gateway/runtime
-github.com/grpc-ecosystem/grpc-gateway/utilities
 github.com/grpc-ecosystem/grpc-gateway/internal
+github.com/grpc-ecosystem/grpc-gateway/utilities
+github.com/grpc-ecosystem/grpc-gateway/runtime
 # github.com/xuperchain/xuperunion v0.0.0-20191217122640-70bbc0e10f66
 github.com/xuperchain/xuperunion/hdwallet/rand
 github.com/xuperchain/xuperunion/pb
 github.com/xuperchain/xuperunion/crypto/client/base
 github.com/xuperchain/xuperunion/crypto/client/xchain
-github.com/xuperchain/xuperunion/utxo/txhash
-github.com/xuperchain/xuperunion/crypto/hash
-github.com/xuperchain/xuperunion/hdwallet/wordlist
-github.com/xuperchain/xuperunion/crypto/account
 github.com/xuperchain/xuperunion/crypto/config
+github.com/xuperchain/xuperunion/crypto/hash
+github.com/xuperchain/xuperunion/crypto/utils
+github.com/xuperchain/xuperunion/crypto/account
 github.com/xuperchain/xuperunion/crypto/multisign
 github.com/xuperchain/xuperunion/crypto/common
 github.com/xuperchain/xuperunion/crypto/ecies
 github.com/xuperchain/xuperunion/crypto/sign
-github.com/xuperchain/xuperunion/crypto/utils
 github.com/xuperchain/xuperunion/hdwallet/key
 github.com/xuperchain/xuperunion/crypto/ecies/libecies
 github.com/xuperchain/xuperunion/crypto/aes/ecb
 github.com/xuperchain/xuperunion/crypto/aes/padding
 github.com/xuperchain/xuperunion/hdwallet/config
 github.com/xuperchain/xuperunion/hdwallet/error
+github.com/xuperchain/xuperunion/hdwallet/wordlist
+github.com/xuperchain/xuperunion/utxo/txhash
+# github.com/xuperdata/teesdk v0.0.4
+github.com/xuperdata/teesdk
 # golang.org/x/crypto v0.0.0-20190927123631-a832865fa7ad
-golang.org/x/crypto/pbkdf2
 golang.org/x/crypto/ripemd160
+golang.org/x/crypto/pbkdf2
 # golang.org/x/net v0.0.0-20191009170851-d66e71096ffb
-golang.org/x/net/trace
-golang.org/x/net/internal/timeseries
-golang.org/x/net/http2
-golang.org/x/net/http2/hpack
-golang.org/x/net/http/httpguts
 golang.org/x/net/idna
+golang.org/x/net/http/httpguts
+golang.org/x/net/http2/hpack
+golang.org/x/net/internal/timeseries
+golang.org/x/net/trace
+golang.org/x/net/http2
 # golang.org/x/sys v0.0.0-20190922100055-0a153f010e69
 golang.org/x/sys/unix
 # golang.org/x/text v0.3.2
@@ -56,22 +58,23 @@ golang.org/x/text/unicode/bidi
 golang.org/x/text/unicode/norm
 golang.org/x/text/transform
 # google.golang.org/genproto v0.0.0-20191009194640-548a555dbc03
-google.golang.org/genproto/googleapis/api/annotations
 google.golang.org/genproto/googleapis/api/httpbody
 google.golang.org/genproto/protobuf/field_mask
+google.golang.org/genproto/googleapis/api/annotations
 google.golang.org/genproto/googleapis/rpc/status
 # google.golang.org/grpc v1.24.0
-google.golang.org/grpc
 google.golang.org/grpc/codes
 google.golang.org/grpc/grpclog
+google.golang.org/grpc/metadata
 google.golang.org/grpc/status
+google.golang.org/grpc
+google.golang.org/grpc/internal
 google.golang.org/grpc/balancer
 google.golang.org/grpc/balancer/roundrobin
 google.golang.org/grpc/connectivity
 google.golang.org/grpc/credentials
 google.golang.org/grpc/encoding
 google.golang.org/grpc/encoding/proto
-google.golang.org/grpc/internal
 google.golang.org/grpc/internal/backoff
 google.golang.org/grpc/internal/balancerload
 google.golang.org/grpc/internal/binarylog
@@ -81,7 +84,6 @@ google.golang.org/grpc/internal/grpcrand
 google.golang.org/grpc/internal/grpcsync
 google.golang.org/grpc/internal/transport
 google.golang.org/grpc/keepalive
-google.golang.org/grpc/metadata
 google.golang.org/grpc/naming
 google.golang.org/grpc/peer
 google.golang.org/grpc/resolver

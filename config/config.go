@@ -8,6 +8,7 @@ import (
 	"log"
 
 	"gopkg.in/yaml.v2"
+	"github.com/xuperdata/teesdk"
 )
 
 type ComplianceCheckConfig struct {
@@ -19,7 +20,9 @@ type ComplianceCheckConfig struct {
 type CommConfig struct {
 	EndorseServiceHost string                `yaml:"endorseServiceHost,omitempty"`
 	ComplianceCheck    ComplianceCheckConfig `yaml:"complianceCheck,omitempty"`
+	TC                 teesdk.TEEConfig `yaml:"teeConfig,omitempty"`
 }
+
 
 const confPath = "./conf"
 const confName = "sdk.yaml"

@@ -1,7 +1,7 @@
 # endorseService Info
 # XuperOS addrs
-endorseServiceHost: "localhost:37101"
+endorseServiceHost: "39.156.69.83:37100"
 complianceCheck:
   complianceCheckEndorseServiceFee: 100
-  complianceCheckEndorseServiceFeeAddr: dpzuVdosQrF2kmzumhVeFQZa1aYcdgFpN
-  complianceCheckEndorseServiceAddr: WwLgfAatHyKx2mCJruRaML4oVf7Chzp42
+  complianceCheckEndorseServiceFeeAddr: aB2hpHnTBDxko3UoP2BpBZRujwhdcAFoT
+  complianceCheckEndorseServiceAddr: jknGxa6eyum1JrATWvSJKW3thJ9GKHA9n

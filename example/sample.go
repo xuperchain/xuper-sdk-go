@@ -11,7 +11,7 @@ import (
 
 // define blockchain node and blockchain name
 var (
-	node   = "localhost:37101"
+	node   = "39.156.69.83:37100"
 	bcname = "xuper"
 )
 
