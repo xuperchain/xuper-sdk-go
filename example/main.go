@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"time"
 
 	"github.com/xuperchain/xuper-sdk-go/account"
 	"github.com/xuperchain/xuper-sdk-go/contract"
@@ -11,29 +12,42 @@ import (
 	"github.com/xuperchain/xuper-sdk-go/transfer"
 )
 
+var Mnemonics = ""
+var language = 1
+var contractAcc = "XC1111111111111222@xuper"
+var transactionId = ""
+
 // define blockchain node and blockchain name
 var (
-	contractName = "counter"
-	node         = "x.x.x.x:8080" // node ip
+	contractName = "counter3"
+	node         = "localhost:37101" // node ip
 	bcname       = "xuper"
 )
 
 func testAccount() {
+	if _, err := os.Stat("./keys"); err != nil && os.IsExist(err) {
+	} else {
+		println("existed, pass")
+		return
+	}
 	// create an account for the user,
 	// strength 1 means that the number of mnemonics is 12
 	// language 1 means that mnemonics is Chinese
 	acc, err := account.CreateAccount(1, 1)
 	if err != nil {
 		fmt.Printf("create account error: %v\n", err)
+		panic(err)
 	}
 	// print the account, mnemonics
 	fmt.Println(acc)
-	fmt.Println(acc.Mnemonic)
+	fmt.Println("hello, Mnemonic: ", acc.Mnemonic)
 
+	Mnemonics = acc.Mnemonic
 	// retrieve the account by mnemonics
 	acc, err = account.RetrieveAccount(acc.Mnemonic, 1)
 	if err != nil {
 		fmt.Printf("retrieveAccount err: %v\n", err)
+		panic(err)
 	}
 	fmt.Printf("RetrieveAccount: to %v\n", acc)
 
@@ -41,6 +55,7 @@ func testAccount() {
 	acc, err = account.CreateAndSaveAccountToFile("./keys", "123", 1, 1)
 	if err != nil {
 		fmt.Printf("createAndSaveAccountToFile err: %v\n", err)
+		panic(err)
 	}
 	fmt.Printf("CreateAndSaveAccountToFile: %v\n", acc)
 
@@ -48,18 +63,33 @@ func testAccount() {
 	acc, err = account.GetAccountFromFile("keys/", "123")
 	if err != nil {
 		fmt.Printf("getAccountFromFile err: %v\n", err)
+		panic(err)
 	}
 	fmt.Printf("getAccountFromFile: %v\n", acc)
 	return
+}
+func usingAccount() (*account.Account, error) {
+	// load your account from the private key and secure code you download from xuper.baidu.com
+	// Note that put the downloaded private key file at path "./keys/private.key"
+	acc, err := account.GetAccountFromFile("./keys/", "123")
+	if err != nil {
+		return nil, fmt.Errorf("create account error: %v\n", err)
+	}
+	// print the account, mnemonics
+	fmt.Println(acc.Address)
+
+	return acc, nil
 }
 
 func testContractAccount() {
 	// retrieve the account by mnemonics
 	// Notice !!!
 	// parameters should be Mnemonics for your account and language
-	account, err := account.RetrieveAccount(Mnemonics, language)
+	//account, err := account.RetrieveAccount(Mnemonics, language)
+	acc, err := usingAccount()
 	if err != nil {
 		fmt.Printf("retrieveAccount err: %v\n", err)
+		panic(err)
 	}
 
 	// define the name of the conrtact account to be created
@@ -68,7 +98,7 @@ func testContractAccount() {
 	contractAccount := contractAcc
 
 	// initialize a client to operate the contract account
-	ca := contractaccount.InitContractAccount(account, node, bcname)
+	ca := contractaccount.InitContractAccount(acc, node, bcname)
 
 	// create contract account
 	txid, err := ca.CreateContractAccount(contractAccount)
@@ -98,9 +128,13 @@ func testTransfer() {
 	// retrieve the account by mnemonics
 	// Notice !!!
 	// parameters should be Mnemonics for your account and language
-	acc, err := account.RetrieveAccount(Mnemonics, language)
+	/*
+		acc, err := account.RetrieveAccount(Mnemonics, language)
+	*/
+	acc, err := usingAccount()
 	if err != nil {
 		fmt.Printf("retrieveAccount err: %v\n", err)
+		panic(err)
 	}
 	fmt.Printf("account: %v\n", acc)
 
@@ -116,6 +150,7 @@ func testTransfer() {
 	txid, err := trans.Transfer(to, amount, fee, desc)
 	if err != nil {
 		fmt.Printf("Transfer err: %v\n", err)
+		panic(err)
 	}
 	fmt.Printf("transfer tx: %v\n", txid)
 	return
@@ -125,9 +160,11 @@ func testDeployWasmContract() {
 	// retrieve the account by mnemonics
 	// Notice !!!
 	// parameters should be Mnemonics for your account and language
-	acc, err := account.RetrieveAccount(Mnemonics, language)
+	//acc, err := account.RetrieveAccount(Mnemonics, language)
+	acc, err := usingAccount()
 	if err != nil {
 		fmt.Printf("retrieveAccount err: %v\n", err)
+		panic(err)
 	}
 	fmt.Printf("account: %v\n", acc)
 
@@ -148,7 +185,7 @@ func testDeployWasmContract() {
 	txid, err := wasmContract.DeployWasmContract(args, codePath, "c")
 	if err != nil {
 		log.Printf("DeployWasmContract err: %v", err)
-		os.Exit(-1)
+		panic(err)
 	}
 	fmt.Printf("DeployWasmContract txid: %v\n", txid)
 
@@ -173,7 +210,8 @@ func testInvokeWasmContract() {
 	// retrieve the account by mnemonics
 	// Notice !!!
 	// parameters should be Mnemonics for your account and language
-	acc, err := account.RetrieveAccount(Mnemonics, language)
+	//acc, err := account.RetrieveAccount(Mnemonics, language)
+	acc, err := usingAccount()
 	if err != nil {
 		fmt.Printf("retrieveAccount err: %v\n", err)
 	}
@@ -196,6 +234,7 @@ func testInvokeWasmContract() {
 		os.Exit(-1)
 	}
 	log.Printf("txid: %v", txid)
+	transactionId = txid
 	/*
 		// the 2nd way to invoke wasm contract, preInvoke and Post
 		preSelectUTXOResponse, err := wasmContract.PreInvokeWasmContract(methodName, args)
@@ -217,7 +256,8 @@ func testQueryWasmContract() {
 	// retrieve the account by mnemonics
 	// Notice !!!
 	// parameters should be Mnemonics for your account and language
-	acc, err := account.RetrieveAccount(Mnemonics, language)
+	//acc, err := account.RetrieveAccount(Mnemonics, language)
+	acc, err := usingAccount()
 	if err != nil {
 		fmt.Printf("retrieveAccount err: %v\n", err)
 	}
@@ -251,7 +291,8 @@ func testGetBalance() {
 	// retrieve the account by mnemonics
 	// Notice !!!
 	// parameters should be Mnemonics for your account and language
-	acc, err := account.RetrieveAccount(Mnemonics, language)
+	//acc, err := account.RetrieveAccount(Mnemonics, language)
+	acc, err := usingAccount()
 	if err != nil {
 		fmt.Printf("retrieveAccount err: %v\n", err)
 	}
@@ -269,22 +310,24 @@ func testGetBalance() {
 func testQueryTx() {
 	// initialize a client to operate the transaction
 	trans := transfer.InitTrans(nil, node, bcname)
-	txid := "3a78d06dd39b814af113dbdc15239e675846ec927106d50153665c273f51001e"
 
 	// query tx by txid
-	tx, err := trans.QueryTx(txid)
+	tx, err := trans.QueryTx(transactionId)
 	log.Printf("query tx %v, err %v", tx, err)
 	return
 }
 
 func main() {
+
+	contractName = contractName + fmt.Sprintf("%d", time.Now().Unix()%1000000)
+
+	//testContractAccount()
 	testAccount()
 	testTransfer()
 	testDeployWasmContract()
 	testInvokeWasmContract()
-	testContractAccount()
 	testQueryWasmContract()
 	testGetBalance()
 	testQueryTx()
-	return
+	println("contractname: ", contractName)
 }

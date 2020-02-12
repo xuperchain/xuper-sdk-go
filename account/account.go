@@ -80,7 +80,7 @@ func CreateAndSaveAccountToFile(path, passwd string, strength uint8, language in
 	return account, nil
 }
 
-// GetAccountFromFile get an account from file
+// GetAccountFromFile get an account from file TODO bug，未给出助记词
 func GetAccountFromFile(path, passwd string) (*Account, error) {
 	cli := crypto.GetCryptoClient()
 	ecdsaPrivateKey, err := cli.GetEcdsaPrivateKeyFromFileByPassword(path, passwd)

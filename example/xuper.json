@@ -1,0 +1,65 @@
+{
+  "version": "1",
+  "predistribution": [
+    {
+      "address": "dpzuVdosQrF2kmzumhVeFQZa1aYcdgFpN",
+      "quota": "100000000000000000000"
+    }
+  ],
+  "maxblocksize": "128",
+  "award": "1000000",
+  "decimals": "8",
+  "award_decay": {
+    "height_gap": 31536000,
+    "ratio": 1
+  },
+  "gas_price": {
+    "cpu_rate": 1000,
+    "mem_rate": 1000000,
+    "disk_rate": 1,
+    "xfee_rate": 1
+  },
+  "irreversibleslidewindow": "0",
+  "new_account_resource_amount": 1000,
+  "genesis_consensus": {
+    "name": "tdpos",
+    "config": {
+      "timestamp": "1575958609000000000",
+      "proposer_num": "3",
+      "period": "3000",
+      "alternate_interval": "3000",
+      "term_interval": "6000",
+      "block_num": "100",
+      "vote_unit_price": "1",
+      "init_proposer": {
+        "1": [
+          "dpzuVdosQrF2kmzumhVeFQZa1aYcdgFpN",
+          "gHK3Efg6qo3hH1ScjDvNGzaV3xa6c16iD",
+          "i5yXC3dxvgNQMBXKbsozJN95FqB4HHXgk"
+        ]
+      },
+      "init_proposer_neturl": {
+        "1": [
+          "/ip4/127.0.0.1/tcp/47101/p2p/QmdQkwikG4FjMmsPm9n3PAaxn6hTzA9wrkNAiDomBJVspU",
+          "/ip4/127.0.0.1/tcp/47102/p2p/QmWWCadfZQrBdAg48G9hjZSKp2L7RgfDQoSJQYnMjTj7L3",
+          "/ip4/127.0.0.1/tcp/47103/p2p/QmXShnsbUTcKL9vnjfxhNqvwFdcV5MgcLfyYk7mf2CLUPN"
+        ]
+      },
+      "bft_config": {}
+    }
+  },
+  "permission": {
+    "CreateAccount": {
+      "rule": "Null",
+      "acl": {}
+    },
+    "SetAccountAcl": {
+      "rule": "Null",
+      "acl": {}
+    },
+    "SetContractMethodAcl": {
+      "rule": "Null",
+      "acl": {}
+    }
+  }
+}

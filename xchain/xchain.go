@@ -418,6 +418,7 @@ func (xc *Xchain) GenCompleteTxAndPost(preExeResp *pb.PreExecWithSelectUTXORespo
 
 	endorserSign, err := xc.ComplianceCheck(tx, complianceCheckTx)
 	if err != nil {
+		log.Println("call ComplianceCheck failed, err=", err.Error())
 		return "", err
 	}
 
