@@ -5,3 +5,4 @@ complianceCheck:
   complianceCheckEndorseServiceFee: 10 
   complianceCheckEndorseServiceFeeAddr: cHvBK1TTB52GYtVxHK7HnW8N9RTqkN99R
   complianceCheckEndorseServiceAddr: XDxkpQkfLwG6h56e896f3vBHhuN5g6M9u
+crypto: "xchain"

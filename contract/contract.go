@@ -9,7 +9,7 @@ import (
 	"log"
 
 	"github.com/golang/protobuf/proto"
-	"github.com/xuperchain/xuperunion/pb"
+	"github.com/xuperchain/xuperchain/core/pb"
 
 	"strconv"
 

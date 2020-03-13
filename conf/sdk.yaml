@@ -5,3 +5,5 @@ complianceCheck:
   complianceCheckEndorseServiceFee: 100
   complianceCheckEndorseServiceFeeAddr: aB2hpHnTBDxko3UoP2BpBZRujwhdcAFoT
   complianceCheckEndorseServiceAddr: jknGxa6eyum1JrATWvSJKW3thJ9GKHA9n
+# 加密算法配置, 国密:gm
+crypto: "xchain"

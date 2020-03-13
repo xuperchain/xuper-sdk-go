@@ -14,8 +14,8 @@ import (
 	"math/big"
 	"time"
 
-	"github.com/xuperchain/xuperunion/pb"
-	"github.com/xuperchain/xuperunion/utxo/txhash"
+	"github.com/xuperchain/xuperchain/core/pb"
+	"github.com/xuperchain/xuperchain/core/utxo/txhash"
 	"google.golang.org/grpc"
 
 	"strconv"
