@@ -1,0 +1,5 @@
+# IDE related
+.vscode/
+
+# output files
+output/

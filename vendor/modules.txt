@@ -30,6 +30,7 @@ github.com/xuperchain/xuperchain/core/crypto/client/gm/gmsm/signature
 github.com/xuperchain/xuperchain/core/crypto/client/gm/gmsm/sm2
 github.com/xuperchain/xuperchain/core/crypto/client/gm/gmsm/sm3
 github.com/xuperchain/xuperchain/core/crypto/client/gm/gmsm/sm4
+github.com/xuperchain/xuperchain/core/crypto/client/xchain
 github.com/xuperchain/xuperchain/core/crypto/common
 github.com/xuperchain/xuperchain/core/crypto/config
 github.com/xuperchain/xuperchain/core/crypto/ecies
