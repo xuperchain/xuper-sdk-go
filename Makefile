@@ -26,7 +26,6 @@ test:
 	go test github.com/xuperchain/xuper-sdk-go/xchain
 
 clean:
-	rm -rf plugins
-	rm -rf main
+	rm -rf sample
 
 .PHONY: all test clean
