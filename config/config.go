@@ -19,6 +19,7 @@ type ComplianceCheckConfig struct {
 type CommConfig struct {
 	EndorseServiceHost string                `yaml:"endorseServiceHost,omitempty"`
 	ComplianceCheck    ComplianceCheckConfig `yaml:"complianceCheck,omitempty"`
+	Crypto             string                `yaml:"crypto,omitempty"`
 }
 
 const confPath = "./conf"
@@ -42,6 +43,7 @@ func GetConfig(configPath string, confName string) *CommConfig {
 			ComplianceCheckEndorseServiceFeeAddr: "aB2hpHnTBDxko3UoP2BpBZRujwhdcAFoT",
 			ComplianceCheckEndorseServiceAddr:    "jknGxa6eyum1JrATWvSJKW3thJ9GKHA9n",
 		},
+		Crypto: "xchain",
 	}
 
 	filename := configPath + "/" + confName

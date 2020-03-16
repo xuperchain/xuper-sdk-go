@@ -4,9 +4,8 @@ go 1.12
 
 require (
 	github.com/golang/protobuf v1.3.2
-	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
-	github.com/modern-go/reflect2 v1.0.1 // indirect
-	github.com/xuperchain/xuperunion v0.0.0-20191217122640-70bbc0e10f66
+	github.com/xuperchain/xuperchain v0.0.0-20200312070156-efa72c51cef3
+	golang.org/x/crypto v0.0.0-20200311171314-f7b00557c8c4 // indirect
 	golang.org/x/net v0.0.0-20191009170851-d66e71096ffb // indirect
 	google.golang.org/genproto v0.0.0-20191009194640-548a555dbc03 // indirect
 	google.golang.org/grpc v1.24.0
