@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"log"
 
-	"github.com/xuperchain/xuperunion/pb"
+	"github.com/xuperchain/xuperchain/core/pb"
 	"github.com/xuperchain/xuper-sdk-go/config"
 	"github.com/xuperdata/teesdk"
 )
@@ -78,4 +78,24 @@ func (c *WasmContract) DecryptResponse (responseCipher *pb.InvokeRPCResponse) (*
         responseCipher.GetResponse().Response = resp
 
         return responseCipher, nil
+}
+
+func (c *WasmContract) EncryptWasmArgs(args map[string]string) (map[string]string, error) {
+	// preExe
+	commConfig := config.GetInstance()
+	// TODO fix bug
+	if commConfig.TC.Enable {
+		encryptedArgs, err := c.EncryptArgs(commConfig.TC.Svn, args)
+		if err != nil {
+			log.Println("EncryptArgs error,", err)
+			return nil, err
+		}
+		args = map[string]string{}
+		err = json.Unmarshal([]byte(encryptedArgs), &args)
+		if err != nil {
+			return nil, err
+		}
+		return args, nil
+	}
+	return args, nil
 }

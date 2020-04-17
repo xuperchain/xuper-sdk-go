@@ -196,6 +196,10 @@ func testInvokeWasmContract() {
 		"duan": "25",
 		"bing": "12",
 	}
+	args, err = wasmContract.EncryptWasmArgs(args);
+	if err != nil {
+		panic(err)
+	}
 	methodName := "store"
 	txid, err := wasmContract.InvokeWasmContract(methodName, args)
 	if err != nil {

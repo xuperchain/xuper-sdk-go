@@ -116,20 +116,6 @@ func (c *WasmContract) PostWasmContract(preExeWithSelRes *pb.PreExecWithSelectUT
 // InvokeWasmContract invoke wasm contract by method name
 func (c *WasmContract) InvokeWasmContract(methodName string, args map[string]string) (string, error) {
 	// preExe
-	commConfig := config.GetInstance()
-	// TODO fix bug
-	if commConfig.TC.Enable && methodName == "store" {
-		encryptedArgs, err := c.EncryptArgs(commConfig.TC.Svn, args)
-		if err != nil {
-			log.Println("EncryptArgs error,", err)
-			return "", err
-		}
-		args = map[string]string{}
-		err = json.Unmarshal([]byte(encryptedArgs), &args)
-		if err != nil {
-			return "", err
-		}
-	}
 	preSelectUTXOResponse, err := c.PreInvokeWasmContract(methodName, args)
 	if err != nil {
 		return "", err
