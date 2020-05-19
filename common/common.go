@@ -13,7 +13,7 @@ import (
 	"strconv"
 	"time"
 
-	walletRand "github.com/xuperchain/xuperchain/core/hdwallet/rand"
+	walletRand "github.com/xuperchain/crypto/core/hdwallet/rand"
 )
 
 const (

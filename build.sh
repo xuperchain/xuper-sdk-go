@@ -1,9 +1,7 @@
 #!/bin/bash
+cp -r ./conf $OUTPUT/
 
-set -e -x
+go build -o $OUTPUT/main ./example/main.go
 
-cd `dirname $0`
-
-go build -o sample ./example/sample.go
-
+go build -o $OUTPUT/sample ./example/sample.go
 

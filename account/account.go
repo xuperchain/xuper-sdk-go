@@ -29,8 +29,8 @@ func CreateAccount(strength uint8, language int) (*Account, error) {
 
 	account := &Account{
 		Address:    ecdsaAccount.Address,
-		PublicKey:  ecdsaAccount.JSONPublicKey,
-		PrivateKey: ecdsaAccount.JSONPrivateKey,
+		PublicKey:  ecdsaAccount.JsonPublicKey,
+		PrivateKey: ecdsaAccount.JsonPrivateKey,
 		Mnemonic:   ecdsaAccount.Mnemonic,
 	}
 	return account, nil
@@ -43,11 +43,10 @@ func RetrieveAccount(mnemonic string, language int) (*Account, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	account := &Account{
 		Address:    ecdsaAccount.Address,
-		PublicKey:  ecdsaAccount.JSONPublicKey,
-		PrivateKey: ecdsaAccount.JSONPrivateKey,
+		PublicKey:  ecdsaAccount.JsonPublicKey,
+		PrivateKey: ecdsaAccount.JsonPrivateKey,
 		Mnemonic:   ecdsaAccount.Mnemonic,
 	}
 	return account, nil
@@ -73,8 +72,8 @@ func CreateAndSaveAccountToFile(path, passwd string, strength uint8, language in
 
 	account := &Account{
 		Address:    ecdsaAccount.Address,
-		PublicKey:  ecdsaAccount.JSONPublicKey,
-		PrivateKey: ecdsaAccount.JSONPrivateKey,
+		PublicKey:  ecdsaAccount.JsonPublicKey,
+		PrivateKey: ecdsaAccount.JsonPrivateKey,
 		Mnemonic:   ecdsaAccount.Mnemonic,
 	}
 	return account, nil
@@ -82,22 +81,22 @@ func CreateAndSaveAccountToFile(path, passwd string, strength uint8, language in
 
 // GetAccountFromFile get an account from file
 func GetAccountFromFile(path, passwd string) (*Account, error) {
-	cli := crypto.GetCryptoClient()
-	ecdsaPrivateKey, err := cli.GetEcdsaPrivateKeyFromFileByPassword(path, passwd)
+	cryptoClient := crypto.GetCryptoClient()
+	ecdsaPrivateKey, err := cryptoClient.GetEcdsaPrivateKeyFromFileByPassword(path, passwd)
 	if err != nil {
 		return nil, err
 	}
 
 	account := &Account{}
-	account.PrivateKey, err = cli.GetEcdsaPrivateKeyJSONFormat(ecdsaPrivateKey)
+	account.PrivateKey, err = cryptoClient.GetEcdsaPrivateKeyJsonFormatStr(ecdsaPrivateKey)
 	if err != nil {
 		return nil, err
 	}
-	account.PublicKey, err = cli.GetEcdsaPublicKeyJSONFormat(ecdsaPrivateKey)
+	account.PublicKey, err = cryptoClient.GetEcdsaPublicKeyJsonFormatStr(ecdsaPrivateKey)
 	if err != nil {
 		return nil, err
 	}
-	account.Address, err = cli.GetAddressFromPublicKey(&ecdsaPrivateKey.PublicKey)
+	account.Address, err = cryptoClient.GetAddressFromPublicKey(&ecdsaPrivateKey.PublicKey)
 	if err != nil {
 		return nil, err
 	}

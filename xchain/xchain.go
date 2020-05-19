@@ -9,39 +9,43 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"math/big"
+	"strconv"
 	"time"
 
-	"github.com/xuperchain/xuperchain/core/pb"
-	"github.com/xuperchain/xuperchain/core/utxo/txhash"
 	"google.golang.org/grpc"
-
-	"strconv"
 
 	"github.com/xuperchain/xuper-sdk-go/account"
 	"github.com/xuperchain/xuper-sdk-go/common"
 	"github.com/xuperchain/xuper-sdk-go/config"
 	"github.com/xuperchain/xuper-sdk-go/crypto"
+	"github.com/xuperchain/xuper-sdk-go/pb"
+	"github.com/xuperchain/xuper-sdk-go/txhash"
+	//	"github.com/xuperchain/crypto/core/account"
 )
 
 // Xchain xchain struct
 type Xchain struct {
-	Cfg             *config.CommConfig
-	To              string
-	Amount          string
-	Fee             string
-	DescFile        string
-	FrozenHeight    int64
-	InvokeRPCReq    *pb.InvokeRPCRequest
-	PreSelUTXOReq   *pb.PreExecWithSelectUTXORequest
-	Initiator       string
-	AuthRequire     []string
-	Account         *account.Account
-	ChainName       string
-	XchainSer       string
-	ContractAccount string
+	Cfg *config.CommConfig
+	//	To     string
+	//	Amount string
+	ToAddressAndAmount map[string]string
+	TotalToAmount      string
+	Fee                string
+	//	DescFile              string
+	Desc                  string
+	FrozenHeight          int64
+	InvokeRPCReq          *pb.InvokeRPCRequest
+	PreSelUTXOReq         *pb.PreExecWithSelectUTXORequest
+	Initiator             string
+	AuthRequire           []string
+	Account               *account.Account
+	PlatformAccount       *account.Account
+	ChainName             string
+	XchainSer             string
+	ContractAccount       string
+	IsNeedComplianceCheck bool
 }
 
 // PreExecWithSelecUTXO preExec and selectUTXO
@@ -80,7 +84,7 @@ func (xc *Xchain) PreExecWithSelecUTXO() (*pb.PreExecWithSelectUTXOResponse, err
 		return nil, err
 	}
 
-	log.Printf("Fee will cost: %v\n", preExecWithSelectUTXOResponse.GetResponse().GetGasUsed())
+	log.Printf("Gas will cost: %v\n", preExecWithSelectUTXOResponse.GetResponse().GetGasUsed())
 	for _, res := range preExecWithSelectUTXOResponse.GetResponse().GetResponses() {
 		if res.Status >= 400 {
 			return nil, fmt.Errorf("contract error status:%d message:%s", res.Status, res.Message)
@@ -97,6 +101,7 @@ func (xc *Xchain) GenComplianceCheckTx(response *pb.PreExecWithSelectUTXORespons
 
 	totalNeed := new(big.Int).SetInt64(int64(xc.Cfg.ComplianceCheck.ComplianceCheckEndorseServiceFee))
 	txInputs, deltaTxOutput, err := xc.GenerateTxInput(response.GetUtxoOutput(), totalNeed)
+	//	txInputs, err := xc.GeneratePureTxInputs(response.GetUtxoOutput())
 	if err != nil {
 		log.Printf("GenerateComplianceTx GenerateTxInput failed.")
 		return nil, fmt.Errorf("GenerateComplianceTx GenerateTxInput err: %v", err)
@@ -129,7 +134,7 @@ func (xc *Xchain) GenComplianceCheckTx(response *pb.PreExecWithSelectUTXORespons
 	tx.Nonce = common.GetNonce()
 
 	cryptoClient := crypto.GetCryptoClient()
-	privateKey, err := cryptoClient.GetEcdsaPrivateKeyFromJSON([]byte(xc.Account.PrivateKey))
+	privateKey, err := cryptoClient.GetEcdsaPrivateKeyFromJsonStr(xc.Account.PrivateKey)
 	if err != nil {
 		return nil, err
 	}
@@ -152,6 +157,66 @@ func (xc *Xchain) GenComplianceCheckTx(response *pb.PreExecWithSelectUTXORespons
 	// make txid
 	tx.Txid, _ = txhash.MakeTransactionID(tx)
 	return tx, nil
+}
+
+// GenerateTxOutput generate txoutput part
+func (xc *Xchain) GenerateMultiTxOutputs(selfAmount string) ([]*pb.TxOutput, error) {
+	selfAddr := xc.Account.Address
+	toAddrAndAmount := xc.ToAddressAndAmount
+	//	selfAmount := ""
+	feeAmount := xc.Fee
+
+	//	txOutputs := make([]TxOutput, 2)
+	var txOutputs []*pb.TxOutput
+	// 1.向目标账户转账
+	for toAddr, toAmount := range toAddrAndAmount {
+		// 向目标地址转账的txOutput
+		txOutputTo := new(pb.TxOutput)
+		txOutputTo.ToAddr = []byte(toAddr)
+		realToAmount, isSuccess := new(big.Int).SetString(toAmount, 10)
+		if isSuccess != true {
+			log.Printf("toAmount convert to bigint failed")
+			return nil, common.ErrInvalidAmount
+		}
+		txOutputTo.Amount = realToAmount.Bytes()
+		//	txOutputTo.FrozenHeight = 0
+		//	txOutputs[0] = *txOutputTo
+		txOutputs = append(txOutputs, txOutputTo)
+	}
+	// 2.自己的转账地址接收差额部分的转回的txOutput
+	txOutputSelf := new(pb.TxOutput)
+	txOutputSelf.ToAddr = []byte(selfAddr)
+	realSelfAmount, isSuccess := new(big.Int).SetString(selfAmount, 10)
+	if isSuccess != true {
+		log.Printf("selfAmount convert to bigint failed")
+		return nil, common.ErrInvalidAmount
+	}
+	txOutputSelf.Amount = realSelfAmount.Bytes()
+	//	txOutputs[1] = *txOutputSelf
+	txOutputs = append(txOutputs, txOutputSelf)
+	// 3.如果矿工手续费不是空
+	if feeAmount != "" && feeAmount != "0" {
+		//		realFeeAmount := new(big.Int).SetBytes(feeAmount)
+		realFeeAmount, isSuccess := new(big.Int).SetString(feeAmount, 10)
+		if isSuccess != true {
+			log.Printf("feeAmount convert to bigint failed")
+			return nil, common.ErrInvalidAmount
+		}
+		// 如果矿工手续费不合法
+		if realFeeAmount.Cmp(big.NewInt(0)) < 0 {
+			return nil, common.ErrInvalidAmount
+		}
+		// 支付给矿工的手续费相关的txOutput
+		txOutputFee := new(pb.TxOutput)
+		txOutputFee.ToAddr = []byte("$")
+		txOutputFee.Amount = realFeeAmount.Bytes()
+		txOutputs = append(txOutputs, txOutputFee)
+	}
+	//	txOutputList := new(pb.TxOutputs)
+	//	txOutputList.TxOutputList = txOutputs
+	//	return txOutputList, nil
+
+	return txOutputs, nil
 }
 
 // GenerateTxOutput generate txoutput part
@@ -178,7 +243,7 @@ func (xc *Xchain) GenerateTxOutput(to, amount, fee string) ([]*pb.TxOutput, erro
 	for _, acc := range accounts {
 		amount, ok := big.NewInt(0).SetString(acc.Amount, 10)
 		if !ok {
-			return nil, errors.New("Invalid amount number")
+			return nil, common.ErrInvalidAmount
 		}
 		cmpRes := amount.Cmp(bigZero)
 		if cmpRes < 0 {
@@ -194,6 +259,25 @@ func (xc *Xchain) GenerateTxOutput(to, amount, fee string) ([]*pb.TxOutput, erro
 	}
 
 	return txOutputs, nil
+}
+
+func (xc *Xchain) GeneratePureTxInputs(utxoOutputs *pb.UtxoOutput) (
+	[]*pb.TxInput, error) {
+	// utxoList => TxInput
+	//
+	// gen txInputs
+	var txInputs []*pb.TxInput
+	//	var txOutput *pb.TxOutput
+	for _, utxo := range utxoOutputs.UtxoList {
+		txInput := &pb.TxInput{}
+		txInput.RefTxid = utxo.RefTxid
+		txInput.RefOffset = utxo.RefOffset
+		txInput.FromAddr = utxo.ToAddr
+		txInput.Amount = utxo.Amount
+		txInputs = append(txInputs, txInput)
+	}
+
+	return txInputs, nil
 }
 
 // GenerateTxInput generate txinput part
@@ -232,13 +316,7 @@ func (xc *Xchain) GenerateTxInput(utxoOutputs *pb.UtxoOutput, totalNeed *big.Int
 
 // GenRealTx generate really effective transaction
 func (xc *Xchain) GenRealTx(response *pb.PreExecWithSelectUTXOResponse,
-	complianceCheckTx *pb.Transaction) (*pb.Transaction, error) {
-	txOutputs, err := xc.GenerateTxOutput(xc.To, xc.Amount, xc.Fee)
-	if err != nil {
-		log.Printf("GenRealTx GenerateTxOutput failed.")
-		return nil, fmt.Errorf("GenRealTx GenerateTxOutput err: %v", err)
-	}
-
+	complianceCheckTx *pb.Transaction, hdPublicKey string) (*pb.Transaction, error) {
 	utxolist := []*pb.Utxo{}
 	totalSelected := big.NewInt(0)
 	for index, txOutput := range complianceCheckTx.TxOutputs {
@@ -259,8 +337,11 @@ func (xc *Xchain) GenRealTx(response *pb.PreExecWithSelectUTXOResponse,
 		UtxoList:      utxolist,
 		TotalSelected: totalSelected.String(),
 	}
+
 	totalNeed := big.NewInt(0)
-	amount, ok := big.NewInt(0).SetString(xc.Amount, 10)
+
+	// no need to double check
+	amount, ok := big.NewInt(0).SetString(xc.TotalToAmount, 10)
 	if !ok {
 		return nil, common.ErrInvalidAmount
 	}
@@ -270,33 +351,68 @@ func (xc *Xchain) GenRealTx(response *pb.PreExecWithSelectUTXOResponse,
 	}
 	amount.Add(amount, fee)
 	totalNeed.Add(totalNeed, amount)
-	txInputs, deltaTxOutput, err := xc.GenerateTxInput(utxoOutput, totalNeed)
+
+	//	txOutputs, err := xc.GenerateTxOutput(xc.To, xc.Amount, xc.Fee)
+	selfAmount := totalSelected.Sub(totalSelected, totalNeed)
+	txOutputs, err := xc.GenerateMultiTxOutputs(selfAmount.String())
+	if err != nil {
+		log.Printf("GenRealTx GenerateTxOutput failed.")
+		return nil, fmt.Errorf("GenRealTx GenerateTxOutput err: %v", err)
+	}
+
+	//	txInputs, deltaTxOutput, err := xc.GenerateTxInput(utxoOutput, totalNeed)
+	txInputs, err := xc.GeneratePureTxInputs(utxoOutput)
 	if err != nil {
 		log.Printf("GenRealTx GenerateTxInput failed.")
 		return nil, fmt.Errorf("GenRealTx GenerateTxInput err: %v", err)
 	}
 
-	if deltaTxOutput != nil {
-		txOutputs = append(txOutputs, deltaTxOutput)
-	}
+	//	if deltaTxOutput != nil {
+	//		txOutputs = append(txOutputs, deltaTxOutput)
+	//	}
 
 	tx := &pb.Transaction{
-		Desc:        []byte("Maybe common transfer transaction"),
-		Version:     common.TxVersion,
-		Coinbase:    false,
-		Timestamp:   time.Now().UnixNano(),
-		TxInputs:    txInputs,
-		TxOutputs:   txOutputs,
-		Initiator:   xc.Initiator,
-		AuthRequire: xc.AuthRequire,
+		Desc:      []byte("Maybe common transfer transaction"),
+		Version:   common.TxVersion,
+		Coinbase:  false,
+		Timestamp: time.Now().UnixNano(),
+		TxInputs:  txInputs,
+		TxOutputs: txOutputs,
+		Initiator: xc.Initiator,
+		//		AuthRequire: xc.AuthRequire,
 	}
 
-	if xc.DescFile != "" {
-		tx.Desc, err = ioutil.ReadFile(xc.DescFile)
+	if len(xc.AuthRequire) != 0 {
+		tx.AuthRequire = xc.AuthRequire
+	}
+
+	//	tx.Desc = []byte(xc.Desc)
+
+	cryptoClient := crypto.GetCryptoClient()
+
+	if len(hdPublicKey) == 0 {
+		// 如果不需要HD分层加密功能
+		tx.Desc = []byte(xc.Desc)
+	} else {
+		// 如果需要HD分层加密功能
+		cypherText, err := cryptoClient.EncryptByHdKey(hdPublicKey, xc.Desc)
 		if err != nil {
 			return nil, err
 		}
+
+		tx.Desc = []byte(cypherText)
+
+		// 继续组装HDInfo
+		originalHash := cryptoClient.HashUsingDoubleSha256([]byte(xc.Desc))
+
+		hdInfo := &pb.HDInfo{
+			HdPublicKey:  []byte(hdPublicKey),
+			OriginalHash: originalHash,
+		}
+
+		tx.HDInfo = hdInfo
 	}
+
 	tx.TxInputsExt = response.GetResponse().GetInputs()
 	tx.TxOutputsExt = response.GetResponse().GetOutputs()
 	tx.ContractRequests = response.GetResponse().GetRequests()
@@ -306,8 +422,8 @@ func (xc *Xchain) GenRealTx(response *pb.PreExecWithSelectUTXOResponse,
 		return nil, err
 	}
 	tx.Nonce = common.GetNonce()
-	cryptoClient := crypto.GetCryptoClient()
-	privateKey, err := cryptoClient.GetEcdsaPrivateKeyFromJSON([]byte(xc.Account.PrivateKey))
+
+	privateKey, err := cryptoClient.GetEcdsaPrivateKeyFromJsonStr(xc.Account.PrivateKey)
 	if err != nil {
 		return nil, err
 	}
@@ -322,6 +438,154 @@ func (xc *Xchain) GenRealTx(response *pb.PreExecWithSelectUTXOResponse,
 	}
 	var signatureInfos []*pb.SignatureInfo
 	signatureInfos = append(signatureInfos, signatureInfo)
+	tx.InitiatorSigns = signatureInfos
+	if xc.ContractAccount != "" {
+		tx.AuthRequireSigns = signatureInfos
+	}
+	// make txid
+	tx.Txid, _ = txhash.MakeTransactionID(tx)
+	return tx, nil
+
+}
+
+// GenRealTxOnly generate really effective transaction
+func (xc *Xchain) GenRealTxOnly(response *pb.PreExecWithSelectUTXOResponse, hdPublicKey string) (*pb.Transaction, error) {
+	//	txOutputs, err := xc.GenerateTxOutput(xc.To, xc.Amount, xc.Fee)
+	//	if err != nil {
+	//		log.Printf("GenRealTx GenerateTxOutput failed.")
+	//		return nil, fmt.Errorf("GenRealTx GenerateTxOutput err: %v", err)
+	//	}
+
+	//	utxolist := []*pb.Utxo{}
+	//	totalSelected := big.NewInt(0)
+	//	for index, txOutput := range complianceCheckTx.TxOutputs {
+	//		if string(txOutput.ToAddr) == xc.Initiator {
+	//			utxo := &pb.Utxo{
+	//				Amount:    txOutput.Amount,
+	//				ToAddr:    txOutput.ToAddr,
+	//				RefTxid:   complianceCheckTx.Txid,
+	//				RefOffset: int32(index),
+	//			}
+	//			utxolist = append(utxolist, utxo)
+	//
+	//			utxoAmount := big.NewInt(0).SetBytes(utxo.Amount)
+	//			totalSelected.Add(totalSelected, utxoAmount)
+	//		}
+	//	}
+
+	utxoOutput := &pb.UtxoOutput{
+		//		UtxoList: utxolist,
+		//		TotalSelected: totalSelected.String(),
+		UtxoList:      response.UtxoOutput.UtxoList,
+		TotalSelected: response.UtxoOutput.TotalSelected,
+	}
+	totalNeed := big.NewInt(0)
+	amount, ok := big.NewInt(0).SetString(xc.TotalToAmount, 10)
+	if !ok {
+		return nil, common.ErrInvalidAmount
+	}
+	fee, ok := big.NewInt(0).SetString(xc.Fee, 10)
+	if !ok {
+		return nil, common.ErrInvalidAmount
+	}
+	amount.Add(amount, fee)
+	totalNeed.Add(totalNeed, amount)
+
+	totalSelected, ok := big.NewInt(0).SetString(response.UtxoOutput.TotalSelected, 10)
+	if !ok {
+		return nil, common.ErrInvalidAmount
+	}
+
+	selfAmount := totalSelected.Sub(totalSelected, totalNeed)
+	txOutputs, err := xc.GenerateMultiTxOutputs(selfAmount.String())
+	if err != nil {
+		log.Printf("GenRealTx GenerateTxOutput failed.")
+		return nil, fmt.Errorf("GenRealTx GenerateTxOutput err: %v", err)
+	}
+
+	//	txInputs, deltaTxOutput, err := xc.GenerateTxInput(utxoOutput, totalNeed)
+	txInputs, err := xc.GeneratePureTxInputs(utxoOutput)
+	if err != nil {
+		log.Printf("GenRealTx GenerateTxInput failed.")
+		return nil, fmt.Errorf("GenRealTx GenerateTxInput err: %v", err)
+	}
+
+	//	if deltaTxOutput != nil {
+	//		txOutputs = append(txOutputs, deltaTxOutput)
+	//	}
+
+	tx := &pb.Transaction{
+		Desc:      []byte("Maybe common transfer transaction"),
+		Version:   common.TxVersion,
+		Coinbase:  false,
+		Timestamp: time.Now().UnixNano(),
+		TxInputs:  txInputs,
+		TxOutputs: txOutputs,
+		Initiator: xc.Initiator,
+		//		AuthRequire: xc.AuthRequire,
+	}
+
+	if len(xc.AuthRequire) != 0 {
+		tx.AuthRequire = xc.AuthRequire
+	}
+
+	cryptoClient := crypto.GetCryptoClient()
+
+	if len(hdPublicKey) == 0 {
+		// 如果不需要HD分层加密功能
+		tx.Desc = []byte(xc.Desc)
+	} else {
+		// 如果需要HD分层加密功能
+		cypherText, err := cryptoClient.EncryptByHdKey(hdPublicKey, xc.Desc)
+		if err != nil {
+			return nil, err
+		}
+
+		tx.Desc = []byte(cypherText)
+
+		// 继续组装HDInfo
+		originalHash := cryptoClient.HashUsingDoubleSha256([]byte(xc.Desc))
+
+		hdInfo := &pb.HDInfo{
+			HdPublicKey:  []byte(hdPublicKey),
+			OriginalHash: originalHash,
+		}
+
+		tx.HDInfo = hdInfo
+	}
+
+	tx.TxInputsExt = response.GetResponse().GetInputs()
+	tx.TxOutputsExt = response.GetResponse().GetOutputs()
+	tx.ContractRequests = response.GetResponse().GetRequests()
+
+	err = common.SetSeed()
+	if err != nil {
+		return nil, err
+	}
+	tx.Nonce = common.GetNonce()
+
+	privateKey, err := cryptoClient.GetEcdsaPrivateKeyFromJsonStr(xc.Account.PrivateKey)
+	if err != nil {
+		return nil, err
+	}
+
+	digestHash, dhErr := txhash.MakeTxDigestHash(tx)
+	if dhErr != nil {
+		return nil, dhErr
+	}
+
+	sign, err := cryptoClient.SignECDSA(privateKey, digestHash)
+	if err != nil {
+		return nil, err
+	}
+	signatureInfo := &pb.SignatureInfo{
+		PublicKey: xc.Account.PublicKey,
+		Sign:      sign,
+	}
+
+	var signatureInfos []*pb.SignatureInfo
+	signatureInfos = append(signatureInfos, signatureInfo)
+
 	tx.InitiatorSigns = signatureInfos
 	if xc.ContractAccount != "" {
 		tx.AuthRequireSigns = signatureInfos
@@ -373,65 +637,123 @@ func (xc *Xchain) ComplianceCheck(tx *pb.Transaction, fee *pb.Transaction) (
 }
 
 // PostTx posttx
-func (xc *Xchain) PostTx(tx *pb.Transaction) error {
-	conn, err := grpc.Dial(xc.XchainSer, grpc.WithInsecure(), grpc.WithMaxMsgSize(64<<20-1))
-	if err != nil {
-		log.Printf("Posttx connect xchain err: %v", err)
-		return err
-	}
-	defer conn.Close()
-	ctx, cancel := context.WithTimeout(context.Background(), 15000*time.Millisecond)
-	defer cancel()
+func (xc *Xchain) PostTx(tx *pb.Transaction) (string, error) {
+	posttx := func(tx *pb.Transaction) error {
+		conn, err := grpc.Dial(xc.XchainSer, grpc.WithInsecure(), grpc.WithMaxMsgSize(64<<20-1))
+		if err != nil {
+			log.Printf("Posttx connect xchain err: %v", err)
+			return err
+		}
+		defer conn.Close()
+		ctx, cancel := context.WithTimeout(context.Background(), 15000*time.Millisecond)
+		defer cancel()
 
-	txStatus := &pb.TxStatus{
-		Bcname: xc.ChainName,
-		Status: pb.TransactionStatus_UNCONFIRM,
-		Tx:     tx,
-		Txid:   tx.Txid,
-	}
+		txStatus := &pb.TxStatus{
+			Bcname: xc.ChainName,
+			Status: pb.TransactionStatus_UNCONFIRM,
+			Tx:     tx,
+			Txid:   tx.Txid,
+		}
 
-	c := pb.NewXchainClient(conn)
-	res, err := c.PostTx(ctx, txStatus)
+		c := pb.NewXchainClient(conn)
+		res, err := c.PostTx(ctx, txStatus)
+		if err != nil {
+			return err
+		}
+		if res.Header.Error != pb.XChainErrorEnum_SUCCESS {
+			return fmt.Errorf("Failed to post tx: %s", res.Header.Error.String())
+		}
+
+		return nil
+	}
+	err := posttx(tx)
 	if err != nil {
-		return err
+		return "", err
 	}
-	if res.Header.Error != pb.XChainErrorEnum_SUCCESS {
-		return fmt.Errorf("Failed to post tx: %s", res.Header.Error.String())
-	}
-	return nil
+	return hex.EncodeToString(tx.Txid), nil
 }
 
 // GenCompleteTxAndPost generate comlete tx and post tx
-func (xc *Xchain) GenCompleteTxAndPost(preExeResp *pb.PreExecWithSelectUTXOResponse) (string, error) {
-	complianceCheckTx, err := xc.GenComplianceCheckTx(preExeResp)
-	if err != nil {
-		log.Printf("GenCompleteTxAndPost GenComplianceCheckTx failed, err: %v", err)
-		return "", err
+func (xc *Xchain) GenCompleteTxAndPost(preExeResp *pb.PreExecWithSelectUTXOResponse, hdPublicKey string) (string, error) {
+	tx := &pb.Transaction{}
+	complianceCheckTx := &pb.Transaction{}
+	var err error
+	// if ComplianceCheck is needed
+	// 如果需要进行合规性背书
+	if xc.Cfg.ComplianceCheck.IsNeedComplianceCheck == true {
+		// 如果需要进行合规性背书，但不需要支付合规性背书费用
+		if xc.Cfg.ComplianceCheck.IsNeedComplianceCheckFee == false {
+			tx, err = xc.GenRealTxOnly(preExeResp, hdPublicKey)
+			if err != nil {
+				log.Printf("GenRealTxOnly failed, err: %v", err)
+				return "", err
+			}
+
+			complianceCheckTx = nil
+		} else {
+			// 如果需要进行合规性背书，且需要支付合规性背书费用
+			complianceCheckTx, err = xc.GenComplianceCheckTx(preExeResp)
+			if err != nil {
+				log.Printf("GenCompleteTxAndPost GenComplianceCheckTx failed, err: %v", err)
+				return "", err
+			}
+			log.Printf("ComplianceCheck txid: %v\n", hex.EncodeToString(complianceCheckTx.Txid))
+
+			tx, err = xc.GenRealTx(preExeResp, complianceCheckTx, hdPublicKey)
+			if err != nil {
+				log.Printf("GenRealTx failed, err: %v", err)
+				return "", err
+			}
+		}
+
+		endorserSign, err := xc.ComplianceCheck(tx, complianceCheckTx)
+		if err != nil {
+			return "", err
+		}
+
+		tx.AuthRequireSigns = append(tx.AuthRequireSigns, endorserSign)
+
+		// 如果是平台发起的转账
+		if xc.PlatformAccount != nil {
+			cryptoClient := crypto.GetCryptoClient()
+			platformPrivateKey, err := cryptoClient.GetEcdsaPrivateKeyFromJsonStr(xc.PlatformAccount.PrivateKey)
+			if err != nil {
+				return "", err
+			}
+			digestHash, dhErr := txhash.MakeTxDigestHash(tx)
+			if dhErr != nil {
+				return "", dhErr
+			}
+			platformSign, err := cryptoClient.SignECDSA(platformPrivateKey, digestHash)
+			if err != nil {
+				return "", err
+			}
+			platformSignatureInfo := &pb.SignatureInfo{
+				PublicKey: xc.PlatformAccount.PublicKey,
+				Sign:      platformSign,
+			}
+
+			tx.AuthRequireSigns = append(tx.AuthRequireSigns, platformSignatureInfo)
+		}
+
+		tx.Txid, _ = txhash.MakeTransactionID(tx)
+
+	} else {
+		// only GenRealTx is needed
+		// 如果不需要进行合规性背书
+		tx, err = xc.GenRealTxOnly(preExeResp, hdPublicKey)
+		if err != nil {
+			log.Printf("GenRealTxOnly failed, err: %v", err)
+			return "", err
+		}
+
 	}
-	log.Printf("ComplianceCheck txid: %v\n", hex.EncodeToString(complianceCheckTx.Txid))
 
-	tx, err := xc.GenRealTx(preExeResp, complianceCheckTx)
-	if err != nil {
-		log.Printf("GenRealTx failed, err: %v", err)
-		return "", err
-	}
+	//	txJSON, _ := json.Marshal(tx)
+	//	log.Printf("tx is: %s", txJSON)
 
-	endorserSign, err := xc.ComplianceCheck(tx, complianceCheckTx)
-	if err != nil {
-		return "", err
-	}
+	return xc.PostTx(tx)
 
-	tx.AuthRequireSigns = append(tx.AuthRequireSigns, endorserSign)
-
-	tx.Txid, _ = txhash.MakeTransactionID(tx)
-
-	err = xc.PostTx(tx)
-	if err != nil {
-		return "", err
-	}
-
-	log.Printf("Real txid: %v\n", hex.EncodeToString(tx.Txid))
-	return hex.EncodeToString(tx.Txid), nil
 }
 
 // GetBalanceDetail get unfrozen balance and frozen balance
@@ -520,6 +842,6 @@ func (xc *Xchain) PreExec() (*pb.InvokeRPCResponse, error) {
 		}
 		log.Printf("contract response: %s\n", string(res.Body))
 	}
-	log.Printf("Fee will cost: %v\n", preExeRPCRes.GetResponse().GetGasUsed())
+	log.Printf("Gas will cost: %v\n", preExeRPCRes.GetResponse().GetGasUsed())
 	return preExeRPCRes, nil
 }

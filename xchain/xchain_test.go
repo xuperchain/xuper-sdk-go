@@ -31,7 +31,7 @@ func initXchain() *Xchain {
 
 	return &Xchain{
 		Cfg:       commConfig,
-		XchainSer: "127.0.0.1:37201",
+		XchainSer: "127.0.0.1:37801",
 		ChainName: "xuper",
 		Account:   acc,
 	}

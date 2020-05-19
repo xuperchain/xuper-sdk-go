@@ -7,14 +7,13 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"log"
+	"strconv"
 
 	"github.com/golang/protobuf/proto"
-	"github.com/xuperchain/xuperchain/core/pb"
-
-	"strconv"
 
 	"github.com/xuperchain/xuper-sdk-go/account"
 	"github.com/xuperchain/xuper-sdk-go/config"
+	"github.com/xuperchain/xuper-sdk-go/pb"
 	"github.com/xuperchain/xuper-sdk-go/xchain"
 )
 
@@ -61,7 +60,6 @@ func (c *WasmContract) PreDeployWasmContract(arg map[string]string, codepath str
 
 	authRequires := []string{}
 	authRequires = append(authRequires, c.ContractAccount+"/"+c.Account.Address)
-	authRequires = append(authRequires, c.Cfg.ComplianceCheck.ComplianceCheckEndorseServiceAddr)
 
 	invokeRPCReq := &pb.InvokeRPCRequest{
 		Bcname:      c.ChainName,
@@ -69,10 +67,26 @@ func (c *WasmContract) PreDeployWasmContract(arg map[string]string, codepath str
 		Initiator:   c.Account.Address,
 		AuthRequire: authRequires,
 	}
+
+	extraAmount := int64(0)
+
+	// if ComplianceCheck is needed
+	if c.Cfg.ComplianceCheck.IsNeedComplianceCheck == true {
+		authRequires = append(authRequires, c.Cfg.ComplianceCheck.ComplianceCheckEndorseServiceAddr)
+		invokeRPCReq.AuthRequire = authRequires
+
+		//		extraAmount = int64(c.Cfg.ComplianceCheck.ComplianceCheckEndorseServiceFee)
+		// 是否需要支付合规性背书费用
+		if c.Cfg.ComplianceCheck.IsNeedComplianceCheckFee == true {
+			extraAmount = int64(c.Cfg.ComplianceCheck.ComplianceCheckEndorseServiceFee)
+		}
+	}
+
 	preSelUTXOReq := &pb.PreExecWithSelectUTXORequest{
-		Bcname:      c.ChainName,
-		Address:     c.Account.Address,
-		TotalAmount: int64(c.Cfg.ComplianceCheck.ComplianceCheckEndorseServiceFee),
+		Bcname:  c.ChainName,
+		Address: c.Account.Address,
+		//		TotalAmount: int64(c.Cfg.ComplianceCheck.ComplianceCheckEndorseServiceFee),
+		TotalAmount: extraAmount,
 		Request:     invokeRPCReq,
 	}
 	c.InvokeRPCReq = invokeRPCReq
@@ -89,15 +103,21 @@ func (c *WasmContract) PostWasmContract(preExeWithSelRes *pb.PreExecWithSelectUT
 	if c.ContractAccount != "" {
 		authRequires = append(authRequires, c.ContractAccount+"/"+c.Account.Address)
 	}
-	authRequires = append(authRequires, c.Cfg.ComplianceCheck.ComplianceCheckEndorseServiceAddr)
+
+	// if ComplianceCheck is needed
+	if c.Cfg.ComplianceCheck.IsNeedComplianceCheck == true {
+		authRequires = append(authRequires, c.Cfg.ComplianceCheck.ComplianceCheckEndorseServiceAddr)
+	}
+
 	c.Initiator = c.Account.Address
 	c.AuthRequire = authRequires
 	c.InvokeRPCReq = nil
 	c.PreSelUTXOReq = nil
 	c.Fee = strconv.Itoa(int(preExeWithSelRes.Response.GasUsed))
-	c.Amount = "0"
+	//	c.Amount = "0"
+	c.TotalToAmount = "0"
 
-	return c.GenCompleteTxAndPost(preExeWithSelRes)
+	return c.GenCompleteTxAndPost(preExeWithSelRes, "")
 }
 
 // InvokeWasmContract invoke wasm contract by method name
@@ -123,7 +143,6 @@ func (c *WasmContract) PreInvokeWasmContract(methodName string, args map[string]
 	if c.ContractAccount != "" {
 		authRequires = append(authRequires, c.ContractAccount+"/"+c.Account.Address)
 	}
-	authRequires = append(authRequires, c.Cfg.ComplianceCheck.ComplianceCheckEndorseServiceAddr)
 
 	invokeRPCReq := &pb.InvokeRPCRequest{
 		Bcname:      c.ChainName,
@@ -131,10 +150,25 @@ func (c *WasmContract) PreInvokeWasmContract(methodName string, args map[string]
 		Initiator:   c.Account.Address,
 		AuthRequire: authRequires,
 	}
+
+	extraAmount := int64(0)
+
+	// if ComplianceCheck is needed
+	if c.Cfg.ComplianceCheck.IsNeedComplianceCheck == true {
+		authRequires = append(authRequires, c.Cfg.ComplianceCheck.ComplianceCheckEndorseServiceAddr)
+		invokeRPCReq.AuthRequire = authRequires
+
+		//		extraAmount = int64(c.Cfg.ComplianceCheck.ComplianceCheckEndorseServiceFee)
+		// 是否需要支付合规性背书费用
+		if c.Cfg.ComplianceCheck.IsNeedComplianceCheckFee == true {
+			extraAmount = int64(c.Cfg.ComplianceCheck.ComplianceCheckEndorseServiceFee)
+		}
+	}
+
 	preSelUTXOReq := &pb.PreExecWithSelectUTXORequest{
 		Bcname:      c.ChainName,
 		Address:     c.Account.Address,
-		TotalAmount: int64(c.Cfg.ComplianceCheck.ComplianceCheckEndorseServiceFee),
+		TotalAmount: extraAmount,
 		Request:     invokeRPCReq,
 	}
 	c.InvokeRPCReq = invokeRPCReq
