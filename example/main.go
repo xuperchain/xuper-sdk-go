@@ -19,8 +19,9 @@ import (
 // define blockchain node and blockchain name
 var (
 	contractName = "counter"
-	node         = "127.0.0.1:37801"
-	bcname       = "xuper"
+	node         = "14.215.179.74:37101"
+	//	node         = "127.0.0.1:37801"
+	bcname = "xuper"
 )
 
 func testAccount() {
@@ -512,18 +513,18 @@ func testDecryptedTx() {
 }
 
 func main() {
-	//	testAccount()
-	testTransfer()
+	testAccount()
+	//	testTransfer()
 	//	testTransferByPlatform()
 	// TODO 广播交易，同时对desc使用分层确定性技术对desc进行加密
 	//	testEncryptedTransfer()
 	//	testBatchTransfer()
-	testBatchTransferByPlatform()
+	//	testBatchTransferByPlatform()
 	//	testContractAccount()
 	//	testDeployWasmContract()
 	//	testInvokeWasmContract()
 	//	testQueryWasmContract()
-	//	testGetBalance()
+	testGetBalance()
 	//	testGetMultiChainBalance()
 	//	testQueryTx()
 	// TODO 查询交易，同时对desc使用分层确定性技术对desc进行加密
