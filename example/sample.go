@@ -11,7 +11,8 @@ import (
 
 // define blockchain node and blockchain name
 var (
-	node   = "39.156.69.83:37100"
+	node = "14.215.179.74:37101"
+	//	node   = "127.0.0.1:37801"
 	bcname = "xuper"
 )
 
@@ -28,19 +29,6 @@ func createAccount() (string, error) {
 	fmt.Println(acc.Mnemonic)
 
 	return acc.Mnemonic, nil
-}
-
-func usingAccount() (*account.Account, error) {
-	// load your account from the private key and secure code you download from xuper.baidu.com
-	// Note that put the downloaded private key file at path "./keys/private.key"
-	acc, err := account.GetAccountFromFile("./keys/", "your secure code")
-	if err != nil {
-		return nil, fmt.Errorf("create account error: %v\n", err)
-	}
-	// print the account, mnemonics
-	fmt.Println(acc.Address)
-
-	return acc, nil
 }
 
 func getBalance(mnemonic string) {

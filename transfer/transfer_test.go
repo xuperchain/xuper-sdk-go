@@ -16,7 +16,7 @@ func TestTransfer(t *testing.T) {
 	}
 	t.Logf("RetrieveAccount: %v\n", acc)
 
-	node := "127.0.0.1:37201"
+	node := "127.0.0.1:37801"
 	bcname := "xuper"
 	trans := InitTrans(acc, node, bcname)
 

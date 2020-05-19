@@ -4,22 +4,36 @@
 package crypto
 
 import (
-	"github.com/xuperchain/xuperchain/core/crypto/client/base"
-	gmclient "github.com/xuperchain/xuperchain/core/crypto/client/gm/gmclient"
-	xchain "github.com/xuperchain/xuperchain/core/crypto/client/xchain"
-	"github.com/xuperchain/xuper-sdk-go/config"
+	//	"github.com/xuperchain/crypto/client/service/gm"
+	"github.com/xuperchain/crypto/client/service/xchain"
+	//	"github.com/xuperchain/xuper-sdk-go/config"
+	//	"github.com/xuperchain/xuperchain/core/crypto/client/base"
 )
 
-func getInstance() interface{} {
-	if config.GetInstance().Crypto == "gm" {
-		return &gmclient.GmCryptoClient{}
-	} else {
-		return &xchain.XchainCryptoClient{}
-	}
+//func getInstance() interface{} {
+//	// @todo 更新xchain crypto的依赖到crypto库
+//	switch config.GetInstance().Crypto {
+//	case config.CRYPTO_XCHAIN:
+//		return &eccdefault.XchainCryptoClient{}
+//	case config.CRYPTO_GM:
+//		return &gm.GmCryptoClient{}
+//	default:
+//		return &eccdefault.XchainCryptoClient{}
+//	}
+//}
+//
+//// GetCryptoClient get crypto client
+//func GetCryptoClient() base.CryptoClient {
+//	cryptoClient := getInstance().(base.CryptoClient)
+//	return cryptoClient
+//}
+
+// GetCryptoClient get crypto client
+func GetCryptoClient() *xchain.XchainCryptoClient {
+	return &xchain.XchainCryptoClient{}
 }
 
 // GetCryptoClient get crypto client
-func GetCryptoClient() base.CryptoClient {
-	cryptoClient := getInstance().(base.CryptoClient)
-	return cryptoClient
+func GetXchainCryptoClient() *xchain.XchainCryptoClient {
+	return &xchain.XchainCryptoClient{}
 }

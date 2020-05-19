@@ -11,8 +11,7 @@ endif
 all: build
 export GO111MODULE=on
 export GOFLAGS=-mod=vendor
-XCHAIN_ROOT := ${PWD}
-export XCHAIN_ROOT
+export OUTPUT=./output
 
 build:
 	PLATFORM=$(PLATFORM) ./build.sh
@@ -26,6 +25,7 @@ test:
 	go test github.com/xuperchain/xuper-sdk-go/xchain
 
 clean:
+	rm -rf main
 	rm -rf sample
 
 .PHONY: all test clean
