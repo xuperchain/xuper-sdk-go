@@ -7,11 +7,10 @@ import (
 	"regexp"
 	"strconv"
 
-	"github.com/xuperchain/xuperchain/core/pb"
-
 	"github.com/xuperchain/xuper-sdk-go/account"
 	"github.com/xuperchain/xuper-sdk-go/common"
 	"github.com/xuperchain/xuper-sdk-go/config"
+	"github.com/xuperchain/xuper-sdk-go/pb"
 	"github.com/xuperchain/xuper-sdk-go/xchain"
 )
 
@@ -62,18 +61,34 @@ func (ca *ContractAccount) PreCreateContractAccount(contractAccount string) (*pb
 	invokeRequests = append(invokeRequests, invokeRequest)
 
 	authRequires := []string{}
-	authRequires = append(authRequires, ca.Cfg.ComplianceCheck.ComplianceCheckEndorseServiceAddr)
 
 	invokeRPCReq := &pb.InvokeRPCRequest{
-		Bcname:      ca.ChainName,
-		Requests:    invokeRequests,
-		Initiator:   ca.Account.Address,
-		AuthRequire: authRequires,
+		Bcname:    ca.ChainName,
+		Requests:  invokeRequests,
+		Initiator: ca.Account.Address,
+		//		AuthRequire: authRequires,
 	}
+
+	extraAmount := int64(0)
+
+	// if ComplianceCheck is needed
+	// 是否需要进行合规性背书
+	if ca.Cfg.ComplianceCheck.IsNeedComplianceCheck == true {
+		authRequires = append(authRequires, ca.Cfg.ComplianceCheck.ComplianceCheckEndorseServiceAddr)
+		invokeRPCReq.AuthRequire = authRequires
+
+		// 是否需要支付合规性背书费用
+		if ca.Cfg.ComplianceCheck.IsNeedComplianceCheckFee == true {
+			extraAmount = int64(ca.Cfg.ComplianceCheck.ComplianceCheckEndorseServiceFee)
+		}
+
+	}
+
 	preSelUTXOReq := &pb.PreExecWithSelectUTXORequest{
-		Bcname:      ca.ChainName,
-		Address:     ca.Account.Address,
-		TotalAmount: int64(ca.Cfg.ComplianceCheck.ComplianceCheckEndorseServiceFee),
+		Bcname:  ca.ChainName,
+		Address: ca.Account.Address,
+		//		TotalAmount: int64(ca.Cfg.ComplianceCheck.ComplianceCheckEndorseServiceFee),
+		TotalAmount: extraAmount,
 		Request:     invokeRPCReq,
 	}
 	ca.InvokeRPCReq = invokeRPCReq
@@ -85,17 +100,21 @@ func (ca *ContractAccount) PreCreateContractAccount(contractAccount string) (*pb
 
 // PostCreateContractAccount generate complete Tx and post to create contract account
 func (ca *ContractAccount) PostCreateContractAccount(preExeResp *pb.PreExecWithSelectUTXOResponse) (string, error) {
-	// populates fields
 	authRequires := []string{}
-	authRequires = append(authRequires, ca.Cfg.ComplianceCheck.ComplianceCheckEndorseServiceAddr)
+	// if ComplianceCheck is needed
+	if ca.Cfg.ComplianceCheck.IsNeedComplianceCheck == true {
+		authRequires = append(authRequires, ca.Cfg.ComplianceCheck.ComplianceCheckEndorseServiceAddr)
+	}
+
 	ca.Initiator = ca.Account.Address
 	ca.Fee = strconv.Itoa(int(preExeResp.Response.GasUsed))
-	ca.Amount = "0"
+	//	ca.Amount = "0"
+	ca.TotalToAmount = "0"
 	ca.AuthRequire = authRequires
 	ca.InvokeRPCReq = nil
 	ca.PreSelUTXOReq = nil
 
-	return ca.GenCompleteTxAndPost(preExeResp)
+	return ca.GenCompleteTxAndPost(preExeResp, "")
 }
 
 func generateInvokeRequest(contractAccount, address string) *pb.InvokeRequest {
