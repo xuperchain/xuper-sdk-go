@@ -162,3 +162,20 @@ func encodeTxData(tx *pb.Transaction, includeSigns bool) ([]byte, error) {
 	}
 	return buf.Bytes(), nil
 }
+
+// ProcessSignTx 签名Tx
+func ProcessSignTx(cryptoClient crypto_base.CryptoClient, tx *pb.Transaction, jsonSK []byte) ([]byte, error) {
+    privateKey, err := cryptoClient.GetEcdsaPrivateKeyFromJSON(jsonSK)
+    if err != nil {
+        return nil, err
+    }
+    digestHash, dhErr := MakeTxDigestHash(tx)
+    if dhErr != nil {
+        return nil, dhErr
+    }
+    sign, sErr := cryptoClient.SignECDSA(privateKey, digestHash)
+    if sErr != nil {
+        return nil, sErr
+    }
+    return sign, nil
+}
