@@ -11,13 +11,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/xuperchain/xuperchain/core/pb"
-	"github.com/xuperchain/xuperchain/core/utxo/txhash"
-
 	"github.com/xuperchain/xuper-sdk-go/account"
 	"github.com/xuperchain/xuper-sdk-go/common"
 	"github.com/xuperchain/xuper-sdk-go/config"
 	"github.com/xuperchain/xuper-sdk-go/crypto"
+	"github.com/xuperchain/xuper-sdk-go/pb"
+	"github.com/xuperchain/xuper-sdk-go/txhash"
 )
 
 func initXchain() *Xchain {

@@ -1,82 +1,93 @@
-# github.com/btcsuite/btcutil v0.0.0-20190425235716-9e5f4b9a998d
-github.com/btcsuite/btcutil/base58
 # github.com/golang/protobuf v1.3.2
 github.com/golang/protobuf/proto
-github.com/golang/protobuf/jsonpb
-github.com/golang/protobuf/protoc-gen-go/generator
+github.com/golang/protobuf/protoc-gen-go/descriptor
+github.com/golang/protobuf/ptypes
 github.com/golang/protobuf/ptypes/any
 github.com/golang/protobuf/ptypes/duration
 github.com/golang/protobuf/ptypes/timestamp
-github.com/golang/protobuf/ptypes/wrappers
-github.com/golang/protobuf/protoc-gen-go/descriptor
-github.com/golang/protobuf/ptypes
-github.com/golang/protobuf/ptypes/struct
-github.com/golang/protobuf/protoc-gen-go/generator/internal/remap
-github.com/golang/protobuf/protoc-gen-go/plugin
-# github.com/grpc-ecosystem/grpc-gateway v1.9.2
-github.com/grpc-ecosystem/grpc-gateway/runtime
-github.com/grpc-ecosystem/grpc-gateway/utilities
-github.com/grpc-ecosystem/grpc-gateway/internal
-# github.com/xuperchain/crypto v0.0.0-20200426114657-3fb35433f4b6
+# github.com/xuperchain/crypto v0.0.0-20200701044454-40fff89406a7
+github.com/xuperchain/crypto/client/service/base
 github.com/xuperchain/crypto/client/service/gm
-github.com/xuperchain/crypto/gm/hash
+github.com/xuperchain/crypto/client/service/xchain
+github.com/xuperchain/crypto/common/account
+github.com/xuperchain/crypto/core/account
+github.com/xuperchain/crypto/core/aes
+github.com/xuperchain/crypto/core/base58
+github.com/xuperchain/crypto/core/common
+github.com/xuperchain/crypto/core/config
+github.com/xuperchain/crypto/core/ecies
+github.com/xuperchain/crypto/core/ecies/libecies
+github.com/xuperchain/crypto/core/hash
+github.com/xuperchain/crypto/core/hdwallet/api
+github.com/xuperchain/crypto/core/hdwallet/key
+github.com/xuperchain/crypto/core/hdwallet/keychain
+github.com/xuperchain/crypto/core/hdwallet/rand
+github.com/xuperchain/crypto/core/hdwallet/wordlist
+github.com/xuperchain/crypto/core/multisign
+github.com/xuperchain/crypto/core/schnorr_ring_sign
+github.com/xuperchain/crypto/core/schnorr_sign
+github.com/xuperchain/crypto/core/secret_share/big_polynomial
+github.com/xuperchain/crypto/core/secret_share/complex_secret_share
+github.com/xuperchain/crypto/core/sign
+github.com/xuperchain/crypto/core/signature
+github.com/xuperchain/crypto/core/utils
+github.com/xuperchain/crypto/gm/account
+github.com/xuperchain/crypto/gm/aes
+github.com/xuperchain/crypto/gm/base58
+github.com/xuperchain/crypto/gm/common
+github.com/xuperchain/crypto/gm/config
+github.com/xuperchain/crypto/gm/ecies
+github.com/xuperchain/crypto/gm/gmsm/sm2
 github.com/xuperchain/crypto/gm/gmsm/sm3
-# github.com/xuperchain/xuperchain v0.0.0-20200419093647-55878610ad98
-github.com/xuperchain/xuperchain/core/pb
-github.com/xuperchain/xuperchain/core/hdwallet/rand
-github.com/xuperchain/xuperchain/core/crypto/client/base
-github.com/xuperchain/xuperchain/core/crypto/client/xchain
-github.com/xuperchain/xuperchain/core/hdwallet/api
-github.com/xuperchain/xuperchain/core/utxo/txhash
-github.com/xuperchain/xuperchain/core/crypto/hash
-github.com/xuperchain/xuperchain/core/crypto/utils
-github.com/xuperchain/xuperchain/core/hdwallet/wordlist
-github.com/xuperchain/xuperchain/core/crypto/account
-github.com/xuperchain/xuperchain/core/crypto/config
-github.com/xuperchain/xuperchain/core/crypto/multisign
-github.com/xuperchain/xuperchain/core/crypto/common
-github.com/xuperchain/xuperchain/core/crypto/ecies
-github.com/xuperchain/xuperchain/core/crypto/sign
-github.com/xuperchain/xuperchain/core/hdwallet/key
-github.com/xuperchain/xuperchain/core/hdwallet/keychain
-github.com/xuperchain/xuperchain/core/crypto/aes/ecb
-github.com/xuperchain/xuperchain/core/crypto/aes/padding
-github.com/xuperchain/xuperchain/core/crypto/ecies/libecies
-github.com/xuperchain/xuperchain/core/hdwallet/config
-github.com/xuperchain/xuperchain/core/hdwallet/error
+github.com/xuperchain/crypto/gm/hash
+github.com/xuperchain/crypto/gm/hdwallet/api
+github.com/xuperchain/crypto/gm/hdwallet/key
+github.com/xuperchain/crypto/gm/hdwallet/keychain
+github.com/xuperchain/crypto/gm/hdwallet/rand
+github.com/xuperchain/crypto/gm/hdwallet/wordlist
+github.com/xuperchain/crypto/gm/multisign
+github.com/xuperchain/crypto/gm/schnorr_ring_sign
+github.com/xuperchain/crypto/gm/schnorr_sign
+github.com/xuperchain/crypto/gm/secret_share/big_polynomial
+github.com/xuperchain/crypto/gm/secret_share/complex_secret_share
+github.com/xuperchain/crypto/gm/sign
+github.com/xuperchain/crypto/gm/signature
+github.com/xuperchain/crypto/gm/utils
 # golang.org/x/crypto v0.0.0-20200320181102-891825fb96df
 golang.org/x/crypto/pbkdf2
 golang.org/x/crypto/ripemd160
-# golang.org/x/net v0.0.0-20191009170851-d66e71096ffb
-golang.org/x/net/trace
-golang.org/x/net/internal/timeseries
+golang.org/x/crypto/sha3
+# golang.org/x/net v0.0.0-20190404232315-eb5bcb51f2a3
+golang.org/x/net/http/httpguts
 golang.org/x/net/http2
 golang.org/x/net/http2/hpack
-golang.org/x/net/http/httpguts
 golang.org/x/net/idna
-# golang.org/x/sys v0.0.0-20190922100055-0a153f010e69
+golang.org/x/net/internal/timeseries
+golang.org/x/net/trace
+# golang.org/x/sys v0.0.0-20190412213103-97732733099d
+golang.org/x/sys/cpu
 golang.org/x/sys/unix
-# golang.org/x/text v0.3.2
+# golang.org/x/text v0.3.0
 golang.org/x/text/secure/bidirule
+golang.org/x/text/transform
 golang.org/x/text/unicode/bidi
 golang.org/x/text/unicode/norm
-golang.org/x/text/transform
-# google.golang.org/genproto v0.0.0-20191009194640-548a555dbc03
+# google.golang.org/genproto v0.0.0-20190927181202-20e1ac93f88c
 google.golang.org/genproto/googleapis/api/annotations
-google.golang.org/genproto/googleapis/api/httpbody
-google.golang.org/genproto/protobuf/field_mask
 google.golang.org/genproto/googleapis/rpc/status
 # google.golang.org/grpc v1.24.0
 google.golang.org/grpc
-google.golang.org/grpc/codes
-google.golang.org/grpc/grpclog
-google.golang.org/grpc/status
 google.golang.org/grpc/balancer
+google.golang.org/grpc/balancer/base
 google.golang.org/grpc/balancer/roundrobin
+google.golang.org/grpc/binarylog/grpc_binarylog_v1
+google.golang.org/grpc/codes
 google.golang.org/grpc/connectivity
 google.golang.org/grpc/credentials
+google.golang.org/grpc/credentials/internal
 google.golang.org/grpc/encoding
 google.golang.org/grpc/encoding/proto
+google.golang.org/grpc/grpclog
 google.golang.org/grpc/internal
 google.golang.org/grpc/internal/backoff
 google.golang.org/grpc/internal/balancerload
@@ -85,6 +96,7 @@ google.golang.org/grpc/internal/channelz
 google.golang.org/grpc/internal/envconfig
 google.golang.org/grpc/internal/grpcrand
 google.golang.org/grpc/internal/grpcsync
+google.golang.org/grpc/internal/syscall
 google.golang.org/grpc/internal/transport
 google.golang.org/grpc/keepalive
 google.golang.org/grpc/metadata
@@ -95,10 +107,7 @@ google.golang.org/grpc/resolver/dns
 google.golang.org/grpc/resolver/passthrough
 google.golang.org/grpc/serviceconfig
 google.golang.org/grpc/stats
+google.golang.org/grpc/status
 google.golang.org/grpc/tap
-google.golang.org/grpc/balancer/base
-google.golang.org/grpc/credentials/internal
-google.golang.org/grpc/binarylog/grpc_binarylog_v1
-google.golang.org/grpc/internal/syscall
-# gopkg.in/yaml.v2 v2.2.4
+# gopkg.in/yaml.v2 v2.3.0
 gopkg.in/yaml.v2

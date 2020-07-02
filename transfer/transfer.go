@@ -308,7 +308,7 @@ func (t *Trans) QueryTx(txid string) (*pb.TxStatus, error) {
 
 // QueryTx query tx to get detail information
 func (t *Trans) DecryptedTx(tx *pb.Transaction, privateAncestorKey string) (string, error) {
-	cryptoClient := crypto.GetCryptoClient()
+	cryptoClient := crypto.GetXchainCryptoClient()
 
 	originalDesc, err := cryptoClient.DecryptByHdKey(string(tx.HDInfo.HdPublicKey), privateAncestorKey, string(tx.Desc))
 	if err != nil {
