@@ -40,6 +40,7 @@ func testAccount() {
 	acc, err = account.RetrieveAccount("玉 脸 驱 协 介 跨 尔 籍 杆 伏 愈 即", 1)
 	if err != nil {
 		fmt.Printf("retrieveAccount err: %v\n", err)
+		return
 	}
 	fmt.Printf("RetrieveAccount: to %v\n", acc)
 
@@ -64,6 +65,7 @@ func testContractAccount() {
 	account, err := account.RetrieveAccount("玉 脸 驱 协 介 跨 尔 籍 杆 伏 愈 即", 1)
 	if err != nil {
 		fmt.Printf("retrieveAccount err: %v\n", err)
+		return
 	}
 
 	fmt.Printf("retrieveAccount address: %v\n", account.Address)
@@ -104,6 +106,7 @@ func testTransfer() {
 	acc, err := account.RetrieveAccount("玉 脸 驱 协 介 跨 尔 籍 杆 伏 愈 即", 1)
 	if err != nil {
 		fmt.Printf("retrieveAccount err: %v\n", err)
+		return
 	}
 	fmt.Printf("account: %v\n", acc)
 
@@ -129,6 +132,7 @@ func testTransferByPlatform() {
 	acc, err := account.RetrieveAccount("玉 脸 驱 协 介 跨 尔 籍 杆 伏 愈 即", 1)
 	if err != nil {
 		fmt.Printf("retrieveAccount err: %v\n", err)
+		return
 	}
 	fmt.Printf("account: %v\n", acc)
 
@@ -161,6 +165,7 @@ func testEncryptedTransfer() {
 	acc, err := account.RetrieveAccount("玉 脸 驱 协 介 跨 尔 籍 杆 伏 愈 即", 1)
 	if err != nil {
 		fmt.Printf("retrieveAccount err: %v\n", err)
+		return
 	}
 	fmt.Printf("account: %v\n", acc)
 
@@ -203,6 +208,7 @@ func testBatchTransfer() {
 	acc, err := account.RetrieveAccount("玉 脸 驱 协 介 跨 尔 籍 杆 伏 愈 即", 1)
 	if err != nil {
 		fmt.Printf("retrieveAccount err: %v\n", err)
+		return
 	}
 	fmt.Printf("account: %v\n", acc)
 
@@ -236,6 +242,7 @@ func testBatchTransferByPlatform() {
 	acc, err := account.RetrieveAccount("玉 脸 驱 协 介 跨 尔 籍 杆 伏 愈 即", 1)
 	if err != nil {
 		fmt.Printf("retrieveAccount err: %v\n", err)
+		return
 	}
 	fmt.Printf("account: %v\n", acc)
 
@@ -277,6 +284,7 @@ func testCreateChain() {
 	acc, err := account.RetrieveAccount("玉 脸 驱 协 介 跨 尔 籍 杆 伏 愈 即", 1)
 	if err != nil {
 		fmt.Printf("retrieveAccount err: %v\n", err)
+		return
 	}
 	fmt.Printf("account: %v\n", acc)
 
@@ -324,6 +332,7 @@ func testDeployWasmContract() {
 
 	if err != nil {
 		fmt.Printf("retrieveAccount err: %v\n", err)
+		return
 	}
 	fmt.Printf("account: %v\n", acc)
 
@@ -370,6 +379,7 @@ func testInvokeWasmContract() {
 	acc, err := account.RetrieveAccount("玉 脸 驱 协 介 跨 尔 籍 杆 伏 愈 即", 1)
 	if err != nil {
 		fmt.Printf("retrieveAccount err: %v\n", err)
+		return
 	}
 	fmt.Printf("account: %v\n", acc)
 
@@ -412,6 +422,7 @@ func testQueryWasmContract() {
 	acc, err := account.RetrieveAccount("江 西 伏 物 十 勘 峡 环 初 至 赏 给", 1)
 	if err != nil {
 		fmt.Printf("retrieveAccount err: %v\n", err)
+		return
 	}
 	fmt.Printf("account: %v\n", acc)
 
@@ -444,6 +455,7 @@ func testGetBalance() {
 	acc, err := account.RetrieveAccount("江 西 伏 物 十 勘 峡 环 初 至 赏 给", 1)
 	if err != nil {
 		fmt.Printf("retrieveAccount err: %v\n", err)
+		return
 	}
 	fmt.Printf("account: %v\n", acc)
 
@@ -461,6 +473,7 @@ func testGetMultiChainBalance() {
 	acc, err := account.RetrieveAccount("江 西 伏 物 十 勘 峡 环 初 至 赏 给", 1)
 	if err != nil {
 		fmt.Printf("retrieveAccount err: %v\n", err)
+		return
 	}
 	fmt.Printf("account: %v\n", acc)
 
@@ -501,8 +514,8 @@ func testDecryptedTx() {
 	}
 	encryptedTx := TxStatus.Tx
 
-	xchainCryptoClient := crypto.GetXchainCryptoClient()
-	masterKey, err := xchainCryptoClient.GenerateMasterKeyByMnemonic("玉 脸 驱 协 介 跨 尔 籍 杆 伏 愈 即", 1)
+	cryptoClient := crypto.GetCryptoClient()
+	masterKey, err := cryptoClient.GenerateMasterKeyByMnemonic("玉 脸 驱 协 介 跨 尔 籍 杆 伏 愈 即", 1)
 	if err != nil {
 		fmt.Printf("GenerateMasterKeyByMnemonic err: %v\n", err)
 	}

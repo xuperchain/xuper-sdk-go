@@ -388,7 +388,7 @@ func (xc *Xchain) GenRealTx(response *pb.PreExecWithSelectUTXOResponse,
 
 	//	tx.Desc = []byte(xc.Desc)
 
-	cryptoClient := crypto.GetCryptoClient()
+	cryptoClient := crypto.GetXchainCryptoClient()
 
 	if len(hdPublicKey) == 0 {
 		// 如果不需要HD分层加密功能
@@ -543,8 +543,9 @@ func (xc *Xchain) GenRealTxOnly(response *pb.PreExecWithSelectUTXOResponse, hdPu
 
 		tx.Desc = []byte(cypherText)
 
+		xchainCryptoClient := crypto.GetXchainCryptoClient()
 		// 继续组装HDInfo
-		originalHash := cryptoClient.HashUsingDoubleSha256([]byte(xc.Desc))
+		originalHash := xchainCryptoClient.HashUsingDoubleSha256([]byte(xc.Desc))
 
 		hdInfo := &pb.HDInfo{
 			HdPublicKey:  []byte(hdPublicKey),

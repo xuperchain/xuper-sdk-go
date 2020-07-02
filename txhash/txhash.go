@@ -15,7 +15,7 @@ func MakeTransactionID(tx *pb.Transaction) ([]byte, error) {
 		return nil, err
 	}
 
-	cryptoClient := crypto.GetCryptoClient()
+	cryptoClient := crypto.GetXchainCryptoClient()
 
 	txid := cryptoClient.HashUsingDoubleSha256(coreData)
 
@@ -29,7 +29,7 @@ func MakeTxDigestHash(tx *pb.Transaction) ([]byte, error) {
 		return nil, err
 	}
 
-	cryptoClient := crypto.GetCryptoClient()
+	cryptoClient := crypto.GetXchainCryptoClient()
 
 	txHash := cryptoClient.HashUsingDoubleSha256(coreData)
 
