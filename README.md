@@ -13,25 +13,6 @@ This SDK enables Go developers to build solutions that interact with open chain 
 
 ## Simple use samples
 
-## The first way of use
-
-Xuper-SDK becomes dependency as vendor part, you can use it as your own repository
-
-Get Xuper-SDK example template
-```bash
-git clone https://github.com/xuperchain/xuper-sdk-go-example
-
-cd xuper-sdk-go-example
-```
-
-Run
-```bash
-make
-./sample
-```
-
-## The second way of use
-
 Get Xuper-SDK
 ```bash
 git clone https://github.com/xuperchain/xuper-sdk-go
@@ -72,25 +53,6 @@ SDK可以使go的开发者更好的与XuperUnion的公开链网络进行交互
 * 版本控制工具：Git
 
 ## 使用
-
-### 第一种使用方式
-
-Xuper-SDK将在使用中作为vendor依赖的一部分去提供，这样你可以在repo中去添加更多的自己的应用场景
-
-克隆Xuper-SDK example template
-```bash
-git clone https://github.com/xuperchain/xuper-sdk-go-example
-
-cd xuper-sdk-go-example
-```
-
-运行
-```bash
-make
-./sample
-```
-
-### 第二种使用方式
 
 克隆Xuper-SDK仓库
 ```
