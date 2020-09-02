@@ -846,3 +846,68 @@ func (xc *Xchain) PreExec() (*pb.InvokeRPCResponse, error) {
 	log.Printf("Gas will cost: %v\n", preExeRPCRes.GetResponse().GetGasUsed())
 	return preExeRPCRes, nil
 }
+
+// QueryBlockById get block's status
+func (xc *Xchain) QueryBlockById(blockid string) (*pb.Block, error) {
+	conn, err := grpc.Dial(xc.XchainSer, grpc.WithInsecure(), grpc.WithMaxMsgSize(64<<20-1))
+	if err != nil {
+		log.Printf("QueryBlockById connect xchain err: %v", err)
+		return nil, err
+	}
+	defer conn.Close()
+	ctx, cancel := context.WithTimeout(context.Background(), 15000*time.Millisecond)
+	defer cancel()
+
+	rawBlockid, err := hex.DecodeString(blockid)
+	if err != nil {
+		return nil, fmt.Errorf("blockid format is wrong: %s", blockid)
+	}
+	blockIDPB := &pb.BlockID{
+		Bcname:      xc.ChainName,
+		Blockid:     rawBlockid,
+		NeedContent: true,
+	}
+
+	c := pb.NewXchainClient(conn)
+	res, err := c.GetBlock(ctx, blockIDPB)
+	if err != nil {
+		return nil, err
+	}
+	if res.Header.Error != pb.XChainErrorEnum_SUCCESS {
+		return nil, errors.New(res.Header.Error.String())
+	}
+	if res.Block == nil {
+		return nil, common.ErrBlockNotFound
+	}
+	return res, nil
+}
+
+// QueryBlockByHeight get block's status
+func (xc *Xchain) QueryBlockByHeight(height int64) (*pb.Block, error) {
+	conn, err := grpc.Dial(xc.XchainSer, grpc.WithInsecure(), grpc.WithMaxMsgSize(64<<20-1))
+	if err != nil {
+		log.Printf("QueryBlockById connect xchain err: %v", err)
+		return nil, err
+	}
+	defer conn.Close()
+	ctx, cancel := context.WithTimeout(context.Background(), 15000*time.Millisecond)
+	defer cancel()
+
+	blockHeightPB := &pb.BlockHeight{
+		Bcname: xc.ChainName,
+		Height: height,
+	}
+
+	c := pb.NewXchainClient(conn)
+	res, err := c.GetBlockByHeight(ctx, blockHeightPB)
+	if err != nil {
+		return nil, err
+	}
+	if res.Header.Error != pb.XChainErrorEnum_SUCCESS {
+		return nil, errors.New(res.Header.Error.String())
+	}
+	if res.Block == nil {
+		return nil, common.ErrBlockNotFound
+	}
+	return res, nil
+}

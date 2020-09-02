@@ -18,4 +18,6 @@ var (
 	ErrInvalidContractAccount = errors.New("conrtact account must be numbers of length 16")
 	// ErrAmountNotEnough
 	ErrAmountNotEnough = errors.New("Amount must be bigger than compliancecheck fee which is 10")
+	// ErrBlockNotFound tx is not found
+	ErrBlockNotFound = errors.New("block not found")
 )

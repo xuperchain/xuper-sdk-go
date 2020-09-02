@@ -6,6 +6,7 @@ package transfer
 import (
 	"io/ioutil"
 	"log"
+
 	//	"math/big"
 	"errors"
 	"strconv"
@@ -329,4 +330,14 @@ func (t *Trans) GetBalance() (string, error) {
 		return "", common.ErrInvalidAccount
 	}
 	return t.GetBalanceDetail()
+}
+
+// QueryBlockById query block to get detail information
+func (t *Trans) QueryBlockById(blockid string) (*pb.Block, error) {
+	return t.Xchain.QueryBlockById(blockid)
+}
+
+// QueryBlockByHeight query block to get detail information
+func (t *Trans) QueryBlockByHeight(height int64) (*pb.Block, error) {
+	return t.Xchain.QueryBlockByHeight(height)
 }

@@ -135,3 +135,65 @@ func TestQueryTx(t *testing.T) {
 		t.Logf("Querytx tx: %v, err: %v", tx, err)
 	}
 }
+
+func TestQueryBlockById(t *testing.T) {
+	acc, err := account.RetrieveAccount("江 西 伏 物 十 勘 峡 环 初 至 赏 给", 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Logf("RetrieveAccount: %v\n", acc)
+
+	node := "10.13.32.240:37101"
+	bcname := "xuper"
+	trans := InitTrans(acc, node, bcname)
+
+	testCase := []struct {
+		blockid string
+	}{
+		{
+			blockid: "9e6dad418811cd2f6d33d7a50650e1e610953cf4084cd0759cb4c422916c3e0f",
+		},
+		{
+			blockid: "",
+		},
+		{
+			blockid: "fdsfdsa",
+		},
+	}
+
+	for _, arg := range testCase {
+		block, err := trans.QueryBlockById(arg.blockid)
+		t.Logf("QueryBlockById block: %v, err: %v", block, err)
+	}
+}
+
+func TestQueryBlockByHeight(t *testing.T) {
+	acc, err := account.RetrieveAccount("江 西 伏 物 十 勘 峡 环 初 至 赏 给", 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Logf("RetrieveAccount: %v\n", acc)
+
+	node := "10.13.32.240:37101"
+	bcname := "xuper"
+	trans := InitTrans(acc, node, bcname)
+
+	testCase := []struct {
+		height int64
+	}{
+		{
+			height: 1,
+		},
+		{
+			height: 0,
+		},
+		{
+			height: -1,
+		},
+	}
+
+	for _, arg := range testCase {
+		block, err := trans.QueryBlockByHeight(arg.height)
+		t.Logf("QueryBlockByHeight block: %v, err: %v", block, err)
+	}
+}
