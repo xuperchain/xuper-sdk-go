@@ -93,7 +93,9 @@ func (c *Chain) CreateChain(desc string) (string, error) {
 		return "", err
 	}
 
-	log.Printf("Real txid: %v\n", txid)
+	if c.Cfg.Debug {
+		log.Printf("Real txid: %v\n", txid)
+	}
 	return txid, nil
 }
 

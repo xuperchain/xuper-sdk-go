@@ -25,6 +25,7 @@ type CommConfig struct {
 	ComplianceCheck    ComplianceCheckConfig `yaml:"complianceCheck,omitempty"`
 	MinNewChainAmount  string                `yaml:"minNewChainAmount,omitempty"`
 	Crypto             string                `yaml:"crypto,omitempty"`
+	Debug              bool                  `yaml:"debug,omitempty"`
 }
 
 const confPath = "./conf"
@@ -53,6 +54,7 @@ func GetConfig(configPath string, confName string) *CommConfig {
 		},
 		MinNewChainAmount: "100",
 		Crypto:            CRYPTO_XCHAIN,
+		Debug:             true,
 	}
 
 	filename := configPath + "/" + confName
@@ -66,7 +68,9 @@ func GetConfig(configPath string, confName string) *CommConfig {
 		log.Fatalf("Config Unmarshal error: %v", err)
 	}
 
-	log.Printf("GetConfig: %v\n", commConfig)
+	if commConfig.Debug {
+		log.Printf("GetConfig: %v\n", commConfig)
+	}
 	return commConfig
 }
 
@@ -80,6 +84,7 @@ func SetConfig(checkHost, checkAddr, checkFeeAddr, checkFee string, isNeedCheck,
 		},
 		MinNewChainAmount: "100",
 		Crypto:            CRYPTO_XCHAIN,
+		Debug:             true,
 	}
 	if checkHost != "" {
 		commConfig.EndorseServiceHost = checkHost

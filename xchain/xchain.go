@@ -84,12 +84,16 @@ func (xc *Xchain) PreExecWithSelecUTXO() (*pb.PreExecWithSelectUTXOResponse, err
 		return nil, err
 	}
 
-	log.Printf("Gas will cost: %v\n", preExecWithSelectUTXOResponse.GetResponse().GetGasUsed())
+	if xc.Cfg.Debug {
+		log.Printf("Gas will cost: %v\n", preExecWithSelectUTXOResponse.GetResponse().GetGasUsed())
+	}
 	for _, res := range preExecWithSelectUTXOResponse.GetResponse().GetResponses() {
 		if res.Status >= 400 {
 			return nil, fmt.Errorf("contract error status:%d message:%s", res.Status, res.Message)
 		}
-		log.Printf("contract response: %s\n", string(res.Body))
+		if xc.Cfg.Debug {
+			log.Printf("contract response: %s\n", string(res.Body))
+		}
 	}
 
 	return preExecWithSelectUTXOResponse, nil
@@ -698,8 +702,9 @@ func (xc *Xchain) GenCompleteTxAndPost(preExeResp *pb.PreExecWithSelectUTXORespo
 				log.Printf("GenCompleteTxAndPost GenComplianceCheckTx failed, err: %v", err)
 				return "", err
 			}
-			log.Printf("ComplianceCheck txid: %v\n", hex.EncodeToString(complianceCheckTx.Txid))
-
+			if xc.Cfg.Debug {
+				log.Printf("ComplianceCheck txid: %v\n", hex.EncodeToString(complianceCheckTx.Txid))
+			}
 			tx, err = xc.GenRealTx(preExeResp, complianceCheckTx, hdPublicKey)
 			if err != nil {
 				log.Printf("GenRealTx failed, err: %v", err)
@@ -841,9 +846,13 @@ func (xc *Xchain) PreExec() (*pb.InvokeRPCResponse, error) {
 		if res.Status >= 400 {
 			return nil, fmt.Errorf("contract error status:%d message:%s", res.Status, res.Message)
 		}
-		log.Printf("contract response: %s\n", string(res.Body))
+		if xc.Cfg.Debug {
+			log.Printf("contract response: %s\n", string(res.Body))
+		}
 	}
-	log.Printf("Gas will cost: %v\n", preExeRPCRes.GetResponse().GetGasUsed())
+	if xc.Cfg.Debug {
+		log.Printf("Gas will cost: %v\n", preExeRPCRes.GetResponse().GetGasUsed())
+	}
 	return preExeRPCRes, nil
 }
 
