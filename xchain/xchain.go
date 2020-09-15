@@ -920,3 +920,64 @@ func (xc *Xchain) QueryBlockByHeight(height int64) (*pb.Block, error) {
 	}
 	return res, nil
 }
+
+// QueryAccountAcl get account's acl
+func (xc *Xchain) QueryAccountAcl(contractAccount string) (*pb.AclStatus, error) {
+	conn, err := grpc.Dial(xc.XchainSer, grpc.WithInsecure(), grpc.WithMaxMsgSize(64<<20-1))
+	if err != nil {
+		log.Printf("QueryAccountAcl connect xchain err: %v", err)
+		return nil, err
+	}
+	defer conn.Close()
+	ctx, cancel := context.WithTimeout(context.Background(), 15000*time.Millisecond)
+	defer cancel()
+
+	aclStatus := &pb.AclStatus{
+		Bcname:      xc.ChainName,
+		AccountName: contractAccount,
+	}
+
+	c := pb.NewXchainClient(conn)
+	res, err := c.QueryACL(ctx, aclStatus)
+	if err != nil {
+		return nil, err
+	}
+	if res.Header.Error != pb.XChainErrorEnum_SUCCESS {
+		return nil, errors.New(res.Header.Error.String())
+	}
+	if res.Acl == nil {
+		return nil, common.ErrAclNotFound
+	}
+	return res, nil
+}
+
+// QueryMethodAcl get method's acl
+func (xc *Xchain) QueryMethodAcl(contractName, methodName string) (*pb.AclStatus, error) {
+	conn, err := grpc.Dial(xc.XchainSer, grpc.WithInsecure(), grpc.WithMaxMsgSize(64<<20-1))
+	if err != nil {
+		log.Printf("QueryMethodAcl connect xchain err: %v", err)
+		return nil, err
+	}
+	defer conn.Close()
+	ctx, cancel := context.WithTimeout(context.Background(), 15000*time.Millisecond)
+	defer cancel()
+
+	aclStatus := &pb.AclStatus{
+		Bcname:       xc.ChainName,
+		ContractName: contractName,
+		MethodName:   methodName,
+	}
+
+	c := pb.NewXchainClient(conn)
+	res, err := c.QueryACL(ctx, aclStatus)
+	if err != nil {
+		return nil, err
+	}
+	if res.Header.Error != pb.XChainErrorEnum_SUCCESS {
+		return nil, errors.New(res.Header.Error.String())
+	}
+	if res.Acl == nil {
+		return nil, common.ErrAclNotFound
+	}
+	return res, nil
+}

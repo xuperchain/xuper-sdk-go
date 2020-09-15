@@ -20,4 +20,6 @@ var (
 	ErrAmountNotEnough = errors.New("Amount must be bigger than compliancecheck fee which is 10")
 	// ErrBlockNotFound tx is not found
 	ErrBlockNotFound = errors.New("block not found")
+	// ErrAclNotFound acl is not found
+	ErrAclNotFound = errors.New("acl not found")
 )
