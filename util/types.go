@@ -4,6 +4,7 @@ package util
 import (
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	"math/big"
 
 	"github.com/xuperchain/xuper-sdk-go/pb"
@@ -477,4 +478,12 @@ type ContractDesc struct {
 	Method  string      `json:"method"`
 	Args    interface{} `json:"args"`
 	Trigger TriggerDesc `json:"trigger"`
+}
+
+func Print(v interface{}) {
+	output, err := json.MarshalIndent(v, "", "  ")
+	if err != nil {
+		return
+	}
+	fmt.Println(string(output))
 }
