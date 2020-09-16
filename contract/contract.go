@@ -17,13 +17,18 @@ import (
 	"github.com/xuperchain/xuper-sdk-go/xchain"
 )
 
+const (
+	deploy  = "Deploy"
+	upgrade = "Upgrade"
+)
+
 // WasmContract wasmContract structure
 type WasmContract struct {
 	ContractName string
 	xchain.Xchain
 }
 
-// InitWasmContract init a client to deploy/invoke/query a wasm contract
+// InitWasmContract init a client to deploy/upgrade/invoke/query a wasm contract
 func InitWasmContract(account *account.Account, node, bcName, contractName, contractAccount string) *WasmContract {
 	commConfig := config.GetInstance()
 
@@ -40,9 +45,9 @@ func InitWasmContract(account *account.Account, node, bcName, contractName, cont
 }
 
 // DeployWasmContract deploy a wasm contract
-func (c *WasmContract) DeployWasmContract(args map[string]string, codepath string, runtime string) (string, error) {
+func (c *WasmContract) DeployWasmContract(args map[string]string, codepath, runtime string) (string, error) {
 	// preExe
-	preSelectUTXOResponse, err := c.PreDeployWasmContract(args, codepath, runtime)
+	preSelectUTXOResponse, err := c.PreDeployOrUpgradeWasmContract(args, codepath, runtime, deploy)
 	if err != nil {
 		log.Printf("DeployWasmContract preExe failed, err: %v", err)
 		return "", err
@@ -51,11 +56,23 @@ func (c *WasmContract) DeployWasmContract(args map[string]string, codepath strin
 	return c.PostWasmContract(preSelectUTXOResponse)
 }
 
-// PreDeployWasmContract preExe deploy wasm contract
-func (c *WasmContract) PreDeployWasmContract(arg map[string]string, codepath string, runtime string) (*pb.PreExecWithSelectUTXOResponse, error) {
+// UpgradeWasmContract upgrade a wasm contract
+func (c *WasmContract) UpgradeWasmContract(args map[string]string, codepath, runtime string) (string, error) {
+	// preExe
+	preSelectUTXOResponse, err := c.PreDeployOrUpgradeWasmContract(args, codepath, runtime, upgrade)
+	if err != nil {
+		log.Printf("UpgradeWasmContract preExe failed, err: %v", err)
+		return "", err
+	}
+	// post
+	return c.PostWasmContract(preSelectUTXOResponse)
+}
+
+// PreDeployOrUpgradeWasmContract preExe deploy or upgrade wasm contract
+func (c *WasmContract) PreDeployOrUpgradeWasmContract(arg map[string]string, codepath, runtime, action string) (*pb.PreExecWithSelectUTXOResponse, error) {
 	// generate preExe request
 	var invokeRequests []*pb.InvokeRequest
-	invokeRequest := generateDeployIR(arg, codepath, runtime, c.ContractAccount, c.ContractName)
+	invokeRequest := generateDeployOrUpgradeIR(arg, codepath, runtime, c.ContractAccount, c.ContractName, action)
 	invokeRequests = append(invokeRequests, invokeRequest)
 
 	authRequires := []string{}
@@ -113,7 +130,9 @@ func (c *WasmContract) PostWasmContract(preExeWithSelRes *pb.PreExecWithSelectUT
 	c.AuthRequire = authRequires
 	c.InvokeRPCReq = nil
 	c.PreSelUTXOReq = nil
-	c.Fee = strconv.Itoa(int(preExeWithSelRes.Response.GasUsed))
+	if preExeWithSelRes.Response != nil {
+		c.Fee = strconv.Itoa(int(preExeWithSelRes.Response.GasUsed))
+	}
 	//	c.Amount = "0"
 	c.TotalToAmount = "0"
 
@@ -203,7 +222,7 @@ func (c *WasmContract) QueryWasmContract(methodName string, args map[string]stri
 	return c.PreExec()
 }
 
-func generateDeployIR(arg map[string]string, codepath string, runtime, contractAccount, contractName string) *pb.InvokeRequest {
+func generateDeployOrUpgradeIR(arg map[string]string, codepath, runtime, contractAccount, contractName, action string) *pb.InvokeRequest {
 	argstmp := convertToXuperContractArgs(arg)
 	initArgs, _ := json.Marshal(argstmp)
 
@@ -227,7 +246,7 @@ func generateDeployIR(arg map[string]string, codepath string, runtime, contractA
 
 	return &pb.InvokeRequest{
 		ModuleName: "xkernel",
-		MethodName: "Deploy",
+		MethodName: action,
 		Args:       args,
 	}
 }

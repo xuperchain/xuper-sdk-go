@@ -120,3 +120,45 @@ func TestInvokeWasmContract(t *testing.T) {
 		}
 	}
 }
+
+func TestUpgradeWasmContract(t *testing.T) {
+	acc, err := account.RetrieveAccount("江 西 伏 物 十 勘 峡 环 初 至 赏 给", 1)
+	if err != nil {
+		t.Fatalf("retrieveAccount err: %v\n", err)
+	}
+	t.Logf("RetrieveAccount: %v", acc)
+
+	var tests = []struct {
+		account         *account.Account
+		bcname          string
+		node            string
+		contractName    string
+		contractAccount string
+	}{
+		{
+			account:         acc,
+			bcname:          "xuper",
+			node:            "127.0.0.1:37201",
+			contractName:    "counterm.wasm",
+			contractAccount: "XC8888888888888888@xuper",
+		},
+		{
+			account:         acc,
+			bcname:          "xuper",
+			node:            "127.0.0.1:37201",
+			contractName:    "countermmm.wasm",
+			contractAccount: "XC8888888888888888@xuper",
+		},
+	}
+
+	args := map[string]string{
+		"creator": "xchain",
+	}
+	codePath := "../example/contract_code/counter.wasm"
+	runtime := "c"
+	for _, arg := range tests {
+		wasmContract := InitWasmContract(arg.account, arg.node, arg.bcname, arg.contractName, arg.contractAccount)
+		txid, err := wasmContract.UpgradeWasmContract(args, codePath, runtime)
+		t.Logf("UpgradeWasmContract txid: %v, err: %v", txid, err)
+	}
+}
