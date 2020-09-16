@@ -7,10 +7,20 @@ import (
 	"testing"
 
 	"github.com/xuperchain/xuper-sdk-go/account"
+	"github.com/xuperchain/xuper-sdk-go/config"
 )
 
+const (
+	node     = "10.13.32.249:37101"
+	mnemonic = "玉 脸 驱 协 介 跨 尔 籍 杆 伏 愈 即"
+)
+
+func init() {
+	config.SetConfig(node, "", "", "", false, false, "")
+}
+
 func TestDeployWasmContract(t *testing.T) {
-	acc, err := account.RetrieveAccount("江 西 伏 物 十 勘 峡 环 初 至 赏 给", 1)
+	acc, err := account.RetrieveAccount(mnemonic, 1)
 	if err != nil {
 		t.Fatalf("retrieveAccount err: %v\n", err)
 	}
@@ -26,14 +36,14 @@ func TestDeployWasmContract(t *testing.T) {
 		{
 			account:         acc,
 			bcname:          "xuper",
-			node:            "127.0.0.1:37201",
-			contractName:    "countermmm.wasm",
+			node:            node,
+			contractName:    "counterm.wasm",
 			contractAccount: "XC8888888888888888@xuper",
 		},
 		{
 			account:         acc,
 			bcname:          "",
-			node:            "127.0.0.1:37201",
+			node:            node,
 			contractName:    "counterm.wasm",
 			contractAccount: "XC8888888888888888@xuper",
 		},
@@ -66,7 +76,7 @@ func TestDeployWasmContract(t *testing.T) {
 }
 
 func TestInvokeWasmContract(t *testing.T) {
-	acc, err := account.RetrieveAccount("江 西 伏 物 十 勘 峡 环 初 至 赏 给", 1)
+	acc, err := account.RetrieveAccount(mnemonic, 1)
 	if err != nil {
 		t.Fatalf("retrieveAccount err: %v\n", err)
 	}
@@ -82,14 +92,14 @@ func TestInvokeWasmContract(t *testing.T) {
 		{
 			account:         acc,
 			bcname:          "xuper",
-			node:            "127.0.0.1:37201",
+			node:            node,
 			contractName:    "counterm.wasm",
 			contractAccount: "XC8888888888888888@xuper",
 		},
 		{
 			account:         acc,
 			bcname:          "",
-			node:            "127.0.0.1:37201",
+			node:            node,
 			contractName:    "counterm.wasm",
 			contractAccount: "XC8888888888888888@xuper",
 		},
@@ -122,7 +132,7 @@ func TestInvokeWasmContract(t *testing.T) {
 }
 
 func TestUpgradeWasmContract(t *testing.T) {
-	acc, err := account.RetrieveAccount("江 西 伏 物 十 勘 峡 环 初 至 赏 给", 1)
+	acc, err := account.RetrieveAccount(mnemonic, 1)
 	if err != nil {
 		t.Fatalf("retrieveAccount err: %v\n", err)
 	}
@@ -138,14 +148,14 @@ func TestUpgradeWasmContract(t *testing.T) {
 		{
 			account:         acc,
 			bcname:          "xuper",
-			node:            "127.0.0.1:37201",
+			node:            node,
 			contractName:    "counterm.wasm",
 			contractAccount: "XC8888888888888888@xuper",
 		},
 		{
 			account:         acc,
 			bcname:          "xuper",
-			node:            "127.0.0.1:37201",
+			node:            node,
 			contractName:    "countermmm.wasm",
 			contractAccount: "XC8888888888888888@xuper",
 		},
