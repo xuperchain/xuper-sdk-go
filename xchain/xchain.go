@@ -477,31 +477,17 @@ func (xc *Xchain) GenRealTxOnly(response *pb.PreExecWithSelectUTXOResponse, hdPu
 	//		}
 	//	}
 
-	totalSelected := big.NewInt(0)
-	var txInputs []*pb.TxInput
+	var total string
+	var utxolist []*pb.Utxo
+	if response.UtxoOutput != nil {
+		total = response.UtxoOutput.TotalSelected
+		utxolist = response.UtxoOutput.UtxoList
+	}
 	utxoOutput := &pb.UtxoOutput{
 		//		UtxoList: utxolist,
 		//		TotalSelected: totalSelected.String(),
-		//UtxoList:      response.UtxoOutput.UtxoList,
-		//TotalSelected: response.UtxoOutput.TotalSelected,
-	}
-	//the UtxoOutput maybe is null
-	if response.UtxoOutput != nil {
-		utxoOutput = &pb.UtxoOutput{
-			UtxoList:      response.UtxoOutput.UtxoList,
-			TotalSelected: response.UtxoOutput.TotalSelected,
-		}
-		var ok bool
-		totalSelected, ok = big.NewInt(0).SetString(response.UtxoOutput.TotalSelected, 10)
-		if !ok {
-			return nil, common.ErrInvalidAmount
-		}
-		var err error
-		txInputs, err = xc.GeneratePureTxInputs(utxoOutput)
-		if err != nil {
-			log.Printf("GenRealTx GenerateTxInput failed.")
-			return nil, fmt.Errorf("GenRealTx GenerateTxInput err: %v", err)
-		}
+		UtxoList:      utxolist,
+		TotalSelected: total,
 	}
 
 	totalNeed := big.NewInt(0)
@@ -516,6 +502,11 @@ func (xc *Xchain) GenRealTxOnly(response *pb.PreExecWithSelectUTXOResponse, hdPu
 	amount.Add(amount, fee)
 	totalNeed.Add(totalNeed, amount)
 
+	totalSelected, ok := big.NewInt(0).SetString(total, 10)
+	if !ok {
+		return nil, common.ErrInvalidAmount
+	}
+
 	selfAmount := totalSelected.Sub(totalSelected, totalNeed)
 	txOutputs, err := xc.GenerateMultiTxOutputs(selfAmount.String())
 	if err != nil {
@@ -524,6 +515,11 @@ func (xc *Xchain) GenRealTxOnly(response *pb.PreExecWithSelectUTXOResponse, hdPu
 	}
 
 	//	txInputs, deltaTxOutput, err := xc.GenerateTxInput(utxoOutput, totalNeed)
+	txInputs, err := xc.GeneratePureTxInputs(utxoOutput)
+	if err != nil {
+		log.Printf("GenRealTx GenerateTxInput failed.")
+		return nil, fmt.Errorf("GenRealTx GenerateTxInput err: %v", err)
+	}
 
 	//	if deltaTxOutput != nil {
 	//		txOutputs = append(txOutputs, deltaTxOutput)
