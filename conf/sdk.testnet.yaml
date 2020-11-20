@@ -5,7 +5,7 @@ complianceCheck:
   # 是否需要进行合规性背书
   isNeedComplianceCheck: true
   # 是否需要支付合规性背书费用
-  isNeedComplianceCheckFee: false
+  isNeedComplianceCheckFee: true
   # 合规性背书费用
   complianceCheckEndorseServiceFee: 10
   # 支付合规性背书费用的收款地址

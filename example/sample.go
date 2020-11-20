@@ -11,8 +11,15 @@ import (
 
 // define blockchain node and blockchain name
 var (
-	node = "14.215.179.74:37101"
-	//	node   = "127.0.0.1:37801"
+	contractName = "counter"
+
+	// node for test network of XuperOS
+	// node = "14.215.179.74:37101"
+
+	// node for official network of XuperOS
+	node = "39.156.69.83:37100"
+
+	//	node         = "127.0.0.1:37801"
 	bcname = "xuper"
 )
 
