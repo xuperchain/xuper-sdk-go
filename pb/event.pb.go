@@ -291,6 +291,12 @@ func (m *BlockFilter) GetToAddr() string {
 	return ""
 }
 
+type ContractEvent struct {
+	Contract string `json:"contract,omitempty"`
+	Name     string `json:"name,omitempty"`
+	Body     string `json:"body,omitempty"`
+}
+
 type FilteredTransaction struct {
 	Txid                 string           `protobuf:"bytes,1,opt,name=txid,proto3" json:"txid,omitempty"`
 	Events               []*ContractEvent `protobuf:"bytes,2,rep,name=events,proto3" json:"events,omitempty"`
