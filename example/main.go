@@ -8,7 +8,7 @@ import (
 	"github.com/xuperchain/xuper-sdk-go/account"
 	"github.com/xuperchain/xuper-sdk-go/balance"
 	"github.com/xuperchain/xuper-sdk-go/contract"
-	"github.com/xuperchain/xuper-sdk-go/contract_account"
+	contractaccount "github.com/xuperchain/xuper-sdk-go/contract_account"
 	"github.com/xuperchain/xuper-sdk-go/crypto"
 	"github.com/xuperchain/xuper-sdk-go/network"
 	"github.com/xuperchain/xuper-sdk-go/transfer"
@@ -529,6 +529,106 @@ func testDecryptedTx() {
 	decryptedDesc, err := trans.DecryptedTx(encryptedTx, masterKey)
 	log.Printf("decrypted tx desc [%v], err %v", decryptedDesc, err)
 	return
+}
+
+// 合约 abi 和 bin 如下，合约代码在下面。
+var (
+	solidityContractName = "storage"
+	storageAbi           = "[{\"inputs\":[],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"constructor\"},{\"constant\":true,\"inputs\":[],\"name\":\"retrieve\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":false,\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"num\",\"type\":\"uint256\"}],\"name\":\"store\",\"outputs\":[],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"function\"}]"
+	storageBin           = "608060405234801561001057600080fd5b5060c68061001f6000396000f3fe6080604052348015600f57600080fd5b506004361060325760003560e01c80632e64cec11460375780636057361d146053575b600080fd5b603d607e565b6040518082815260200191505060405180910390f35b607c60048036036020811015606757600080fd5b81019080803590602001909291905050506087565b005b60008054905090565b806000819055505056fea265627a7a72315820281d7d36a78b2f2787eb4af7246d847cb385e9a6ea8d944ba283bb33246bbc8864736f6c63430005110032"
+)
+
+// solidity contract:
+
+// // SPDX-License-Identifier: GPL-3.0
+//
+// pragma solidity = 0.5.17;
+//
+// /**
+//  * @title Storage
+//  * @dev Store & retrieve value in a variable
+//  */
+// contract Storage {
+//     uint256 number;
+//     constructor () public {
+//     }
+//
+//     /**
+//      * @dev Store value in variable
+//      * @param num value to store
+//      */
+//     function store(uint256 num) public {
+//         number = num;
+//     }
+//
+//     /**
+//      * @dev Return value
+//      * @return value of 'number'
+//      */
+//     function retrieve() public view returns (uint256){
+//         return number;
+//     }
+// }
+
+// 部署 solidity 合约 storage（代码如上），需要先编译合约的 abi 以及 bin。
+func testSolidityContractDeploy() {
+	acc, _ := account.RetrieveAccount("江 西 伏 物 十 勘 峡 环 初 至 赏 给", 1)
+	contractAccount := "XC9999999999999999@xuper"
+	solContract := contract.InitSolContract(acc, node, bcname, solidityContractName, contractAccount)
+	r, e := solContract.Deploy(nil, []byte(storageBin), []byte(storageAbi)) // 如果构造函数有参数，需要构造 map 作为第一个参数。
+	if e != nil {
+		panic(e)
+	}
+	fmt.Println(r)
+}
+
+// 调用 storage 合约的 store 方法。同时转账给合约。
+func testSolidityContractInvoke() {
+	acc, _ := account.RetrieveAccount("江 西 伏 物 十 勘 峡 环 初 至 赏 给", 1)
+	cAccount := "XC9999999999999999@xuper"
+	solContract := contract.InitSolContract(acc, node, bcname, solidityContractName, cAccount)
+
+	args := map[string]string{
+		"num": "5",
+	}
+	mName := "store"
+	txID, err := solContract.Invoke(mName, args, []byte(storageAbi), "100") // amount（最后一个） 参数代表转账给合约。不转账可以指定为空。
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println("invoke sucess:", txID)
+}
+
+// 调用 storage 合约的 retrieve 方法。
+func testSolidityContractQuery() {
+	acc, _ := account.RetrieveAccount("江 西 伏 物 十 勘 峡 环 初 至 赏 给", 1)
+	cAccount := "XC9999999999999999@xuper"
+	solContract := contract.InitSolContract(acc, node, bcname, solidityContractName, cAccount)
+
+	args := map[string]string{
+		"num": "5",
+	}
+	mName := "store"
+
+	preExeRPCRes, err := solContract.Query(mName, args, []byte(storageAbi))
+	if err != nil {
+		panic(err)
+	}
+	gas := preExeRPCRes.GetResponse().GetGasUsed()
+	fmt.Printf("gas used: %v\n", gas)
+	fmt.Printf("preExeRPCRes: %v \n", preExeRPCRes)
+
+	// 查询的结果需要参考如下方式解析才能看到合约返回的结果。
+	for _, res := range preExeRPCRes.GetResponse().GetResponse() {
+		resu, err := contract.ParseRespWithAbiForEVM(storageAbi, mName, res)
+		if err != nil {
+			panic(err)
+		}
+		for _, v := range resu {
+			fmt.Println("index:", v.Index)
+			fmt.Println("value:", v.Value)
+		}
+	}
 }
 
 func main() {
