@@ -622,7 +622,8 @@ func testSolidityContractQuery() {
 	for _, res := range preExeRPCRes.GetResponse().GetResponse() {
 		resu, err := contract.ParseRespWithAbiForEVM(storageAbi, mName, res)
 		if err != nil {
-			panic(err)
+			//panic(err) // todo 不应该 panic，背书情况下第一个 response 是 success。
+			fmt.Printf("contract response: %s\n", string(res))
 		}
 		for _, v := range resu {
 			fmt.Println("index:", v.Index)
