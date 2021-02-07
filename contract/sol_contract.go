@@ -3,7 +3,6 @@
 package contract
 
 import (
-	"encoding/hex"
 	"encoding/json"
 	"log"
 	"strconv"
@@ -52,24 +51,12 @@ func (c *SolContract) Deploy(args map[string]string, bin, abi []byte) (string, e
 }
 
 func (c *SolContract) generateDeploySolIR(arg map[string]string, bin, abi []byte, contractAccount string) (*pb.InvokeRequest, error) {
-	evmCode := string(bin)
-	codeBuf, err := hex.DecodeString(evmCode)
-	if err != nil {
-		return nil, err
-	}
-
 	argsMap := make(map[string]interface{}, len(arg))
 	for k, v := range arg {
 		argsMap[k] = v
 	}
 
-	x3args, _, err := convertToEvmArgsWithAbiData(abi, "", argsMap)
-	if err != nil {
-		return nil, err
-	}
-	callData := hex.EncodeToString(x3args["input"])
-	evmCode = evmCode + callData
-	codeBuf, err = hex.DecodeString(evmCode)
+	x3args, err := convertToXuper3EvmArgs(argsMap)
 	if err != nil {
 		return nil, err
 	}
@@ -84,7 +71,7 @@ func (c *SolContract) generateDeploySolIR(arg map[string]string, bin, abi []byte
 	args := map[string][]byte{
 		"account_name":  []byte(contractAccount),
 		"contract_name": []byte(c.ContractName),
-		"contract_code": codeBuf,
+		"contract_code": bin,
 		"contract_desc": contractDesc,
 		"init_args":     initArgs,
 		"contract_abi":  abi,
@@ -145,7 +132,6 @@ func (c *SolContract) PreDeploySolContract(arg map[string]string, bin, abi []byt
 
 // PostSolContract post and generate complete tx for deploy solidity contract.
 func (c *SolContract) PostSolContract(preExeWithSelRes *pb.PreExecWithSelectUTXOResponse, amount string) (string, error) {
-
 	// populates fields
 	authRequires := []string{}
 	if c.ContractAccount != "" {
@@ -173,10 +159,15 @@ func (c *SolContract) PostSolContract(preExeWithSelRes *pb.PreExecWithSelectUTXO
 }
 
 // Invoke invoke solidity contract.
-func (c *SolContract) Invoke(methodName string, args map[string]string, abi []byte, amount string) (string, error) {
-	preSelectUTXOResponse, err := c.PreInvokeSolContract(methodName, args, abi, amount)
+func (c *SolContract) Invoke(methodName string, args map[string]string, amount string) (string, error) {
+	amount, ok := common.IsValidAmount(amount)
+	if !ok {
+		return "", common.ErrInvalidAmount
+	}
+
+	preSelectUTXOResponse, err := c.PreInvokeSolContract(methodName, args, amount)
 	if err != nil {
-		log.Printf("InvokeWasmContract preExe failed, err: %v", err)
+		log.Printf("InvokeSolContract preExe failed, err: %v", err)
 		return "", err
 	}
 
@@ -185,13 +176,7 @@ func (c *SolContract) Invoke(methodName string, args map[string]string, abi []by
 }
 
 // PreInvokeSolContract preExe invoker solidity contract.
-func (c *SolContract) PreInvokeSolContract(methodName string, args map[string]string, abi []byte, amount string) (*pb.PreExecWithSelectUTXOResponse, error) {
-
-	amount, ok := common.IsValidAmount(amount)
-	if !ok {
-		return nil, common.ErrInvalidAmount
-	}
-
+func (c *SolContract) PreInvokeSolContract(methodName string, args map[string]string, amount string) (*pb.PreExecWithSelectUTXOResponse, error) {
 	amountInt64, err := strconv.ParseInt(amount, 10, 64)
 	if err != nil {
 		log.Printf("Transfer amount to int64 err: %v", err)
@@ -199,7 +184,7 @@ func (c *SolContract) PreInvokeSolContract(methodName string, args map[string]st
 	}
 
 	var invokeRequests []*pb.InvokeRequest
-	invokeRequest, err := c.generateInvokeSolIR(methodName, args, abi, c.ContractAccount)
+	invokeRequest, err := c.generateInvokeSolIR(methodName, args, c.ContractAccount)
 	if err != nil {
 		return nil, err
 	}
@@ -244,13 +229,13 @@ func (c *SolContract) PreInvokeSolContract(methodName string, args map[string]st
 	return c.PreExecWithSelecUTXO()
 }
 
-func (c *SolContract) generateInvokeSolIR(methodName string, args map[string]string, abi []byte, contractAccount string) (*pb.InvokeRequest, error) {
+func (c *SolContract) generateInvokeSolIR(methodName string, args map[string]string, contractAccount string) (*pb.InvokeRequest, error) {
 	argsMap := make(map[string]interface{}, len(args))
 	for k, v := range args {
 		argsMap[k] = v
 	}
 
-	irArgs, _, err := convertToEvmArgsWithAbiData(abi, methodName, argsMap)
+	irArgs, err := convertToXuper3EvmArgs(argsMap)
 	if err != nil {
 		return nil, err
 	}
@@ -264,10 +249,10 @@ func (c *SolContract) generateInvokeSolIR(methodName string, args map[string]str
 }
 
 // Query call solidity view function.
-func (c *SolContract) Query(methodName string, args map[string]string, abi []byte) (*pb.InvokeRPCResponse, error) {
+func (c *SolContract) Query(methodName string, args map[string]string) (*pb.InvokeRPCResponse, error) {
 	// generate preExe request
 	var invokeRequests []*pb.InvokeRequest
-	invokeRequest, err := c.generateInvokeSolIR(methodName, args, abi, c.ContractAccount)
+	invokeRequest, err := c.generateInvokeSolIR(methodName, args, c.ContractAccount)
 	if err != nil {
 		return nil, err
 	}
@@ -289,4 +274,19 @@ func (c *SolContract) Query(methodName string, args map[string]string, abi []byt
 
 	// preExe
 	return c.PreExec()
+}
+
+// evm contract args to xuper3 args.
+func convertToXuper3EvmArgs(args map[string]interface{}) (map[string][]byte, error) {
+	input, err := json.Marshal(args)
+	if err != nil {
+		return nil, err
+	}
+
+	// 此处与 server 端结构相同，如果 jsonEncoded 字段修改，server 端也要修改（core/contract/evm/creator.go）。
+	ret := map[string][]byte{
+		"input":       input,
+		"jsonEncoded": []byte("true"),
+	}
+	return ret, nil
 }

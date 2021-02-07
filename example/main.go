@@ -592,7 +592,7 @@ func testSolidityContractInvoke() {
 		"num": "5",
 	}
 	mName := "store"
-	txID, err := solContract.Invoke(mName, args, []byte(storageAbi), "100") // amount（最后一个） 参数代表转账给合约。不转账可以指定为空。
+	txID, err := solContract.Invoke(mName, args, "100") // amount（最后一个） 参数代表转账给合约。不转账可以指定为空。
 	if err != nil {
 		panic(err)
 	}
@@ -610,7 +610,7 @@ func testSolidityContractQuery() {
 	}
 	mName := "store"
 
-	preExeRPCRes, err := solContract.Query(mName, args, []byte(storageAbi))
+	preExeRPCRes, err := solContract.Query(mName, args)
 	if err != nil {
 		panic(err)
 	}
@@ -618,17 +618,8 @@ func testSolidityContractQuery() {
 	fmt.Printf("gas used: %v\n", gas)
 	fmt.Printf("preExeRPCRes: %v \n", preExeRPCRes)
 
-	// 查询的结果需要参考如下方式解析才能看到合约返回的结果。
 	for _, res := range preExeRPCRes.GetResponse().GetResponse() {
-		resu, err := contract.ParseRespWithAbiForEVM(storageAbi, mName, res)
-		if err != nil {
-			//panic(err) // todo 不应该 panic，背书情况下第一个 response 是 success。
-			fmt.Printf("contract response: %s\n", string(res))
-		}
-		for _, v := range resu {
-			fmt.Println("index:", v.Index)
-			fmt.Println("value:", v.Value)
-		}
+		fmt.Printf("contract response: %s\n", string(res))
 	}
 }
 
