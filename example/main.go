@@ -533,16 +533,16 @@ func testDecryptedTx() {
 
 // 合约 abi 和 bin 如下，合约代码在下面。
 var (
-	solidityContractName = "storage"
+	EVMidityContractName = "storage"
 	storageAbi           = "[{\"inputs\":[],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"constructor\"},{\"constant\":true,\"inputs\":[],\"name\":\"retrieve\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":false,\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"num\",\"type\":\"uint256\"}],\"name\":\"store\",\"outputs\":[],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"function\"}]"
 	storageBin           = "608060405234801561001057600080fd5b5060c68061001f6000396000f3fe6080604052348015600f57600080fd5b506004361060325760003560e01c80632e64cec11460375780636057361d146053575b600080fd5b603d607e565b6040518082815260200191505060405180910390f35b607c60048036036020811015606757600080fd5b81019080803590602001909291905050506087565b005b60008054905090565b806000819055505056fea265627a7a72315820281d7d36a78b2f2787eb4af7246d847cb385e9a6ea8d944ba283bb33246bbc8864736f6c63430005110032"
 )
 
-// solidity contract:
+// EVMidity contract:
 
 // // SPDX-License-Identifier: GPL-3.0
 //
-// pragma solidity = 0.5.17;
+// pragma EVMidity = 0.5.17;
 //
 // /**
 //  * @title Storage
@@ -570,12 +570,12 @@ var (
 //     }
 // }
 
-// 部署 solidity 合约 storage（代码如上），需要先编译合约的 abi 以及 bin。
-func testSolidityContractDeploy() {
+// 部署 EVMidity 合约 storage（代码如上），需要先编译合约的 abi 以及 bin。
+func testEVMidityContractDeploy() {
 	acc, _ := account.RetrieveAccount("江 西 伏 物 十 勘 峡 环 初 至 赏 给", 1)
 	contractAccount := "XC9999999999999999@xuper"
-	solContract := contract.InitSolContract(acc, node, bcname, solidityContractName, contractAccount)
-	r, e := solContract.Deploy(nil, []byte(storageBin), []byte(storageAbi)) // 如果构造函数有参数，需要构造 map 作为第一个参数。
+	EVMContract := contract.InitEVMContract(acc, node, bcname, EVMidityContractName, contractAccount)
+	r, e := EVMContract.Deploy(nil, []byte(storageBin), []byte(storageAbi)) // 如果构造函数有参数，需要构造 map 作为第一个参数。
 	if e != nil {
 		panic(e)
 	}
@@ -583,16 +583,16 @@ func testSolidityContractDeploy() {
 }
 
 // 调用 storage 合约的 store 方法。同时转账给合约。
-func testSolidityContractInvoke() {
+func testEVMidityContractInvoke() {
 	acc, _ := account.RetrieveAccount("江 西 伏 物 十 勘 峡 环 初 至 赏 给", 1)
 	cAccount := "XC9999999999999999@xuper"
-	solContract := contract.InitSolContract(acc, node, bcname, solidityContractName, cAccount)
+	EVMContract := contract.InitEVMContract(acc, node, bcname, EVMidityContractName, cAccount)
 
 	args := map[string]string{
 		"num": "5",
 	}
 	mName := "store"
-	txID, err := solContract.Invoke(mName, args, "100") // amount（最后一个） 参数代表转账给合约。不转账可以指定为空。
+	txID, err := EVMContract.Invoke(mName, args, "100") // amount（最后一个） 参数代表转账给合约。不转账可以指定为空。
 	if err != nil {
 		panic(err)
 	}
@@ -600,17 +600,17 @@ func testSolidityContractInvoke() {
 }
 
 // 调用 storage 合约的 retrieve 方法。
-func testSolidityContractQuery() {
+func testEVMidityContractQuery() {
 	acc, _ := account.RetrieveAccount("江 西 伏 物 十 勘 峡 环 初 至 赏 给", 1)
 	cAccount := "XC9999999999999999@xuper"
-	solContract := contract.InitSolContract(acc, node, bcname, solidityContractName, cAccount)
+	EVMContract := contract.InitEVMContract(acc, node, bcname, EVMidityContractName, cAccount)
 
 	args := map[string]string{
 		"num": "5",
 	}
 	mName := "store"
 
-	preExeRPCRes, err := solContract.Query(mName, args)
+	preExeRPCRes, err := EVMContract.Query(mName, args)
 	if err != nil {
 		panic(err)
 	}

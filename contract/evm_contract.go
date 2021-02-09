@@ -17,15 +17,15 @@ import (
 
 const evmType string = "evm"
 
-// SolContract solidity contract.
-type SolContract struct {
+// EVMContract EVMidity contract.
+type EVMContract struct {
 	ContractName string
 	xchain.Xchain
 }
 
-// InitSolContract init solidity contract instance.
-func InitSolContract(account *account.Account, node, bcName, contractName, contractAccount string) *SolContract {
-	return &SolContract{
+// InitEVMContract init EVMidity contract instance.
+func InitEVMContract(account *account.Account, node, bcName, contractName, contractAccount string) *EVMContract {
+	return &EVMContract{
 		ContractName: contractName,
 		Xchain: xchain.Xchain{
 			Cfg:             config.GetInstance(),
@@ -37,20 +37,20 @@ func InitSolContract(account *account.Account, node, bcName, contractName, contr
 	}
 }
 
-// Deploy deploy solidity contract. args: constructor parameters.
-func (c *SolContract) Deploy(args map[string]string, bin, abi []byte) (string, error) {
+// Deploy deploy EVMidity contract. args: constructor parameters.
+func (c *EVMContract) Deploy(args map[string]string, bin, abi []byte) (string, error) {
 	// preExec
-	preSelectUTXOResponse, err := c.PreDeploySolContract(args, bin, abi)
+	preSelectUTXOResponse, err := c.PreDeployEVMContract(args, bin, abi)
 	if err != nil {
-		log.Printf("DeploySolContract preExe failed, err: %v", err)
+		log.Printf("DeployEVMContract preExe failed, err: %v", err)
 		return "", err
 	}
 
 	// post
-	return c.PostSolContract(preSelectUTXOResponse, "0")
+	return c.PostEVMContract(preSelectUTXOResponse, "0")
 }
 
-func (c *SolContract) generateDeploySolIR(arg map[string]string, bin, abi []byte, contractAccount string) (*pb.InvokeRequest, error) {
+func (c *EVMContract) generateDeployEVMIR(arg map[string]string, bin, abi []byte, contractAccount string) (*pb.InvokeRequest, error) {
 	argsMap := make(map[string]interface{}, len(arg))
 	for k, v := range arg {
 		argsMap[k] = v
@@ -84,10 +84,10 @@ func (c *SolContract) generateDeploySolIR(arg map[string]string, bin, abi []byte
 	}, nil
 }
 
-// PreDeploySolContract preExecAndSelectUTXO
-func (c *SolContract) PreDeploySolContract(arg map[string]string, bin, abi []byte) (*pb.PreExecWithSelectUTXOResponse, error) {
+// PreDeployEVMContract preExecAndSelectUTXO
+func (c *EVMContract) PreDeployEVMContract(arg map[string]string, bin, abi []byte) (*pb.PreExecWithSelectUTXOResponse, error) {
 	var invokeRequests []*pb.InvokeRequest
-	invokeRequest, err := c.generateDeploySolIR(arg, bin, abi, c.ContractAccount)
+	invokeRequest, err := c.generateDeployEVMIR(arg, bin, abi, c.ContractAccount)
 	if err != nil {
 		return nil, err
 	}
@@ -130,8 +130,8 @@ func (c *SolContract) PreDeploySolContract(arg map[string]string, bin, abi []byt
 	return c.PreExecWithSelecUTXO()
 }
 
-// PostSolContract post and generate complete tx for deploy solidity contract.
-func (c *SolContract) PostSolContract(preExeWithSelRes *pb.PreExecWithSelectUTXOResponse, amount string) (string, error) {
+// PostEVMContract post and generate complete tx for deploy EVMidity contract.
+func (c *EVMContract) PostEVMContract(preExeWithSelRes *pb.PreExecWithSelectUTXOResponse, amount string) (string, error) {
 	// populates fields
 	authRequires := []string{}
 	if c.ContractAccount != "" {
@@ -149,7 +149,7 @@ func (c *SolContract) PostSolContract(preExeWithSelRes *pb.PreExecWithSelectUTXO
 	c.PreSelUTXOReq = nil
 	c.Fee = strconv.Itoa(int(preExeWithSelRes.Response.GasUsed))
 
-	// solidity 合约调用时可以转账，因此这部分需要增加。
+	// EVMidity 合约调用时可以转账，因此这部分需要增加。
 	toAddressAndAmount := make(map[string]string)
 	toAddressAndAmount[c.ContractName] = amount
 	c.ToAddressAndAmount = toAddressAndAmount
@@ -158,25 +158,25 @@ func (c *SolContract) PostSolContract(preExeWithSelRes *pb.PreExecWithSelectUTXO
 	return c.GenCompleteTxAndPost(preExeWithSelRes, "")
 }
 
-// Invoke invoke solidity contract.
-func (c *SolContract) Invoke(methodName string, args map[string]string, amount string) (string, error) {
+// Invoke invoke EVMidity contract.
+func (c *EVMContract) Invoke(methodName string, args map[string]string, amount string) (string, error) {
 	amount, ok := common.IsValidAmount(amount)
 	if !ok {
 		return "", common.ErrInvalidAmount
 	}
 
-	preSelectUTXOResponse, err := c.PreInvokeSolContract(methodName, args, amount)
+	preSelectUTXOResponse, err := c.PreInvokeEVMContract(methodName, args, amount)
 	if err != nil {
-		log.Printf("InvokeSolContract preExe failed, err: %v", err)
+		log.Printf("InvokeEVMContract preExe failed, err: %v", err)
 		return "", err
 	}
 
 	// post
-	return c.PostSolContract(preSelectUTXOResponse, amount)
+	return c.PostEVMContract(preSelectUTXOResponse, amount)
 }
 
-// PreInvokeSolContract preExe invoker solidity contract.
-func (c *SolContract) PreInvokeSolContract(methodName string, args map[string]string, amount string) (*pb.PreExecWithSelectUTXOResponse, error) {
+// PreInvokeEVMContract preExe invoker EVMidity contract.
+func (c *EVMContract) PreInvokeEVMContract(methodName string, args map[string]string, amount string) (*pb.PreExecWithSelectUTXOResponse, error) {
 	amountInt64, err := strconv.ParseInt(amount, 10, 64)
 	if err != nil {
 		log.Printf("Transfer amount to int64 err: %v", err)
@@ -184,7 +184,7 @@ func (c *SolContract) PreInvokeSolContract(methodName string, args map[string]st
 	}
 
 	var invokeRequests []*pb.InvokeRequest
-	invokeRequest, err := c.generateInvokeSolIR(methodName, args, c.ContractAccount)
+	invokeRequest, err := c.generateInvokeEVMIR(methodName, args, c.ContractAccount)
 	if err != nil {
 		return nil, err
 	}
@@ -229,7 +229,7 @@ func (c *SolContract) PreInvokeSolContract(methodName string, args map[string]st
 	return c.PreExecWithSelecUTXO()
 }
 
-func (c *SolContract) generateInvokeSolIR(methodName string, args map[string]string, contractAccount string) (*pb.InvokeRequest, error) {
+func (c *EVMContract) generateInvokeEVMIR(methodName string, args map[string]string, contractAccount string) (*pb.InvokeRequest, error) {
 	argsMap := make(map[string]interface{}, len(args))
 	for k, v := range args {
 		argsMap[k] = v
@@ -248,11 +248,11 @@ func (c *SolContract) generateInvokeSolIR(methodName string, args map[string]str
 	}, nil
 }
 
-// Query call solidity view function.
-func (c *SolContract) Query(methodName string, args map[string]string) (*pb.InvokeRPCResponse, error) {
+// Query call EVMidity view function.
+func (c *EVMContract) Query(methodName string, args map[string]string) (*pb.InvokeRPCResponse, error) {
 	// generate preExe request
 	var invokeRequests []*pb.InvokeRequest
-	invokeRequest, err := c.generateInvokeSolIR(methodName, args, c.ContractAccount)
+	invokeRequest, err := c.generateInvokeEVMIR(methodName, args, c.ContractAccount)
 	if err != nil {
 		return nil, err
 	}

@@ -21,7 +21,7 @@ var (
 	node       = "127.0.0.1:37101"
 )
 
-func TestSolDeploy(t *testing.T) {
+func TestEVMDeploy(t *testing.T) {
 	// abi := `[{"inputs":[{"internalType":"uint256","name":"num","type":"uint256"}],"payable":false,"stateMutability":"nonpayable","type":"constructor"},{"constant":false,"inputs":[],"name":"retrieve","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":false,"inputs":[{"internalType":"uint256","name":"num","type":"uint256"}],"name":"store","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"}]`
 	// bin := "608060405234801561001057600080fd5b506040516101203803806101208339818101604052602081101561003357600080fd5b8101908080519060200190929190505050806000819055505060c68061005a6000396000f3fe6080604052348015600f57600080fd5b506004361060325760003560e01c80632e64cec11460375780636057361d146053575b600080fd5b603d607e565b6040518082815260200191505060405180910390f35b607c60048036036020811015606757600080fd5b81019080803590602001909291905050506087565b005b60008054905090565b806000819055505056fea265627a7a72315820deacba9b51787b987df74d6ecd3bd463204d72726c7d7d97da0b0a8c62e8ccc364736f6c63430005110032"
 	acc, _ := account.RetrieveAccount("江 西 伏 物 十 勘 峡 环 初 至 赏 给", 1)
@@ -32,19 +32,19 @@ func TestSolDeploy(t *testing.T) {
 	cName := "storageA"
 	cAccount := "XC9999999999999999@xuper"
 	createContractAccount(acc, node, bcname) // 已经创建合约账户了
-	solContract := InitSolContract(acc, node, bcname, cName, cAccount)
+	EVMContract := InitEVMContract(acc, node, bcname, cName, cAccount)
 
 	args := map[string]string{
 		"num": "1",
 	}
-	r, e := solContract.Deploy(args, []byte(storageBin), []byte(storageAbi))
+	r, e := EVMContract.Deploy(args, []byte(storageBin), []byte(storageAbi))
 	if e != nil {
 		panic(e)
 	}
 	fmt.Println(r)
 }
 
-func TestSolInvoke(t *testing.T) {
+func TestEVMInvoke(t *testing.T) {
 	// abi := `[{"inputs":[{"internalType":"uint256","name":"num","type":"uint256"}],"payable":false,"stateMutability":"nonpayable","type":"constructor"},{"constant":false,"inputs":[],"name":"retrieve","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":false,"inputs":[{"internalType":"uint256","name":"num","type":"uint256"}],"name":"store","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"}]`
 	// bin := "608060405234801561001057600080fd5b506040516101203803806101208339818101604052602081101561003357600080fd5b8101908080519060200190929190505050806000819055505060c68061005a6000396000f3fe6080604052348015600f57600080fd5b506004361060325760003560e01c80632e64cec11460375780636057361d146053575b600080fd5b603d607e565b6040518082815260200191505060405180910390f35b607c60048036036020811015606757600080fd5b81019080803590602001909291905050506087565b005b60008054905090565b806000819055505056fea265627a7a72315820deacba9b51787b987df74d6ecd3bd463204d72726c7d7d97da0b0a8c62e8ccc364736f6c63430005110032"
 	acc, _ := account.RetrieveAccount("江 西 伏 物 十 勘 峡 环 初 至 赏 给", 1)
@@ -53,13 +53,13 @@ func TestSolInvoke(t *testing.T) {
 	bcname := "xuper"
 	cName := "storageA"
 	cAccount := "XC9999999999999999@xuper"
-	solContract := InitSolContract(acc, node, bcname, cName, cAccount)
+	EVMContract := InitEVMContract(acc, node, bcname, cName, cAccount)
 
 	args := map[string]string{
 		"num": "5882",
 	}
 	mName := "store"
-	r, e := solContract.Invoke(mName, args, "111")
+	r, e := EVMContract.Invoke(mName, args, "111")
 	if e != nil {
 		panic(e)
 	}
@@ -77,7 +77,7 @@ func TestSolInvoke(t *testing.T) {
 	// x.GetBalanceDetail()
 }
 
-func TestSolQuery(t *testing.T) {
+func TestEVMQuery(t *testing.T) {
 	// abi := []byte(`[{"inputs":[{"internalType":"uint256","name":"num","type":"uint256"}],"payable":false,"stateMutability":"nonpayable","type":"constructor"},{"constant":false,"inputs":[],"name":"retrieve","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":false,"inputs":[{"internalType":"uint256","name":"num","type":"uint256"}],"name":"store","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"}]`)
 	// abi := []byte("[{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"num\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"constructor\"},{\"constant\":true,\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"s\",\"type\":\"uint256\"}],\"name\":\"retrieve\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"payable\":false,\"stateMutability\":\"view\",\"type\":\"function\"},{\"constant\":false,\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"num\",\"type\":\"uint256\"}],\"name\":\"store\",\"outputs\":[],\"payable\":false,\"stateMutability\":\"nonpayable\",\"type\":\"function\"}]")
 	acc, _ := account.RetrieveAccount("江 西 伏 物 十 勘 峡 环 初 至 赏 给", 1)
@@ -87,13 +87,13 @@ func TestSolQuery(t *testing.T) {
 	bcname := "xuper"
 	cName := "storageA"
 	cAccount := "XC9999999999999999@xuper"
-	solContract := InitSolContract(acc, node, bcname, cName, cAccount)
+	EVMContract := InitEVMContract(acc, node, bcname, cName, cAccount)
 
 	// args := map[string]string{
 	// 	"s": "2",
 	// }
 	mName := "retrieve"
-	preExeRPCRes, e := solContract.Query(mName, nil)
+	preExeRPCRes, e := EVMContract.Query(mName, nil)
 	if e != nil {
 		panic(e)
 	}
