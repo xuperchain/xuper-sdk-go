@@ -17,13 +17,13 @@ import (
 
 const evmType string = "evm"
 
-// EVMContract EVMidity contract.
+// EVMContract EVM contract.
 type EVMContract struct {
 	ContractName string
 	xchain.Xchain
 }
 
-// InitEVMContract init EVMidity contract instance.
+// InitEVMContract init EVM contract instance.
 func InitEVMContract(account *account.Account, node, bcName, contractName, contractAccount string) *EVMContract {
 	return &EVMContract{
 		ContractName: contractName,
@@ -37,7 +37,7 @@ func InitEVMContract(account *account.Account, node, bcName, contractName, contr
 	}
 }
 
-// Deploy deploy EVMidity contract. args: constructor parameters.
+// Deploy deploy EVM contract. args: constructor parameters.
 func (c *EVMContract) Deploy(args map[string]string, bin, abi []byte) (string, error) {
 	// preExec
 	preSelectUTXOResponse, err := c.PreDeployEVMContract(args, bin, abi)
@@ -130,7 +130,7 @@ func (c *EVMContract) PreDeployEVMContract(arg map[string]string, bin, abi []byt
 	return c.PreExecWithSelecUTXO()
 }
 
-// PostEVMContract post and generate complete tx for deploy EVMidity contract.
+// PostEVMContract post and generate complete tx for deploy EVM contract.
 func (c *EVMContract) PostEVMContract(preExeWithSelRes *pb.PreExecWithSelectUTXOResponse, amount string) (string, error) {
 	// populates fields
 	authRequires := []string{}
@@ -149,7 +149,7 @@ func (c *EVMContract) PostEVMContract(preExeWithSelRes *pb.PreExecWithSelectUTXO
 	c.PreSelUTXOReq = nil
 	c.Fee = strconv.Itoa(int(preExeWithSelRes.Response.GasUsed))
 
-	// EVMidity 合约调用时可以转账，因此这部分需要增加。
+	// EVM 合约调用时可以转账，因此这部分需要增加。
 	toAddressAndAmount := make(map[string]string)
 	toAddressAndAmount[c.ContractName] = amount
 	c.ToAddressAndAmount = toAddressAndAmount
@@ -158,7 +158,7 @@ func (c *EVMContract) PostEVMContract(preExeWithSelRes *pb.PreExecWithSelectUTXO
 	return c.GenCompleteTxAndPost(preExeWithSelRes, "")
 }
 
-// Invoke invoke EVMidity contract.
+// Invoke invoke EVM contract.
 func (c *EVMContract) Invoke(methodName string, args map[string]string, amount string) (string, error) {
 	amount, ok := common.IsValidAmount(amount)
 	if !ok {
@@ -175,7 +175,7 @@ func (c *EVMContract) Invoke(methodName string, args map[string]string, amount s
 	return c.PostEVMContract(preSelectUTXOResponse, amount)
 }
 
-// PreInvokeEVMContract preExe invoker EVMidity contract.
+// PreInvokeEVMContract preExe invoker EVM contract.
 func (c *EVMContract) PreInvokeEVMContract(methodName string, args map[string]string, amount string) (*pb.PreExecWithSelectUTXOResponse, error) {
 	amountInt64, err := strconv.ParseInt(amount, 10, 64)
 	if err != nil {
@@ -184,7 +184,7 @@ func (c *EVMContract) PreInvokeEVMContract(methodName string, args map[string]st
 	}
 
 	var invokeRequests []*pb.InvokeRequest
-	invokeRequest, err := c.generateInvokeEVMIR(methodName, args, c.ContractAccount)
+	invokeRequest, err := c.generateInvokeEVMIR(methodName, args, c.ContractAccount, amount)
 	if err != nil {
 		return nil, err
 	}
@@ -229,7 +229,7 @@ func (c *EVMContract) PreInvokeEVMContract(methodName string, args map[string]st
 	return c.PreExecWithSelecUTXO()
 }
 
-func (c *EVMContract) generateInvokeEVMIR(methodName string, args map[string]string, contractAccount string) (*pb.InvokeRequest, error) {
+func (c *EVMContract) generateInvokeEVMIR(methodName string, args map[string]string, contractAccount string, amount string) (*pb.InvokeRequest, error) {
 	argsMap := make(map[string]interface{}, len(args))
 	for k, v := range args {
 		argsMap[k] = v
@@ -240,19 +240,24 @@ func (c *EVMContract) generateInvokeEVMIR(methodName string, args map[string]str
 		return nil, err
 	}
 
-	return &pb.InvokeRequest{
+	ir := &pb.InvokeRequest{
 		ModuleName:   evmType,
 		MethodName:   methodName,
 		ContractName: c.ContractName,
 		Args:         irArgs,
-	}, nil
+	}
+	if len(amount) > 0 {
+		ir.Amount = amount
+	}
+
+	return ir, nil
 }
 
-// Query call EVMidity view function.
+// Query call EVM view function.
 func (c *EVMContract) Query(methodName string, args map[string]string) (*pb.InvokeRPCResponse, error) {
 	// generate preExe request
 	var invokeRequests []*pb.InvokeRequest
-	invokeRequest, err := c.generateInvokeEVMIR(methodName, args, c.ContractAccount)
+	invokeRequest, err := c.generateInvokeEVMIR(methodName, args, c.ContractAccount, "")
 	if err != nil {
 		return nil, err
 	}
