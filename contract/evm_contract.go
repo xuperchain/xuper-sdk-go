@@ -15,7 +15,11 @@ import (
 	"github.com/xuperchain/xuper-sdk-go/xchain"
 )
 
-const evmType string = "evm"
+const (
+	evmType     = "evm"
+	input       = "input"
+	jsonEncoded = "jsonEncoded"
+)
 
 // EVMContract EVM contract.
 type EVMContract struct {
@@ -107,12 +111,12 @@ func (c *EVMContract) PreDeployEVMContract(arg map[string]string, bin, abi []byt
 	extraAmount := int64(0)
 
 	// if ComplianceCheck is needed
-	if c.Cfg.ComplianceCheck.IsNeedComplianceCheck == true {
+	if c.Cfg.ComplianceCheck.IsNeedComplianceCheck {
 		authRequires = append(authRequires, c.Cfg.ComplianceCheck.ComplianceCheckEndorseServiceAddr)
 		invokeRPCReq.AuthRequire = authRequires
 
 		// 是否需要支付合规性背书费用
-		if c.Cfg.ComplianceCheck.IsNeedComplianceCheckFee == true {
+		if c.Cfg.ComplianceCheck.IsNeedComplianceCheckFee {
 			extraAmount = int64(c.Cfg.ComplianceCheck.ComplianceCheckEndorseServiceFee)
 		}
 	}
@@ -205,12 +209,12 @@ func (c *EVMContract) PreInvokeEVMContract(methodName string, args map[string]st
 	extraAmount := int64(0)
 
 	// if ComplianceCheck is needed
-	if c.Cfg.ComplianceCheck.IsNeedComplianceCheck == true {
+	if c.Cfg.ComplianceCheck.IsNeedComplianceCheck {
 		authRequires = append(authRequires, c.Cfg.ComplianceCheck.ComplianceCheckEndorseServiceAddr)
 		invokeRPCReq.AuthRequire = authRequires
 
 		// 是否需要支付合规性背书费用
-		if c.Cfg.ComplianceCheck.IsNeedComplianceCheckFee == true {
+		if c.Cfg.ComplianceCheck.IsNeedComplianceCheckFee {
 			extraAmount = int64(c.Cfg.ComplianceCheck.ComplianceCheckEndorseServiceFee)
 		}
 	}

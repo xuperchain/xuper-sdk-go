@@ -195,15 +195,15 @@ func validRawAccount(accountName string) error {
 	}
 
 	// account naming rule check
-	if len(accountName) != 16 {
-		return fmt.Errorf("invoke NewAccount failed, account name length expect %d, actual: %d", 16, len(accountName))
+	if len(accountName) != accountSize {
+		return fmt.Errorf("invoke NewAccount failed, account name length expect %d, actual: %d", accountSize, len(accountName))
 	}
 
-	for i := 0; i < 16; i++ {
+	for i := 0; i < accountSize; i++ {
 		if accountName[i] >= '0' && accountName[i] <= '9' {
 			continue
 		} else {
-			return fmt.Errorf("invoke NewAccount failed, account name expect continuous %d number", 16)
+			return fmt.Errorf("invoke NewAccount failed, account name expect continuous %d number", accountSize)
 		}
 	}
 
@@ -238,8 +238,8 @@ func validContractName(contractName string) error {
 	// param absence check
 	// contract naming rule check
 	contractSize := len(contractName)
-	contractMaxSize := 16
-	contractMinSize := 4
+	contractMaxSize := contractNameMaxSize
+	contractMinSize := contractNameMinSize
 
 	if contractSize > contractMaxSize || contractSize < contractMinSize {
 		return fmt.Errorf("contract name length expect [%d~%d], actual: %d", contractMinSize, contractMaxSize, contractSize)

@@ -1,38 +1,53 @@
 package account
 
 import (
-	"fmt"
 	"testing"
 )
 
-func TestX2E(t *testing.T) {
-	aa := []string{
-		"XC1111111111111113@xuper",
-		"dpzuVdosQrF2kmzumhVeFQZa1aYcdgFpN",
-		"storagedata11",
+func TestTrans(t *testing.T) {
+	type Case struct {
+		XchainAddress string
+		Type          string
+		EVMAddress    string
 	}
 
-	for _, v := range aa {
-		fmt.Println("addr:", v)
-		a, ty, e := XchainToEVMAddress(v)
-		fmt.Println("aa1:", a)
-		fmt.Println("ty:", ty)
-		fmt.Println("e:", e)
+	cases := []Case{
+		{
+			XchainAddress: "XC1111111111111113@xuper",
+			Type:          "contract-account",
+			EVMAddress:    "3131313231313131313131313131313131313133",
+		},
+		{
+			XchainAddress: "dpzuVdosQrF2kmzumhVeFQZa1aYcdgFpN",
+			Type:          "xchain",
+			EVMAddress:    "93F86A462A3174C7AD1281BCF400A9F18D244E06",
+		},
+		{
+			XchainAddress: "storagedata11",
+			Type:          "contract-name",
+			EVMAddress:    "313131312D2D2D73746F72616765646174613131",
+		},
+	}
+
+	for _, c := range cases {
+		evmAddr, addrType, err := XchainToEVMAddress(c.XchainAddress)
+		if err != nil {
+			t.Error(err)
+		}
+		Assert(c.EVMAddress, evmAddr, t)
+		Assert(c.Type, addrType, t)
+
+		xAddr, addrType, err := EVMToXchainAddress(c.EVMAddress)
+		if err != nil {
+			t.Error(err)
+		}
+		Assert(c.XchainAddress, xAddr, t)
+		Assert(c.Type, addrType, t)
 	}
 }
 
-func TestE2X(t *testing.T) {
-	aa := []string{
-		"3131313231313131313131313131313131313133",
-		"93F86A462A3174C7AD1281BCF400A9F18D244E06",
-		"313131312D2D2D73746F72616765646174613131",
-	}
-
-	for _, v := range aa {
-		fmt.Println("addr:", v)
-		a, ty, e := EVMToXchainAddress(v)
-		fmt.Println("aa1:", a)
-		fmt.Println("ty:", ty)
-		fmt.Println("e:", e)
+func Assert(expect, acture string, t *testing.T) {
+	if expect != acture {
+		t.Errorf("expect: %s, acture: %s.", expect, acture)
 	}
 }

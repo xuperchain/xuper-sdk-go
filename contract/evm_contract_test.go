@@ -5,6 +5,7 @@ package contract
 
 import (
 	"fmt"
+	"log"
 	"testing"
 
 	"github.com/xuperchain/xuper-sdk-go/account"
@@ -16,9 +17,11 @@ import (
 )
 
 var (
-	storageAbi = `[{"inputs":[{"internalType":"uint256","name":"num","type":"uint256"}],"payable":false,"stateMutability":"nonpayable","type":"constructor"},{"constant":false,"inputs":[],"name":"retrieve","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":false,"inputs":[{"internalType":"uint256","name":"num","type":"uint256"}],"name":"store","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"}]`
-	storageBin = "608060405234801561001057600080fd5b506040516101203803806101208339818101604052602081101561003357600080fd5b8101908080519060200190929190505050806000819055505060c68061005a6000396000f3fe6080604052348015600f57600080fd5b506004361060325760003560e01c80632e64cec11460375780636057361d146053575b600080fd5b603d607e565b6040518082815260200191505060405180910390f35b607c60048036036020811015606757600080fd5b81019080803590602001909291905050506087565b005b60008054905090565b806000819055505056fea265627a7a72315820deacba9b51787b987df74d6ecd3bd463204d72726c7d7d97da0b0a8c62e8ccc364736f6c63430005110032"
-	node       = "127.0.0.1:37101"
+	storageAbi = `[{"inputs":[{"internalType":"uint256","name":"num","type":"uint256"}],"payable":false,"stateMutability":"nonpayable","type":"constructor"},{"constant":false,"inputs":[],"name":"retrieve","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":false,"inputs":[{"internalType":"uint256","name":"num","type":"uint256"}],"name":"store","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":false,"inputs":[{"internalType":"uint256","name":"num","type":"uint256"}],"name":"storepay","outputs":[],"payable":true,"stateMutability":"payable","type":"function"}]`
+	storageBin = `608060405234801561001057600080fd5b5060405161016c38038061016c8339818101604052602081101561003357600080fd5b810190808051906020019092919050505080600081905550506101118061005b6000396000f3fe60806040526004361060305760003560e01c80632e64cec11460355780636057361d14605d5780638995db74146094575b600080fd5b348015604057600080fd5b50604760bf565b6040518082815260200191505060405180910390f35b348015606857600080fd5b50609260048036036020811015607d57600080fd5b810190808035906020019092919050505060c8565b005b60bd6004803603602081101560a857600080fd5b810190808035906020019092919050505060d2565b005b60008054905090565b8060008190555050565b806000819055505056fea265627a7a723158209500c3e12321b837819442c0bc1daa92a4f4377fc7b59c41dbf9c7620b2f961064736f6c63430005110032`
+	// storageAbi = `[{"inputs":[{"internalType":"uint256","name":"num","type":"uint256"}],"payable":false,"stateMutability":"nonpayable","type":"constructor"},{"constant":false,"inputs":[],"name":"retrieve","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":false,"inputs":[{"internalType":"uint256","name":"num","type":"uint256"}],"name":"store","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"}]`
+	// storageBin = "608060405234801561001057600080fd5b506040516101203803806101208339818101604052602081101561003357600080fd5b8101908080519060200190929190505050806000819055505060c68061005a6000396000f3fe6080604052348015600f57600080fd5b506004361060325760003560e01c80632e64cec11460375780636057361d146053575b600080fd5b603d607e565b6040518082815260200191505060405180910390f35b607c60048036036020811015606757600080fd5b81019080803590602001909291905050506087565b005b60008054905090565b806000819055505056fea265627a7a72315820deacba9b51787b987df74d6ecd3bd463204d72726c7d7d97da0b0a8c62e8ccc364736f6c63430005110032"
+	node = "127.0.0.1:37101"
 )
 
 func TestEVMDeploy(t *testing.T) {
@@ -39,9 +42,17 @@ func TestEVMDeploy(t *testing.T) {
 	}
 	r, e := EVMContract.Deploy(args, []byte(storageBin), []byte(storageAbi))
 	if e != nil {
-		panic(e)
+		t.Error(e)
 	}
 	fmt.Println(r)
+}
+
+func testGetBalance(account *account.Account) {
+	// 实例化一个交易相关的客户端对象
+	trans := transfer.InitTrans(account, node, "xuper")
+	// 查询账户的余额
+	balance, err := trans.GetBalance()
+	log.Printf("balance %v, err %v", balance, err)
 }
 
 func TestEVMInvoke(t *testing.T) {
@@ -54,6 +65,7 @@ func TestEVMInvoke(t *testing.T) {
 	cName := "storageA"
 	cAccount := "XC9999999999999999@xuper"
 	EVMContract := InitEVMContract(acc, node, bcname, cName, cAccount)
+	testGetBalance(acc)
 
 	args := map[string]string{
 		"num": "5882",
@@ -61,9 +73,10 @@ func TestEVMInvoke(t *testing.T) {
 	mName := "store"
 	r, e := EVMContract.Invoke(mName, args, "111")
 	if e != nil {
-		panic(e)
+		t.Error(e)
 	}
 	fmt.Println("invoke sucess:", r)
+	testGetBalance(acc)
 
 	// x := initXchain()
 	// txStatus, err := x.QueryTx(r)
@@ -95,7 +108,7 @@ func TestEVMQuery(t *testing.T) {
 	mName := "retrieve"
 	preExeRPCRes, e := EVMContract.Query(mName, nil)
 	if e != nil {
-		panic(e)
+		t.Error(e)
 	}
 	gas := preExeRPCRes.GetResponse().GetGasUsed()
 	fmt.Printf("gas used: %v\n", gas)
