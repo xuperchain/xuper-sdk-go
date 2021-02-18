@@ -571,7 +571,7 @@ var (
 // }
 
 // 部署 solidity 合约 storage（代码如上），需要先编译合约的 abi 以及 bin。
-func testEVMidityContractDeploy() {
+func testEVMContractDeploy() {
 	acc, _ := account.RetrieveAccount("江 西 伏 物 十 勘 峡 环 初 至 赏 给", 1)
 	contractAccount := "XC9999999999999999@xuper"
 	EVMContract := contract.InitEVMContract(acc, node, bcname, solidityContractName, contractAccount)
@@ -583,7 +583,7 @@ func testEVMidityContractDeploy() {
 }
 
 // 调用 storage 合约的 store 方法。同时转账给合约。
-func testEVMidityContractInvoke() {
+func testEVMContractInvoke() {
 	acc, _ := account.RetrieveAccount("江 西 伏 物 十 勘 峡 环 初 至 赏 给", 1)
 	cAccount := "XC9999999999999999@xuper"
 	EVMContract := contract.InitEVMContract(acc, node, bcname, solidityContractName, cAccount)
@@ -600,7 +600,7 @@ func testEVMidityContractInvoke() {
 }
 
 // 调用 storage 合约的 retrieve 方法。
-func testEVMidityContractQuery() {
+func testEVMContractQuery() {
 	acc, _ := account.RetrieveAccount("江 西 伏 物 十 勘 峡 环 初 至 赏 给", 1)
 	cAccount := "XC9999999999999999@xuper"
 	EVMContract := contract.InitEVMContract(acc, node, bcname, solidityContractName, cAccount)
