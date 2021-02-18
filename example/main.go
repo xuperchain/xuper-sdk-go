@@ -592,7 +592,7 @@ func testEVMContractInvoke() {
 		"num": "5",
 	}
 	mName := "store"
-	txID, err := EVMContract.Invoke(mName, args, "100") // amount（最后一个） 参数代表转账给合约。不转账可以指定为空。
+	txID, err := EVMContract.Invoke(mName, args, "0") // amount（最后一个） 参数代表转账给合约。不转账可以指定为空，合约接口为 payable 时可以转账。
 	if err != nil {
 		panic(err)
 	}
