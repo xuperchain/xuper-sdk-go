@@ -608,15 +608,12 @@ func testEVMContractQuery() {
 	args := map[string]string{
 		"num": "5",
 	}
-	mName := "store"
+	mName := "retrieve"
 
 	preExeRPCRes, err := EVMContract.Query(mName, args)
 	if err != nil {
 		panic(err)
 	}
-	gas := preExeRPCRes.GetResponse().GetGasUsed()
-	fmt.Printf("gas used: %v\n", gas)
-	fmt.Printf("preExeRPCRes: %v \n", preExeRPCRes)
 
 	for _, res := range preExeRPCRes.GetResponse().GetResponse() {
 		fmt.Printf("contract response: %s\n", string(res))
