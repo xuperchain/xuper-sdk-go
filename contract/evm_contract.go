@@ -136,6 +136,11 @@ func (c *EVMContract) PreDeployEVMContract(arg map[string]string, bin, abi []byt
 
 // PostEVMContract post and generate complete tx for deploy EVM contract.
 func (c *EVMContract) PostEVMContract(preExeWithSelRes *pb.PreExecWithSelectUTXOResponse, amount string) (string, error) {
+	amount, ok := common.IsValidAmount(amount)
+	if !ok {
+		return "", common.ErrInvalidAmount
+	}
+
 	// populates fields
 	authRequires := []string{}
 	if c.ContractAccount != "" {
@@ -155,7 +160,7 @@ func (c *EVMContract) PostEVMContract(preExeWithSelRes *pb.PreExecWithSelectUTXO
 	c.TotalToAmount = "0"
 
 	// EVM 合约调用时可以转账，因此这部分需要增加。
-	if amount != "" && amount != "0" {
+	if amount != "0" {
 		toAddressAndAmount := make(map[string]string)
 		toAddressAndAmount[c.ContractName] = amount
 		c.ToAddressAndAmount = toAddressAndAmount
@@ -254,7 +259,7 @@ func (c *EVMContract) generateInvokeEVMIR(methodName string, args map[string]str
 		Args:         irArgs,
 	}
 
-	if amount != "" && amount != "0" {
+	if amount != "0" {
 		ir.Amount = amount
 	}
 
