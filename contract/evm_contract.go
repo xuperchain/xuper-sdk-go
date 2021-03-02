@@ -155,7 +155,7 @@ func (c *EVMContract) PostEVMContract(preExeWithSelRes *pb.PreExecWithSelectUTXO
 	c.TotalToAmount = "0"
 
 	// EVM 合约调用时可以转账，因此这部分需要增加。
-	if amount != "0" {
+	if amount != "" && amount != "0" {
 		toAddressAndAmount := make(map[string]string)
 		toAddressAndAmount[c.ContractName] = amount
 		c.ToAddressAndAmount = toAddressAndAmount
@@ -253,7 +253,8 @@ func (c *EVMContract) generateInvokeEVMIR(methodName string, args map[string]str
 		ContractName: c.ContractName,
 		Args:         irArgs,
 	}
-	if amount != "0" {
+
+	if amount != "" && amount != "0" {
 		ir.Amount = amount
 	}
 
