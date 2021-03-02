@@ -152,12 +152,15 @@ func (c *EVMContract) PostEVMContract(preExeWithSelRes *pb.PreExecWithSelectUTXO
 	c.InvokeRPCReq = nil
 	c.PreSelUTXOReq = nil
 	c.Fee = strconv.Itoa(int(preExeWithSelRes.Response.GasUsed))
+	c.TotalToAmount = "0"
 
 	// EVM 合约调用时可以转账，因此这部分需要增加。
-	toAddressAndAmount := make(map[string]string)
-	toAddressAndAmount[c.ContractName] = amount
-	c.ToAddressAndAmount = toAddressAndAmount
-	c.TotalToAmount = amount
+	if amount != "0" {
+		toAddressAndAmount := make(map[string]string)
+		toAddressAndAmount[c.ContractName] = amount
+		c.ToAddressAndAmount = toAddressAndAmount
+		c.TotalToAmount = amount
+	}
 
 	return c.GenCompleteTxAndPost(preExeWithSelRes, "")
 }
@@ -250,7 +253,7 @@ func (c *EVMContract) generateInvokeEVMIR(methodName string, args map[string]str
 		ContractName: c.ContractName,
 		Args:         irArgs,
 	}
-	if len(amount) > 0 {
+	if amount != "0" {
 		ir.Amount = amount
 	}
 
