@@ -1,6 +1,6 @@
 // Copyright (c) 2020. Baidu Inc. All Rights Reserved.
 
-// package chain is related to create new blockchain
+// Package network 创建一条区块链
 package network
 
 import (

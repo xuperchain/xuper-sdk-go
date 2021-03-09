@@ -1,11 +1,12 @@
 // Copyright (c) 2019. Baidu Inc. All Rights Reserved.
 
-// package transfer is related to transfer operation
+// Package transfer 转账
 package transfer
 
 import (
 	"io/ioutil"
 	"log"
+
 	//	"math/big"
 	"errors"
 	"strconv"
@@ -25,7 +26,7 @@ type Trans struct {
 	xchain.Xchain
 }
 
-// InitTrans init a client to transfer
+// InitTrans 创建转账客户端实例
 func InitTrans(account *account.Account, node, bcname string) *Trans {
 	commConfig := config.GetInstance()
 
@@ -39,7 +40,7 @@ func InitTrans(account *account.Account, node, bcname string) *Trans {
 	}
 }
 
-// InitTrans init a client to transfer
+// InitTransByPlatform 创建具有平台账户的转账客户端实例
 func InitTransByPlatform(account, platformAccount *account.Account, node, bcname string) *Trans {
 	commConfig := config.GetInstance()
 
@@ -54,6 +55,7 @@ func InitTransByPlatform(account, platformAccount *account.Account, node, bcname
 	}
 }
 
+// TransferWithDescFile 根据描述文件进行转账
 func (t *Trans) TransferWithDescFile(to, amount, fee, descFilePath string) (string, error) {
 	desc := ""
 	if descFilePath != "" {
@@ -68,6 +70,7 @@ func (t *Trans) TransferWithDescFile(to, amount, fee, descFilePath string) (stri
 	return t.Transfer(to, amount, fee, desc)
 }
 
+// EncryptedTransfer 加密转账
 func (t *Trans) EncryptedTransfer(to, amount, fee, desc, hdPublicKey string) (string, error) {
 	if len(desc) == 0 {
 		hdPublicKey = ""
@@ -75,7 +78,13 @@ func (t *Trans) EncryptedTransfer(to, amount, fee, desc, hdPublicKey string) (st
 	return t.transfer(to, amount, fee, desc, hdPublicKey)
 }
 
-// Transfer transfer 'amount' to 'to',and pay 'fee' to miner
+// Transfer 转账
+//
+//Parameters:
+//   - `to`：转账目标地址。
+//   - `amount`：转账金额。
+//   - `fee`：转账交易给矿工的手续费。
+//   - `desc`：交易的描述文件，可以为空。
 func (t *Trans) Transfer(to, amount, fee, desc string) (string, error) {
 	return t.transfer(to, amount, fee, desc, "")
 }
@@ -180,7 +189,12 @@ func (t *Trans) transfer(to, amount, fee, desc, hdPublicKey string) (string, err
 	return t.GenCompleteTxAndPost(preExeWithSelRes, hdPublicKey)
 }
 
-// Transfer transfer 'amount' to 'to',and pay 'fee' to miner
+// BatchTransfer 批量转账
+//
+//Parameters:
+//   - `toAddressAndAmount`：转账目标地址已经对应金额的 map。
+//   - `fee`：转账交易给矿工的手续费。
+//   - `desc`：交易的描述文件，可以为空。
 func (t *Trans) BatchTransfer(toAddressAndAmount map[string]string, fee, desc string) (string, error) {
 	//	var txOutputs []*pb.TxOutput
 
@@ -301,12 +315,12 @@ func (t *Trans) BatchTransfer(toAddressAndAmount map[string]string, fee, desc st
 	return t.GenCompleteTxAndPost(preExeWithSelRes, "")
 }
 
-// QueryTx query tx to get detail information
+// QueryTx 根据交易 ID 查询交易
 func (t *Trans) QueryTx(txid string) (*pb.TxStatus, error) {
 	return t.Xchain.QueryTx(txid)
 }
 
-// QueryTx query tx to get detail information
+// DecryptedTx 解密交易的 desc
 func (t *Trans) DecryptedTx(tx *pb.Transaction, privateAncestorKey string) (string, error) {
 	cryptoClient := crypto.GetXchainCryptoClient()
 
@@ -323,7 +337,7 @@ func (t *Trans) DecryptedTx(tx *pb.Transaction, privateAncestorKey string) (stri
 	return originalDesc, nil
 }
 
-// GetBalance get your own balance
+// GetBalance 查询当前账户余额
 func (t *Trans) GetBalance() (string, error) {
 	if t.Account == nil {
 		return "", common.ErrInvalidAccount

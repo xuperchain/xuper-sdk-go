@@ -27,7 +27,7 @@ type EVMContract struct {
 	xchain.Xchain
 }
 
-// InitEVMContract init EVM contract instance.
+// InitEVMContract 创建 EVM 合约实例。
 func InitEVMContract(account *account.Account, node, bcName, contractName, contractAccount string) *EVMContract {
 	return &EVMContract{
 		ContractName: contractName,
@@ -41,7 +41,7 @@ func InitEVMContract(account *account.Account, node, bcName, contractName, contr
 	}
 }
 
-// Deploy deploy EVM contract. args: constructor parameters.
+// Deploy 部署 EVM 合约，如无错误返回交易 ID。
 func (c *EVMContract) Deploy(args map[string]string, bin, abi []byte) (string, error) {
 	// preExec
 	preSelectUTXOResponse, err := c.PreDeployEVMContract(args, bin, abi)
@@ -88,7 +88,7 @@ func (c *EVMContract) generateDeployEVMIR(arg map[string]string, bin, abi []byte
 	}, nil
 }
 
-// PreDeployEVMContract preExecAndSelectUTXO
+// PreDeployEVMContract 部署 EVM 合约的预执行接口。
 func (c *EVMContract) PreDeployEVMContract(arg map[string]string, bin, abi []byte) (*pb.PreExecWithSelectUTXOResponse, error) {
 	var invokeRequests []*pb.InvokeRequest
 	invokeRequest, err := c.generateDeployEVMIR(arg, bin, abi, c.ContractAccount)
@@ -134,7 +134,7 @@ func (c *EVMContract) PreDeployEVMContract(arg map[string]string, bin, abi []byt
 	return c.PreExecWithSelecUTXO()
 }
 
-// PostEVMContract post and generate complete tx for deploy EVM contract.
+// PostEVMContract 部署 EVM 合约的 post 接口，如无错误返回交易 ID。
 func (c *EVMContract) PostEVMContract(preExeWithSelRes *pb.PreExecWithSelectUTXOResponse, amount string) (string, error) {
 	// populates fields
 	authRequires := []string{}
@@ -162,7 +162,7 @@ func (c *EVMContract) PostEVMContract(preExeWithSelRes *pb.PreExecWithSelectUTXO
 	return c.GenCompleteTxAndPost(preExeWithSelRes, "")
 }
 
-// Invoke invoke EVM contract.
+// Invoke 根据指定的方法与参数调用合约，如果合约接口具有转账功能（payable），amount 为同时转账给合约的金额，如果不具有转账功能，amount 可为空或者0.
 func (c *EVMContract) Invoke(methodName string, args map[string]string, amount string) (string, error) {
 	amount, ok := common.IsValidAmount(amount)
 	if !ok {
@@ -179,7 +179,7 @@ func (c *EVMContract) Invoke(methodName string, args map[string]string, amount s
 	return c.PostEVMContract(preSelectUTXOResponse, amount)
 }
 
-// PreInvokeEVMContract preExe invoker EVM contract.
+// PreInvokeEVMContract 调用合约的预执行接口。
 func (c *EVMContract) PreInvokeEVMContract(methodName string, args map[string]string, amount string) (*pb.PreExecWithSelectUTXOResponse, error) {
 	amountInt64, err := strconv.ParseInt(amount, 10, 64)
 	if err != nil {
@@ -257,7 +257,7 @@ func (c *EVMContract) generateInvokeEVMIR(methodName string, args map[string]str
 	return ir, nil
 }
 
-// Query call EVM view function.
+// Query 查询 EVM 合约，例如具有 view 关键字的合约接口，不收取手续费.
 func (c *EVMContract) Query(methodName string, args map[string]string) (*pb.InvokeRPCResponse, error) {
 	// generate preExe request
 	var invokeRequests []*pb.InvokeRequest

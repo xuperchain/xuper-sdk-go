@@ -1,6 +1,6 @@
 // Copyright (c) 2019. Baidu Inc. All Rights Reserved.
 
-// package config is related to common conf info
+// Package config 配置信息
 package config
 
 import (
@@ -12,6 +12,7 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
+// ComplianceCheckConfig 背书检查相关配置。
 type ComplianceCheckConfig struct {
 	IsNeedComplianceCheck                bool   `yaml:"isNeedComplianceCheck,omitempty"`
 	IsNeedComplianceCheckFee             bool   `yaml:"isNeedComplianceCheckFee,omitempty"`
@@ -20,6 +21,7 @@ type ComplianceCheckConfig struct {
 	ComplianceCheckEndorseServiceAddr    string `yaml:"complianceCheckEndorseServiceAddr,omitempty"`
 }
 
+// CommConfig SDK 配置
 type CommConfig struct {
 	EndorseServiceHost string                `yaml:"endorseServiceHost,omitempty"`
 	ComplianceCheck    ComplianceCheckConfig `yaml:"complianceCheck,omitempty"`
@@ -35,6 +37,7 @@ const CRYPTO_GM = "gm"
 
 var config *CommConfig
 
+// GetInstance 获取配置实例。
 func GetInstance() *CommConfig {
 	if config == nil {
 		config = GetConfig(confPath, confName)
@@ -42,6 +45,7 @@ func GetInstance() *CommConfig {
 	return config
 }
 
+// GetConfig 根据配置文件加载配置信息，如果没有配置文件默认不需要背书检查。
 func GetConfig(configPath string, confName string) *CommConfig {
 	// default config
 	commConfig := &CommConfig{
@@ -70,6 +74,7 @@ func GetConfig(configPath string, confName string) *CommConfig {
 	return commConfig
 }
 
+// SetConfig 设置配置信息。
 func SetConfig(checkHost, checkAddr, checkFeeAddr, checkFee string, isNeedCheck, isNeedCheckFee bool, minNewChainAmount string) {
 	commConfig := &CommConfig{
 		EndorseServiceHost: "10.144.94.18:8848",

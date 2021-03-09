@@ -1,5 +1,6 @@
 # IDE related
 .vscode/
+.DS_Store
 
 # output files
 output/

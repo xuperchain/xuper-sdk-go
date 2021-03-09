@@ -1,6 +1,6 @@
 // Copyright (c) 2019. Baidu Inc. All Rights Reserved.
 
-// package xchain is related to xchain operation
+// Package xchain 客户端相关操作
 package xchain
 
 import (
@@ -48,7 +48,7 @@ type Xchain struct {
 	IsNeedComplianceCheck bool
 }
 
-// PreExecWithSelecUTXO preExec and selectUTXO
+// PreExecWithSelecUTXO 预执行同时选择 UTXO
 func (xc *Xchain) PreExecWithSelecUTXO() (*pb.PreExecWithSelectUTXOResponse, error) {
 	requestData, err := json.Marshal(xc.PreSelUTXOReq)
 	if err != nil {
@@ -95,7 +95,7 @@ func (xc *Xchain) PreExecWithSelecUTXO() (*pb.PreExecWithSelectUTXOResponse, err
 	return preExecWithSelectUTXOResponse, nil
 }
 
-// GenComplianceCheckTx generate complianceTx to pay for compliance check
+// GenComplianceCheckTx 生成背书相关检查的交易
 func (xc *Xchain) GenComplianceCheckTx(response *pb.PreExecWithSelectUTXOResponse) (
 	*pb.Transaction, error) {
 
@@ -159,7 +159,7 @@ func (xc *Xchain) GenComplianceCheckTx(response *pb.PreExecWithSelectUTXORespons
 	return tx, nil
 }
 
-// GenerateTxOutput generate txoutput part
+// GenerateMultiTxOutputs 生成 TxOutputs
 func (xc *Xchain) GenerateMultiTxOutputs(selfAmount string) ([]*pb.TxOutput, error) {
 	selfAddr := xc.Account.Address
 	toAddrAndAmount := xc.ToAddressAndAmount
@@ -219,7 +219,7 @@ func (xc *Xchain) GenerateMultiTxOutputs(selfAmount string) ([]*pb.TxOutput, err
 	return txOutputs, nil
 }
 
-// GenerateTxOutput generate txoutput part
+// GenerateTxOutput 生成 txoutput
 func (xc *Xchain) GenerateTxOutput(to, amount, fee string) ([]*pb.TxOutput, error) {
 	accounts := []*pb.TxDataAccount{}
 	if to != "" {
@@ -261,6 +261,7 @@ func (xc *Xchain) GenerateTxOutput(to, amount, fee string) ([]*pb.TxOutput, erro
 	return txOutputs, nil
 }
 
+// GeneratePureTxInputs 根据 utxoOutputs 生成 TxInputs
 func (xc *Xchain) GeneratePureTxInputs(utxoOutputs *pb.UtxoOutput) (
 	[]*pb.TxInput, error) {
 	// utxoList => TxInput
@@ -280,7 +281,7 @@ func (xc *Xchain) GeneratePureTxInputs(utxoOutputs *pb.UtxoOutput) (
 	return txInputs, nil
 }
 
-// GenerateTxInput generate txinput part
+// GenerateTxInput 生成 txinput
 func (xc *Xchain) GenerateTxInput(utxoOutputs *pb.UtxoOutput, totalNeed *big.Int) (
 	[]*pb.TxInput, *pb.TxOutput, error) {
 	// utxoList => TxInput
@@ -314,7 +315,7 @@ func (xc *Xchain) GenerateTxInput(utxoOutputs *pb.UtxoOutput, totalNeed *big.Int
 	return txInputs, txOutput, nil
 }
 
-// GenRealTx generate really effective transaction
+// GenRealTx 根据背书检查交易生成当前交易的 Tx 数据
 func (xc *Xchain) GenRealTx(response *pb.PreExecWithSelectUTXOResponse,
 	complianceCheckTx *pb.Transaction, hdPublicKey string) (*pb.Transaction, error) {
 	utxolist := []*pb.Utxo{}
@@ -448,7 +449,7 @@ func (xc *Xchain) GenRealTx(response *pb.PreExecWithSelectUTXOResponse,
 
 }
 
-// GenRealTxOnly generate really effective transaction
+// GenRealTxOnly 生成交易数据
 func (xc *Xchain) GenRealTxOnly(response *pb.PreExecWithSelectUTXOResponse, hdPublicKey string) (*pb.Transaction, error) {
 	//	txOutputs, err := xc.GenerateTxOutput(xc.To, xc.Amount, xc.Fee)
 	//	if err != nil {
@@ -597,7 +598,7 @@ func (xc *Xchain) GenRealTxOnly(response *pb.PreExecWithSelectUTXOResponse, hdPu
 
 }
 
-// ComplianceCheck whether the transaction complies with the rule
+// ComplianceCheck 检查交易是否满足背书
 func (xc *Xchain) ComplianceCheck(tx *pb.Transaction, fee *pb.Transaction) (
 	*pb.SignatureInfo, error) {
 	txStatus := &pb.TxStatus{
@@ -637,7 +638,7 @@ func (xc *Xchain) ComplianceCheck(tx *pb.Transaction, fee *pb.Transaction) (
 	return endorserResponse.GetEndorserSign(), nil
 }
 
-// PostTx posttx
+// PostTx 发送交易到链
 func (xc *Xchain) PostTx(tx *pb.Transaction) (string, error) {
 	posttx := func(tx *pb.Transaction) error {
 		conn, err := grpc.Dial(xc.XchainSer, grpc.WithInsecure(), grpc.WithMaxMsgSize(64<<20-1))
@@ -674,7 +675,7 @@ func (xc *Xchain) PostTx(tx *pb.Transaction) (string, error) {
 	return hex.EncodeToString(tx.Txid), nil
 }
 
-// GenCompleteTxAndPost generate comlete tx and post tx
+// GenCompleteTxAndPost 生成完整交易并发送到链
 func (xc *Xchain) GenCompleteTxAndPost(preExeResp *pb.PreExecWithSelectUTXOResponse, hdPublicKey string) (string, error) {
 	tx := &pb.Transaction{}
 	complianceCheckTx := &pb.Transaction{}
@@ -757,7 +758,7 @@ func (xc *Xchain) GenCompleteTxAndPost(preExeResp *pb.PreExecWithSelectUTXORespo
 
 }
 
-// GetBalanceDetail get unfrozen balance and frozen balance
+// GetBalanceDetail 或者账户余额详细数据，包括冻结余额已经高度
 func (xc *Xchain) GetBalanceDetail() (string, error) {
 	conn, err := grpc.Dial(xc.XchainSer, grpc.WithInsecure(), grpc.WithMaxMsgSize(64<<20-1))
 	if err != nil {
@@ -787,7 +788,7 @@ func (xc *Xchain) GetBalanceDetail() (string, error) {
 	return string(balanceJSON), err
 }
 
-// QueryTx get tx's status
+// QueryTx 根据交易 ID 查询交易
 func (xc *Xchain) QueryTx(txid string) (*pb.TxStatus, error) {
 	conn, err := grpc.Dial(xc.XchainSer, grpc.WithInsecure(), grpc.WithMaxMsgSize(64<<20-1))
 	if err != nil {
@@ -821,7 +822,7 @@ func (xc *Xchain) QueryTx(txid string) (*pb.TxStatus, error) {
 	return res, nil
 }
 
-// PreExec pre exec
+// PreExec 交易预执行阶段
 func (xc *Xchain) PreExec() (*pb.InvokeRPCResponse, error) {
 	conn, err := grpc.Dial(xc.XchainSer, grpc.WithInsecure(), grpc.WithMaxMsgSize(64<<20-1))
 	if err != nil {

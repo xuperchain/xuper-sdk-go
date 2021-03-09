@@ -1,6 +1,6 @@
 // Copyright (c) 2019. Baidu Inc. All Rights Reserved.
 
-// package contract is related to contract operation
+// Package contract 智能合约相关操作，包括 wasm 以及 evm 合约
 package contract
 
 import (
@@ -17,13 +17,13 @@ import (
 	"github.com/xuperchain/xuper-sdk-go/xchain"
 )
 
-// WasmContract wasmContract structure
+// WasmContract wasm 合约
 type WasmContract struct {
 	ContractName string
 	xchain.Xchain
 }
 
-// InitWasmContract init a client to deploy/invoke/query a wasm contract
+// InitWasmContract 创建 wasm 合约实例，用来调用合约。
 func InitWasmContract(account *account.Account, node, bcName, contractName, contractAccount string) *WasmContract {
 	commConfig := config.GetInstance()
 
@@ -39,7 +39,7 @@ func InitWasmContract(account *account.Account, node, bcName, contractName, cont
 	}
 }
 
-// DeployWasmContract deploy a wasm contract
+// DeployWasmContract 部署 wasm 合约。没有错误返回交易 ID。
 func (c *WasmContract) DeployWasmContract(args map[string]string, codepath string, runtime string) (string, error) {
 	// preExe
 	preSelectUTXOResponse, err := c.PreDeployWasmContract(args, codepath, runtime)
@@ -51,7 +51,7 @@ func (c *WasmContract) DeployWasmContract(args map[string]string, codepath strin
 	return c.PostWasmContract(preSelectUTXOResponse)
 }
 
-// PreDeployWasmContract preExe deploy wasm contract
+// PreDeployWasmContract 部署合约的预执行接口，返回预执行结果。
 func (c *WasmContract) PreDeployWasmContract(arg map[string]string, codepath string, runtime string) (*pb.PreExecWithSelectUTXOResponse, error) {
 	// generate preExe request
 	var invokeRequests []*pb.InvokeRequest
@@ -96,7 +96,7 @@ func (c *WasmContract) PreDeployWasmContract(arg map[string]string, codepath str
 	return c.PreExecWithSelecUTXO()
 }
 
-// PostWasmContract generate complete Tx and post to deploy wasm Contract
+// PostWasmContract 合约部署与调用交易的 post 接口，没有错误返回交易 ID。
 func (c *WasmContract) PostWasmContract(preExeWithSelRes *pb.PreExecWithSelectUTXOResponse) (string, error) {
 	// populates fields
 	authRequires := []string{}
@@ -120,7 +120,7 @@ func (c *WasmContract) PostWasmContract(preExeWithSelRes *pb.PreExecWithSelectUT
 	return c.GenCompleteTxAndPost(preExeWithSelRes, "")
 }
 
-// InvokeWasmContract invoke wasm contract by method name
+// InvokeWasmContract 根据方法名字与参数调用合约。
 func (c *WasmContract) InvokeWasmContract(methodName string, args map[string]string) (string, error) {
 	// preExe
 	preSelectUTXOResponse, err := c.PreInvokeWasmContract(methodName, args)
@@ -132,7 +132,7 @@ func (c *WasmContract) InvokeWasmContract(methodName string, args map[string]str
 	return c.PostWasmContract(preSelectUTXOResponse)
 }
 
-// PreInvokeWasmContract preExe invoke wasm contract
+// PreInvokeWasmContract 调用合约交易的预执行接口。
 func (c *WasmContract) PreInvokeWasmContract(methodName string, args map[string]string) (*pb.PreExecWithSelectUTXOResponse, error) {
 	// generate preExe request
 	var invokeRequests []*pb.InvokeRequest
@@ -178,7 +178,7 @@ func (c *WasmContract) PreInvokeWasmContract(methodName string, args map[string]
 	return c.PreExecWithSelecUTXO()
 }
 
-// QueryWasmContract query wasm contract, same as preExe invoke
+// QueryWasmContract 查询 wasm 接口，不消耗手续费，类似于调用合约的预执行阶段。
 func (c *WasmContract) QueryWasmContract(methodName string, args map[string]string) (*pb.InvokeRPCResponse, error) {
 	// generate preExe request
 	var invokeRequests []*pb.InvokeRequest

@@ -38,8 +38,9 @@ var (
 	contractNameRegex = regexp.MustCompile("^[a-zA-Z_]{1}[0-9a-zA-Z_.]+[0-9a-zA-Z_]$")
 )
 
-// XchainToEVMAddress xchain address transfer to evm address: xchainAddr can be xchain contract account, AK address, xchain contract name.
-// return: evm address, address type, error.
+// XchainToEVMAddress xchain 地址转换成 evm 地址，可以是 xchain 的 AK 地址、合约账户、合约名字。
+//
+// 返回结果为 evm 地址、地址类型、error。
 func XchainToEVMAddress(xchainAddr string) (string, string, error) {
 	var addr crypto.Address
 	var addrType string
@@ -62,8 +63,9 @@ func XchainToEVMAddress(xchainAddr string) (string, string, error) {
 	return addr.String(), addrType, nil
 }
 
-// EVMToXchainAddress evm address transfer to xchain address: evmAddr can be evm contract account, AK address, xchain contract name.
-// return: xchain address, address type, error.
+// EVMToXchainAddress evm 地址转换成 xchain 地址，可以是 evm 的 AK 地址、合约账户、合约名字。
+//
+// 返回结果为 xchain 地址、地址类型、error。
 func EVMToXchainAddress(evmAddr string) (string, string, error) {
 	eAddr, err := crypto.AddressFromHexString(evmAddr)
 	if err != nil {
@@ -252,7 +254,7 @@ func validContractName(contractName string) error {
 	return nil
 }
 
-// UsingSha256 get the hash result of data using SHA256
+// UsingSha256 SHA256
 func UsingSha256(data []byte) []byte {
 	h := sha256.New()
 	h.Write(data)

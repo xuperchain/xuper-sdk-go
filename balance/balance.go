@@ -1,6 +1,6 @@
 // Copyright (c) 2020. Baidu Inc. All Rights Reserved.
 
-// package chain is related to create new blockchain
+// Package balance 查询账户余额
 package balance
 
 import (
@@ -17,7 +17,7 @@ import (
 	"github.com/xuperchain/xuper-sdk-go/pb"
 )
 
-// Chain structure
+// Balance structure
 type Balance struct {
 	Cfg       *config.CommConfig
 	Account   *account.Account
@@ -25,7 +25,7 @@ type Balance struct {
 	BcNames   []string
 }
 
-// InitBalance init a client to query with chain
+// InitBalance 创建查询余额的实例。
 func InitBalance(account *account.Account, node string, bcNames []string) *Balance {
 	commConfig := config.GetInstance()
 
@@ -37,7 +37,7 @@ func InitBalance(account *account.Account, node string, bcNames []string) *Balan
 	}
 }
 
-// GetBalanceDetail get unfrozen balance and frozen balance
+// GetBalanceDetails 查询账户的余额信息，包括冻结金额与非冻结金额。
 func (bal *Balance) GetBalanceDetails() (string, error) {
 	conn, err := grpc.Dial(bal.XchainSer, grpc.WithInsecure(), grpc.WithMaxMsgSize(64<<20-1))
 	if err != nil {
