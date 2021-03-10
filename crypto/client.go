@@ -1,6 +1,6 @@
 // Copyright (c) 2019. Baidu Inc. All Rights Reserved.
 
-// package common is related to generate crypto client
+// Package crypto 生成加密库客户端
 package crypto
 
 import (

@@ -1,6 +1,6 @@
 // Copyright (c) 2019. Baidu Inc. All Rights Reserved.
 
-// package contractaccount is related to contract account operation
+// Package contractaccount 合约账户相关操作
 package contractaccount
 
 import (
@@ -19,7 +19,7 @@ type ContractAccount struct {
 	xchain.Xchain
 }
 
-// InitContractAccount init a client to create contractAccount
+// InitContractAccount 创建合约账户相关 client
 func InitContractAccount(account *account.Account, node, bcname string) *ContractAccount {
 	commConfig := config.GetInstance()
 	return &ContractAccount{
@@ -32,7 +32,7 @@ func InitContractAccount(account *account.Account, node, bcname string) *Contrac
 	}
 }
 
-// CreateContractAccount create contractAccount
+// CreateContractAccount 创建合约账户
 func (ca *ContractAccount) CreateContractAccount(contractAccount string) (string, error) {
 	// preExe
 	preExeResp, err := ca.PreCreateContractAccount(contractAccount)
@@ -43,7 +43,7 @@ func (ca *ContractAccount) CreateContractAccount(contractAccount string) (string
 	return ca.PostCreateContractAccount(preExeResp)
 }
 
-// PreCreateContractAccount preExe create contract account
+// PreCreateContractAccount 创建合约账户预执行接口
 func (ca *ContractAccount) PreCreateContractAccount(contractAccount string) (*pb.PreExecWithSelectUTXOResponse, error) {
 	// validate contractAccount
 	if ok, _ := regexp.MatchString(`^XC\d{16}@`+ca.ChainName+`$`, contractAccount); !ok {
@@ -98,7 +98,7 @@ func (ca *ContractAccount) PreCreateContractAccount(contractAccount string) (*pb
 	return ca.PreExecWithSelecUTXO()
 }
 
-// PostCreateContractAccount generate complete Tx and post to create contract account
+// PostCreateContractAccount 创建合约账户 post 接口，生成完整交易并发送到链上
 func (ca *ContractAccount) PostCreateContractAccount(preExeResp *pb.PreExecWithSelectUTXOResponse) (string, error) {
 	authRequires := []string{}
 	// if ComplianceCheck is needed

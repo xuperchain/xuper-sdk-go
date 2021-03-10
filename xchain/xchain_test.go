@@ -38,9 +38,9 @@ func initXchain() *Xchain {
 
 func TestTransfer(t *testing.T) {
 	cli := initXchain()
-	cli.Amount = "10"
+	amount := "10"
 	cli.Fee = "0"
-	cli.To = "Bob"
+	// to := "Bob"
 
 	invokeRequests := []*pb.InvokeRequest{}
 	authRequires := []string{}
@@ -52,7 +52,7 @@ func TestTransfer(t *testing.T) {
 		AuthRequire: authRequires,
 	}
 
-	amountInt64, _ := strconv.ParseInt(cli.Amount, 10, 64)
+	amountInt64, _ := strconv.ParseInt(amount, 10, 64)
 	feeInt64, _ := strconv.ParseInt(cli.Fee, 10, 64)
 	needTotalAmount := amountInt64 + int64(cli.Cfg.ComplianceCheck.ComplianceCheckEndorseServiceFee) + feeInt64
 
@@ -78,7 +78,7 @@ func TestTransfer(t *testing.T) {
 	t.Logf("GenComplianceCheckTx: %v, err: %v", complianceCheckTx, err)
 
 	// test GenRealTx
-	tx, err := cli.GenRealTx(preExeWithSelRes, complianceCheckTx)
+	tx, err := cli.GenRealTx(preExeWithSelRes, complianceCheckTx, "")
 	t.Logf("GenRealTx: %v, err: %v", tx, err)
 
 	// test ComplianceCheck
@@ -89,7 +89,7 @@ func TestTransfer(t *testing.T) {
 	tx.Txid, _ = txhash.MakeTransactionID(tx)
 
 	// test PostTx
-	err = cli.PostTx(tx)
+	_, err = cli.PostTx(tx)
 	t.Logf("PostTx: err: %v", err)
 
 	txid := hex.EncodeToString(tx.Txid)
@@ -101,9 +101,9 @@ func TestTransfer(t *testing.T) {
 func TestTransferV2(t *testing.T) {
 	cli := initXchain()
 
-	cli.Amount = "100"
+	amount := "100"
 	cli.Fee = "0"
-	cli.To = "Bob"
+	to := "Bob"
 
 	invokeRequests := []*pb.InvokeRequest{}
 	authRequires := []string{}
@@ -115,7 +115,7 @@ func TestTransferV2(t *testing.T) {
 		AuthRequire: authRequires,
 	}
 
-	amountInt64, _ := strconv.ParseInt(cli.Amount, 10, 64)
+	amountInt64, _ := strconv.ParseInt(amount, 10, 64)
 	feeInt64, _ := strconv.ParseInt(cli.Fee, 10, 64)
 	needTotalAmount := amountInt64 + int64(cli.Cfg.ComplianceCheck.ComplianceCheckEndorseServiceFee) + feeInt64
 
@@ -140,7 +140,7 @@ func TestTransferV2(t *testing.T) {
 	complianceCheckTx, err := cli.GenComplianceCheckTx(preExeWithSelRes)
 
 	// test GenerateTxOutput
-	txOutputs, err := cli.GenerateTxOutput(cli.To, cli.Amount, cli.Fee)
+	txOutputs, err := cli.GenerateTxOutput(to, amount, cli.Fee)
 	t.Logf("GenerateTxOutput: %v, err: %v", txOutputs, err)
 
 	utxolist := []*pb.Utxo{}
@@ -163,10 +163,10 @@ func TestTransferV2(t *testing.T) {
 		TotalSelected: totalSelected.String(),
 	}
 	totalNeed := big.NewInt(0)
-	amount, _ := big.NewInt(0).SetString(cli.Amount, 10)
+	amountB, _ := big.NewInt(0).SetString(amount, 10)
 	fee, _ := big.NewInt(0).SetString(cli.Fee, 10)
-	amount.Add(amount, fee)
-	totalNeed.Add(totalNeed, amount)
+	amountB.Add(amountB, fee)
+	totalNeed.Add(totalNeed, amountB)
 
 	// test GenerateTxInput
 	txInputs, deltaTxOutput, err := cli.GenerateTxInput(utxoOutput, totalNeed)
@@ -193,7 +193,7 @@ func TestTransferV2(t *testing.T) {
 	common.SetSeed()
 	tx.Nonce = common.GetNonce()
 	cryptoClient := crypto.GetCryptoClient()
-	privateKey, _ := cryptoClient.GetEcdsaPrivateKeyFromJSON([]byte(cli.Account.PrivateKey))
+	privateKey, _ := cryptoClient.GetEcdsaPrivateKeyFromJsonStr((cli.Account.PrivateKey))
 
 	digestHash, _ := txhash.MakeTxDigestHash(tx)
 	sign, err := cryptoClient.SignECDSA(privateKey, digestHash)
@@ -218,7 +218,7 @@ func TestTransferV2(t *testing.T) {
 	tx.Txid, _ = txhash.MakeTransactionID(tx)
 
 	// test PostTx
-	err = cli.PostTx(tx)
+	_, err = cli.PostTx(tx)
 	t.Logf("PostTx: err: %v", err)
 
 	txid := hex.EncodeToString(tx.Txid)
@@ -231,9 +231,9 @@ func TestTransferV2(t *testing.T) {
 func TestTransferV3(t *testing.T) {
 	cli := initXchain()
 
-	cli.Amount = "10"
+	amount := "10"
 	cli.Fee = "0"
-	cli.To = "Bob"
+	// cli.To = "Bob"
 
 	invokeRequests := []*pb.InvokeRequest{}
 	authRequires := []string{}
@@ -244,7 +244,7 @@ func TestTransferV3(t *testing.T) {
 		Initiator:   cli.Account.Address,
 		AuthRequire: authRequires,
 	}
-	amountInt64, _ := strconv.ParseInt(cli.Amount, 10, 64)
+	amountInt64, _ := strconv.ParseInt(amount, 10, 64)
 	feeInt64, _ := strconv.ParseInt(cli.Fee, 10, 64)
 	needTotalAmount := amountInt64 + int64(cli.Cfg.ComplianceCheck.ComplianceCheckEndorseServiceFee) + feeInt64
 	preSelUTXOReq := &pb.PreExecWithSelectUTXORequest{
@@ -265,7 +265,7 @@ func TestTransferV3(t *testing.T) {
 	t.Logf("PreExecWithSelecUTXO: %v, err: %v", preExeWithSelRes, err)
 
 	// test GenCompleteTxAndPost
-	tx, err := cli.GenCompleteTxAndPost(preExeWithSelRes)
+	tx, err := cli.GenCompleteTxAndPost(preExeWithSelRes, "")
 	t.Logf("GenCompleteTxAndPost: %v, err: %v", tx, err)
 
 	// test QueryTx

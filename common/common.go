@@ -1,6 +1,6 @@
 // Copyright (c) 2019. Baidu Inc. All Rights Reserved.
 
-// package common is related to common variables and utils funcs
+// Package common 公用以及工具相关
 package common
 
 import (

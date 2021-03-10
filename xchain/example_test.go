@@ -1,0 +1,5 @@
+package xchain
+
+func Example() {
+
+}
