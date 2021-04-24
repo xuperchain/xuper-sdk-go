@@ -45,7 +45,8 @@ func GetInstance() *CommConfig {
 func GetConfig(configPath string, confName string) *CommConfig {
 	// default config
 	commConfig := &CommConfig{
-		EndorseServiceHost: "10.144.94.18:8848",
+		//EndorseServiceHost: "10.144.94.18:8848",
+		EndorseServiceHost: "127.0.0.1:8848",
 		ComplianceCheck: ComplianceCheckConfig{
 			ComplianceCheckEndorseServiceFee:     10,
 			ComplianceCheckEndorseServiceFeeAddr: "XBbhR82cB6PvaLJs3D4uB9f12bhmKkHeX",
@@ -55,7 +56,8 @@ func GetConfig(configPath string, confName string) *CommConfig {
 		Crypto:            CRYPTO_XCHAIN,
 	}
 
-	filename := configPath + "/" + confName
+	//filename := configPath + "/" + confName
+	filename := "../"+configPath + "/" + confName	// shikenian
 	yamlFile, err := ioutil.ReadFile(filename)
 	if err != nil {
 		log.Printf("Config yamlFile get error #%v", err)
@@ -72,7 +74,8 @@ func GetConfig(configPath string, confName string) *CommConfig {
 
 func SetConfig(checkHost, checkAddr, checkFeeAddr, checkFee string, isNeedCheck, isNeedCheckFee bool, minNewChainAmount string) {
 	commConfig := &CommConfig{
-		EndorseServiceHost: "10.144.94.18:8848",
+		//EndorseServiceHost: "10.144.94.18:8848",
+		EndorseServiceHost: "127.0.0.1:8848",
 		ComplianceCheck: ComplianceCheckConfig{
 			ComplianceCheckEndorseServiceFee:     10,
 			ComplianceCheckEndorseServiceFeeAddr: "XBbhR82cB6PvaLJs3D4uB9f12bhmKkHeX",

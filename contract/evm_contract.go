@@ -3,6 +3,7 @@
 package contract
 
 import (
+	"context"
 	"encoding/json"
 	"log"
 	"strconv"
@@ -28,15 +29,16 @@ type EVMContract struct {
 }
 
 // InitEVMContract init EVM contract instance.
-func InitEVMContract(account *account.Account, node, bcName, contractName, contractAccount string) *EVMContract {
+func InitEVMContract(account *account.Account, bcName, contractName, contractAccount string,sdkClient  *xchain.SDKClient) *EVMContract {
 	return &EVMContract{
 		ContractName: contractName,
 		Xchain: xchain.Xchain{
 			Cfg:             config.GetInstance(),
 			Account:         account,
-			XchainSer:       node,
+			//XchainSer:       node,
 			ChainName:       bcName,
 			ContractAccount: contractAccount,
+			SDKClient:sdkClient,
 		},
 	}
 }
@@ -44,15 +46,59 @@ func InitEVMContract(account *account.Account, node, bcName, contractName, contr
 // Deploy deploy EVM contract. args: constructor parameters.
 func (c *EVMContract) Deploy(args map[string]string, bin, abi []byte) (string, error) {
 	// preExec
-	preSelectUTXOResponse, err := c.PreDeployEVMContract(args, bin, abi)
-	if err != nil {
-		log.Printf("DeployEVMContract preExe failed, err: %v", err)
-		return "", err
+	ctx := context.Background()
+	if c.Cfg.ComplianceCheck.IsNeedComplianceCheck == true {
+		preSelectUTXOResponse, err := c.PreDeployEVMContract(args, bin, abi)
+		if err != nil {
+			log.Printf("DeployEVMContract preExe failed, err: %v", err)
+			return "", err
+		}
+		// post
+		return c.PostEVMContract(preSelectUTXOResponse, "0")
+	}else{
+		deployReq,err := c.generateDeployEVMIR(args, bin, abi, c.ContractAccount)
+		if err != nil {
+			return "",err
+		}
+		tx, err := c.GenerateTx(deployReq)
+		if err != nil {
+			return "",err
+		}
+		return c.SendTx(ctx,tx)
 	}
-
-	// post
-	return c.PostEVMContract(preSelectUTXOResponse, "0")
 }
+
+
+func (c *EVMContract) Upgrade(methodName string, args map[string]string) (*pb.InvokeRPCResponse, error) {
+	// generate preExe request
+	var invokeRequests []*pb.InvokeRequest
+	invokeRequest, err := c.generateInvokeEVMIR(methodName, args, c.ContractAccount, "")
+	if err != nil {
+		return nil, err
+	}
+	invokeRequests = append(invokeRequests, invokeRequest)
+
+	authRequires := []string{}
+	if c.ContractAccount != "" {
+		authRequires = append(authRequires, c.ContractAccount+"/"+c.Account.Address)
+	}
+	authRequires = append(authRequires, c.Cfg.ComplianceCheck.ComplianceCheckEndorseServiceAddr)
+
+	invokeRPCReq := &pb.InvokeRPCRequest{
+		Bcname:      c.ChainName,
+		Requests:    invokeRequests,
+		Initiator:   c.Account.Address,
+		AuthRequire: authRequires,
+	}
+	c.InvokeRPCReq = invokeRPCReq
+
+	// preExe
+	return c.PreExec()
+}
+
+
+
+
 
 func (c *EVMContract) generateDeployEVMIR(arg map[string]string, bin, abi []byte, contractAccount string) (*pb.InvokeRequest, error) {
 	argsMap := make(map[string]interface{}, len(arg))
@@ -172,19 +218,32 @@ func (c *EVMContract) PostEVMContract(preExeWithSelRes *pb.PreExecWithSelectUTXO
 
 // Invoke invoke EVM contract.
 func (c *EVMContract) Invoke(methodName string, args map[string]string, amount string) (string, error) {
+	ctx := context.Background()
 	amount, ok := common.IsValidAmount(amount)
 	if !ok {
 		return "", common.ErrInvalidAmount
 	}
 
-	preSelectUTXOResponse, err := c.PreInvokeEVMContract(methodName, args, amount)
-	if err != nil {
-		log.Printf("InvokeEVMContract preExe failed, err: %v", err)
-		return "", err
-	}
+	if c.Cfg.ComplianceCheck.IsNeedComplianceCheck == true {
+		preSelectUTXOResponse, err := c.PreInvokeEVMContract(methodName, args, amount)
+		if err != nil {
+			log.Printf("InvokeEVMContract preExe failed, err: %v", err)
+			return "", err
+		}
 
-	// post
-	return c.PostEVMContract(preSelectUTXOResponse, amount)
+		// post
+		return c.PostEVMContract(preSelectUTXOResponse, amount)
+	}else{
+		invokeRequest, err := c.generateInvokeEVMIR(methodName, args, c.ContractAccount, amount)
+		if err != nil {
+			return "", err
+		}
+		tx,err := c.GenerateTx(invokeRequest)
+		if err != nil {
+			return "",err
+		}
+		return c.SendTx(ctx,tx)
+	}
 }
 
 // PreInvokeEVMContract preExe invoker EVM contract.
@@ -294,6 +353,18 @@ func (c *EVMContract) Query(methodName string, args map[string]string) (*pb.Invo
 	return c.PreExec()
 }
 
+
+
+
+
+
+
+
+
+
+
+
+
 // evm contract args to xuper3 args.
 func convertToXuper3EvmArgs(args map[string]interface{}) (map[string][]byte, error) {
 	input, err := json.Marshal(args)
@@ -308,3 +379,9 @@ func convertToXuper3EvmArgs(args map[string]interface{}) (map[string][]byte, err
 	}
 	return ret, nil
 }
+
+
+
+
+
+

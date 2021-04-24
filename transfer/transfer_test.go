@@ -4,21 +4,28 @@
 package transfer
 
 import (
-	"testing"
-
 	"github.com/xuperchain/xuper-sdk-go/account"
+	"github.com/xuperchain/xuper-sdk-go/xchain"
+	"testing"
 )
 
+//
 func TestTransfer(t *testing.T) {
-	acc, err := account.RetrieveAccount("江 西 伏 物 十 勘 峡 环 初 至 赏 给", 1)
+	acc, err := account.RetrieveAccount("售 历 定 栽 护 沟 万 城 发 阵 凶 据", 1)
 	if err != nil {
 		t.Fatal(err)
 	}
 	t.Logf("RetrieveAccount: %v\n", acc)
 
-	node := "127.0.0.1:37801"
+	node := "127.0.0.1:37101"
 	bcname := "xuper"
-	trans := InitTrans(acc, node, bcname)
+
+	sdkClient,err := xchain.NewSDKClient(node)
+	if err != nil {
+		t.Error(err)
+	}
+
+	trans := InitTrans(acc, bcname, sdkClient)
 
 	testCase := []struct {
 		to     string
@@ -27,33 +34,9 @@ func TestTransfer(t *testing.T) {
 		desc   string
 	}{
 		{
-			to:     "UgdxaYwTzUjkvQnmeB3VgnGFdXfrsiwFv",
-			amount: "200",
+			to:     "jRGSGzpkWLcVBhxbLbdKLuc2drW55kLsf",
+			amount: "2",
 			fee:    "0",
-			desc:   "",
-		},
-		{
-			to:     "UgdxaYwTzUjkvQnmeB3VgnGFdXfrsiwFv",
-			amount: "",
-			fee:    "",
-			desc:   "",
-		},
-		{
-			to:     "",
-			amount: "",
-			fee:    "",
-			desc:   "",
-		},
-		{
-			to:     "UgdxaYwTzUjkvQnmeB3VgnGFdXfrsiwFv",
-			amount: "10",
-			fee:    "",
-			desc:   "",
-		},
-		{
-			to:     "UgdxaYwTzUjkvQnmeB3VgnGFdXfrsiwFv",
-			amount: "-10",
-			fee:    "-3",
 			desc:   "",
 		},
 	}
@@ -73,33 +56,29 @@ func TestGetBalace(t *testing.T) {
 
 	testCase := []struct {
 		account *account.Account
-		node    string
-		bcname  string
 	}{
 		{
 			account: acc,
-			node:    "127.0.0.1:37201",
-			bcname:  "xuper",
 		},
 		{
 			account: nil,
-			node:    "127.0.0.1:37201",
-			bcname:  "xuper",
 		},
 		{
-			account: acc,
-			node:    "127.0.0.1:37201",
-			bcname:  "",
+			account: &account.Account{Address:"W7UuhkbGXbCx4BrFamTZaK96QN6rAbREk"},
 		},
 		{
-			account: acc,
-			node:    "",
-			bcname:  "",
+			account: &account.Account{Address:"XC1111111111111111@xuper"},
 		},
 	}
 
+	node := "127.0.0.1:37101"
+	bcname := "xuper"
+	sdkClient,err := xchain.NewSDKClient(node)
+	if err != nil {
+		t.Error(err)
+	}
 	for _, arg := range testCase {
-		trans := InitTrans(arg.account, arg.node, arg.bcname)
+		trans := InitTrans(arg.account,bcname,sdkClient)
 		balance, err := trans.GetBalance()
 		t.Logf("get balance: %v, err: %v", balance, err)
 	}
@@ -112,21 +91,25 @@ func TestQueryTx(t *testing.T) {
 	}
 	t.Logf("RetrieveAccount: %v\n", acc)
 
-	node := "127.0.0.1:37201"
+	node := "127.0.0.1:37101"
 	bcname := "xuper"
-	trans := InitTrans(acc, node, bcname)
+	sdkClient,err := xchain.NewSDKClient(node)
+	if err != nil {
+		t.Error(err)
+	}
+	trans := InitTrans(acc, bcname,sdkClient)
 
 	testCase := []struct {
 		txid string
 	}{
 		{
-			txid: "3a78d06dd39b814af113dbdc15239e675846ec927106d50153665c273f51001e",
+			txid: "fb225328af683506b36e9b5f8b389e3c4c4e8759bafe5330f0aca9b753183536",
 		},
 		{
 			txid: "",
 		},
 		{
-			txid: "fdsfdsa",
+			txid: "264afe6c55000277e9449ab2711dc53bb3754cf9125587adba1c7db8afc7eec8",
 		},
 	}
 
