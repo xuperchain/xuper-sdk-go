@@ -28,15 +28,16 @@ type EVMContract struct {
 }
 
 // InitEVMContract init EVM contract instance.
-func InitEVMContract(account *account.Account, node, bcName, contractName, contractAccount string) *EVMContract {
+func InitEVMContract(account *account.Account, node, bcName, contractName, contractAccount string, sdkClient *xchain.SDKClient) *EVMContract {
 	return &EVMContract{
 		ContractName: contractName,
 		Xchain: xchain.Xchain{
-			Cfg:             config.GetInstance(),
-			Account:         account,
-			XchainSer:       node,
+			Cfg:     config.GetInstance(),
+			Account: account,
+			//XchainSer:       node,
 			ChainName:       bcName,
 			ContractAccount: contractAccount,
+			SDKClient:       sdkClient,
 		},
 	}
 }

@@ -17,19 +17,18 @@ import (
 	"github.com/xuperchain/xuper-sdk-go/xchain"
 )
 
-const wasmType = "wasm"
+const nativeType = "native"
 
 // WasmContract wasmContract structure
-type WasmContract struct {
+type NativeContract struct {
 	ContractName string
 	xchain.Xchain
 }
 
 // InitWasmContract init a client to deploy/invoke/query a wasm contract
-func InitWasmContract(account *account.Account, bcName, contractName, contractAccount string, sdkClient *xchain.SDKClient) *WasmContract {
+func InitNativeContract(account *account.Account, bcName, contractName, contractAccount string, sdkClient *xchain.SDKClient) *NativeContract {
 	commConfig := config.GetInstance()
-
-	return &WasmContract{
+	return &NativeContract{
 		ContractName: contractName,
 		Xchain: xchain.Xchain{
 			Cfg:     commConfig,
@@ -43,78 +42,22 @@ func InitWasmContract(account *account.Account, bcName, contractName, contractAc
 }
 
 // DeployWasmContract deploy a wasm contract
-func (c *WasmContract) DeployWasmContract(args map[string]string, codepath string, runtime string) (string, error) {
+func (c *NativeContract) DeployNativeContract(args map[string]string, codepath string, runtime string) (string, error) {
 	// preExe
-	preSelectUTXOResponse, err := c.PreDeployWasmContract(args, codepath, runtime)
+	preSelectUTXOResponse, err := c.PreDeployNativeContract(args, codepath, runtime)
 	if err != nil {
 		log.Printf("DeployWasmContract preExe failed, err: %v", err)
 		return "", err
 	}
 	// post
-	return c.PostWasmContract(preSelectUTXOResponse)
+	return c.PostNativeContract(preSelectUTXOResponse)
 }
 
 // PreDeployWasmContract preExe deploy wasm contract
-func (c *WasmContract) PreDeployWasmContract(arg map[string]string, codepath string, runtime string) (*pb.PreExecWithSelectUTXOResponse, error) {
+func (c *NativeContract) PreDeployNativeContract(arg map[string]string, codepath string, runtime string) (*pb.PreExecWithSelectUTXOResponse, error) {
 	// generate preExe request
 	var invokeRequests []*pb.InvokeRequest
-	invokeRequest := generateDeployIR(arg, codepath, runtime, c.ContractAccount, c.ContractName)
-	invokeRequests = append(invokeRequests, invokeRequest)
-
-	authRequires := []string{}
-	authRequires = append(authRequires, c.ContractAccount+"/"+c.Account.Address)
-
-	invokeRPCReq := &pb.InvokeRPCRequest{
-		Bcname:      c.ChainName,
-		Requests:    invokeRequests,
-		Initiator:   c.Account.Address,
-		AuthRequire: authRequires,
-	}
-
-	extraAmount := int64(0)
-
-	// if ComplianceCheck is needed
-	if c.Cfg.ComplianceCheck.IsNeedComplianceCheck == true {
-		authRequires = append(authRequires, c.Cfg.ComplianceCheck.ComplianceCheckEndorseServiceAddr)
-		invokeRPCReq.AuthRequire = authRequires
-
-		//		extraAmount = int64(c.Cfg.ComplianceCheck.ComplianceCheckEndorseServiceFee)
-		// 是否需要支付合规性背书费用
-		if c.Cfg.ComplianceCheck.IsNeedComplianceCheckFee == true {
-			extraAmount = int64(c.Cfg.ComplianceCheck.ComplianceCheckEndorseServiceFee)
-		}
-	}
-
-	preSelUTXOReq := &pb.PreExecWithSelectUTXORequest{
-		Bcname:  c.ChainName,
-		Address: c.Account.Address,
-		//		TotalAmount: int64(c.Cfg.ComplianceCheck.ComplianceCheckEndorseServiceFee),
-		TotalAmount: extraAmount,
-		Request:     invokeRPCReq,
-	}
-	c.InvokeRPCReq = invokeRPCReq
-	c.PreSelUTXOReq = preSelUTXOReq
-
-	// preExe
-	return c.PreExecWithSelecUTXO()
-}
-
-func (c *WasmContract) UpgradeWasmContract(args map[string]string, codepath string) (string, error) {
-	// preExe
-	preSelectUTXOResponse, err := c.PreUpgradeWasmContract(args, codepath)
-	if err != nil {
-		log.Printf("DeployWasmContract preExe failed, err: %v", err)
-		return "", err
-	}
-	// post
-	return c.PostWasmContract(preSelectUTXOResponse)
-
-}
-
-func (c *WasmContract) PreUpgradeWasmContract(arg map[string]string, codepath string) (*pb.PreExecWithSelectUTXOResponse, error) {
-	// generate preExe request
-	var invokeRequests []*pb.InvokeRequest
-	invokeRequest := generateUpgradeInvokReq(arg, codepath, c.ContractAccount, c.ContractName, wasmType)
+	invokeRequest := generateDeployNativeIR(arg, codepath, runtime, c.ContractAccount, c.ContractName)
 	invokeRequests = append(invokeRequests, invokeRequest)
 
 	authRequires := []string{}
@@ -156,7 +99,7 @@ func (c *WasmContract) PreUpgradeWasmContract(arg map[string]string, codepath st
 }
 
 // PostWasmContract generate complete Tx and post to deploy wasm Contract
-func (c *WasmContract) PostWasmContract(preExeWithSelRes *pb.PreExecWithSelectUTXOResponse) (string, error) {
+func (c *NativeContract) PostNativeContract(preExeWithSelRes *pb.PreExecWithSelectUTXOResponse) (string, error) {
 	// populates fields
 	authRequires := []string{}
 	if c.ContractAccount != "" {
@@ -180,22 +123,104 @@ func (c *WasmContract) PostWasmContract(preExeWithSelRes *pb.PreExecWithSelectUT
 }
 
 // InvokeWasmContract invoke wasm contract by method name
-func (c *WasmContract) InvokeWasmContract(methodName string, args map[string]string) (string, error) {
+func (c *NativeContract) InvokeNativeContract(methodName string, args map[string]string) (string, error) {
 	// preExe
-	preSelectUTXOResponse, err := c.PreInvokeWasmContract(methodName, args)
+	preSelectUTXOResponse, err := c.PreInvokeNativeContract(methodName, args)
 	if err != nil {
 		log.Printf("InvokeWasmContract preExe failed, err: %v", err)
 		return "", err
 	}
 	// post
-	return c.PostWasmContract(preSelectUTXOResponse)
+	return c.PostNativeContract(preSelectUTXOResponse)
+}
+
+func (c *NativeContract) UpgradeNativeContract(args map[string]string, codepath string) (string, error) {
+	// preExec
+	preSelectUTXOResp, err := c.PreUpgradeNativeContract(args, codepath)
+	if err != nil {
+		return "", err
+	}
+	return c.PostNativeContract(preSelectUTXOResp)
+}
+
+func (c *NativeContract) PreUpgradeNativeContract(arg map[string]string, codepath string) (*pb.PreExecWithSelectUTXOResponse, error) {
+	// generate preExe request
+	var invokeRequests []*pb.InvokeRequest
+	invokeRequest := generateUpgradeInvokReq(arg, codepath, c.ContractAccount, c.ContractName, nativeType)
+	invokeRequests = append(invokeRequests, invokeRequest)
+
+	authRequires := []string{}
+	authRequires = append(authRequires, c.ContractAccount+"/"+c.Account.Address)
+
+	invokeRPCReq := &pb.InvokeRPCRequest{
+		Bcname:      c.ChainName,
+		Requests:    invokeRequests,
+		Initiator:   c.Account.Address,
+		AuthRequire: authRequires,
+	}
+
+	extraAmount := int64(0)
+
+	// if ComplianceCheck is needed
+	if c.Cfg.ComplianceCheck.IsNeedComplianceCheck == true {
+		authRequires = append(authRequires, c.Cfg.ComplianceCheck.ComplianceCheckEndorseServiceAddr)
+		invokeRPCReq.AuthRequire = authRequires
+
+		//		extraAmount = int64(c.Cfg.ComplianceCheck.ComplianceCheckEndorseServiceFee)
+		// 是否需要支付合规性背书费用
+		if c.Cfg.ComplianceCheck.IsNeedComplianceCheckFee == true {
+			extraAmount = int64(c.Cfg.ComplianceCheck.ComplianceCheckEndorseServiceFee)
+		}
+	}
+
+	preSelUTXOReq := &pb.PreExecWithSelectUTXORequest{
+		Bcname:  c.ChainName,
+		Address: c.Account.Address,
+		//		TotalAmount: int64(c.Cfg.ComplianceCheck.ComplianceCheckEndorseServiceFee),
+		TotalAmount: extraAmount,
+		Request:     invokeRPCReq,
+	}
+	c.InvokeRPCReq = invokeRPCReq
+	c.PreSelUTXOReq = preSelUTXOReq
+
+	// preExe
+	return c.PreExecWithSelecUTXO()
+}
+
+func generateUpgradeInvokReq(arg map[string]string, codepath string, contractAccount, contractName, contractType string) *pb.InvokeRequest {
+	argstmp := convertToXuperContractArgs(arg)
+	initArgs, _ := json.Marshal(argstmp)
+
+	contractCode, err := ioutil.ReadFile(codepath)
+	if err != nil {
+		log.Printf("get wasm contract code error: %v", err)
+		return nil
+	}
+	desc := &pb.WasmCodeDesc{
+		ContractType: contractType,
+	}
+	contractDesc, _ := proto.Marshal(desc)
+
+	args := map[string][]byte{
+		"account_name":  []byte(contractAccount),
+		"contract_name": []byte(contractName),
+		"contract_code": contractCode,
+		"contract_desc": contractDesc,
+		"init_args":     initArgs,
+	}
+
+	return &pb.InvokeRequest{
+		ModuleName: "xkernel",
+		MethodName: "Upgrade",
+		Args:       args,
+	}
 }
 
 // PreInvokeWasmContract preExe invoke wasm contract
-func (c *WasmContract) PreInvokeWasmContract(methodName string, args map[string]string) (*pb.PreExecWithSelectUTXOResponse, error) {
+func (c *NativeContract) PreInvokeNativeContract(methodName string, args map[string]string) (*pb.PreExecWithSelectUTXOResponse, error) {
 	// generate preExe request
 	var invokeRequests []*pb.InvokeRequest
-	invokeRequest := generateInvokeIR(args, methodName, c.ContractName)
+	invokeRequest := generateInvokeNativeIR(args, methodName, c.ContractName)
 	invokeRequests = append(invokeRequests, invokeRequest)
 
 	authRequires := []string{}
@@ -238,10 +263,10 @@ func (c *WasmContract) PreInvokeWasmContract(methodName string, args map[string]
 }
 
 // QueryWasmContract query wasm contract, same as preExe invoke
-func (c *WasmContract) QueryWasmContract(methodName string, args map[string]string) (*pb.InvokeRPCResponse, error) {
+func (c *NativeContract) QueryNativeContract(methodName string, args map[string]string) (*pb.InvokeRPCResponse, error) {
 	// generate preExe request
 	var invokeRequests []*pb.InvokeRequest
-	invokeRequest := generateInvokeIR(args, methodName, c.ContractName)
+	invokeRequest := generateInvokeNativeIR(args, methodName, c.ContractName)
 	invokeRequests = append(invokeRequests, invokeRequest)
 
 	authRequires := []string{}
@@ -262,7 +287,7 @@ func (c *WasmContract) QueryWasmContract(methodName string, args map[string]stri
 	return c.PreExec()
 }
 
-func generateDeployIR(arg map[string]string, codepath string, runtime, contractAccount, contractName string) *pb.InvokeRequest {
+func generateDeployNativeIR(arg map[string]string, codepath string, runtime, contractAccount, contractName string) *pb.InvokeRequest {
 	argstmp := convertToXuperContractArgs(arg)
 	initArgs, _ := json.Marshal(argstmp)
 
@@ -272,7 +297,8 @@ func generateDeployIR(arg map[string]string, codepath string, runtime, contractA
 		return nil
 	}
 	desc := &pb.WasmCodeDesc{
-		Runtime: runtime,
+		ContractType: nativeType,
+		Runtime:      runtime,
 	}
 	contractDesc, _ := proto.Marshal(desc)
 
@@ -291,19 +317,19 @@ func generateDeployIR(arg map[string]string, codepath string, runtime, contractA
 	}
 }
 
-func generateInvokeIR(args map[string]string, methodName, contractName string) *pb.InvokeRequest {
+func generateInvokeNativeIR(args map[string]string, methodName, contractName string) *pb.InvokeRequest {
 	return &pb.InvokeRequest{
-		ModuleName:   "wasm",
+		ModuleName:   "native",
 		MethodName:   methodName,
 		ContractName: contractName,
 		Args:         convertToXuperContractArgs(args),
 	}
 }
 
-func convertToXuperContractArgs(args map[string]string) map[string][]byte {
-	argmap := make(map[string][]byte)
-	for k, v := range args {
-		argmap[k] = []byte(v)
-	}
-	return argmap
-}
+//func convertToXuperContractArgs(args map[string]string) map[string][]byte {
+//	argmap := make(map[string][]byte)
+//	for k, v := range args {
+//		argmap[k] = []byte(v)
+//	}
+//	return argmap
+//}

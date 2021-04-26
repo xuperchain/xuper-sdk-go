@@ -26,15 +26,16 @@ type Trans struct {
 }
 
 // InitTrans init a client to transfer
-func InitTrans(account *account.Account, node, bcname string) *Trans {
+func InitTrans(account *account.Account, bcname string, sdkClient *xchain.SDKClient) *Trans {
 	commConfig := config.GetInstance()
 
 	return &Trans{
 		Xchain: xchain.Xchain{
-			Cfg:       commConfig,
-			Account:   account,
-			XchainSer: node,
+			Cfg:     commConfig,
+			Account: account,
+			//XchainSer: node,
 			ChainName: bcname,
+			SDKClient: sdkClient,
 		},
 	}
 }
