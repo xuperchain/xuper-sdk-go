@@ -34,16 +34,40 @@ func TestEVMDeploy(t *testing.T) {
 	fmt.Println("account address:", acc.Address)
 	// node := "127.0.0.1:37101"
 	bcname := "xuper"
-	cName := "evmCounter1"
+	cName := "evmCounter4"
 	cAccount := "XC2222222222222222@xuper"
 	//createContractAccount(acc, node, bcname) // 已经创建合约账户了
 
-	sdkClient, err := xchain.NewSDKClient(node)
+	EVMContract := InitEVMContract(acc, node, bcname, cName, cAccount)
+
+	args := map[string]string{
+		"creator": "XC2222222222222222@xuper",
+	}
+	r, e := EVMContract.Deploy(args, []byte(storageBin), []byte(storageAbi))
+	if e != nil {
+		t.Error(e)
+	}
+	fmt.Println(r)
+}
+
+func TestEVMDeployWithClient(t *testing.T) {
+	// abi := `[{"inputs":[{"internalType":"uint256","name":"num","type":"uint256"}],"payable":false,"stateMutability":"nonpayable","type":"constructor"},{"constant":false,"inputs":[],"name":"retrieve","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"payable":false,"stateMutability":"nonpayable","type":"function"},{"constant":false,"inputs":[{"internalType":"uint256","name":"num","type":"uint256"}],"name":"store","outputs":[],"payable":false,"stateMutability":"nonpayable","type":"function"}]`
+	// bin := "608060405234801561001057600080fd5b506040516101203803806101208339818101604052602081101561003357600080fd5b8101908080519060200190929190505050806000819055505060c68061005a6000396000f3fe6080604052348015600f57600080fd5b506004361060325760003560e01c80632e64cec11460375780636057361d146053575b600080fd5b603d607e565b6040518082815260200191505060405180910390f35b607c60048036036020811015606757600080fd5b81019080803590602001909291905050506087565b005b60008054905090565b806000819055505056fea265627a7a72315820deacba9b51787b987df74d6ecd3bd463204d72726c7d7d97da0b0a8c62e8ccc364736f6c63430005110032"
+	acc, _ := account.RetrieveAccount("售 历 定 栽 护 沟 万 城 发 阵 凶 据", 1)
+
+	fmt.Println("account address:", acc.Address)
+	// node := "127.0.0.1:37101"
+	bcname := "xuper"
+	cName := "evmCounter3"
+	cAccount := "XC2222222222222222@xuper"
+	//createContractAccount(acc, node, bcname) // 已经创建合约账户了
+
+	sdkClient, err := xchain.NewXuperClient(node)
 	if err != nil {
 		t.Error(err)
 	}
 
-	EVMContract := InitEVMContract(acc, node, bcname, cName, cAccount, sdkClient)
+	EVMContract := InitEVMContractWithClient(acc, bcname, cName, cAccount, sdkClient)
 
 	args := map[string]string{
 		"creator": "XC2222222222222222@xuper",
@@ -58,11 +82,11 @@ func TestEVMDeploy(t *testing.T) {
 func testGetBalance(account *account.Account) {
 	// 实例化一个交易相关的客户端对象
 
-	sdkClient, err := xchain.NewSDKClient(node)
+	sdkClient, err := xchain.NewXuperClient(node)
 	if err != nil {
 		panic(err)
 	}
-	trans := transfer.InitTrans(account, "xuper", sdkClient)
+	trans := transfer.InitTransWithClient(account, "xuper", sdkClient)
 	// 查询账户的余额
 	balance, err := trans.GetBalance()
 	log.Printf("balance %v, err %v", balance, err)
@@ -77,12 +101,12 @@ func TestEVMInvoke(t *testing.T) {
 	bcname := "xuper"
 	cName := "evmCounter1"
 	cAccount := "XC2222222222222222@xuper"
-	sdkClient, err := xchain.NewSDKClient(node)
+	sdkClient, err := xchain.NewXuperClient(node)
 	if err != nil {
 		t.Error(err)
 	}
 
-	EVMContract := InitEVMContract(acc, node, bcname, cName, cAccount, sdkClient)
+	EVMContract := InitEVMContractWithClient(acc, bcname, cName, cAccount, sdkClient)
 	testGetBalance(acc)
 
 	args := map[string]string{
@@ -118,7 +142,7 @@ func TestEVMInvoke(t *testing.T) {
 //	bcname := "xuper"
 //	cName := "storageA"
 //	cAccount := "XC2222222222222222@xuper"
-//	EVMContract := InitEVMContract(acc, node, bcname, cName, cAccount)
+//	EVMContract := InitEVMContractWithClient(acc, node, bcname, cName, cAccount)
 //
 //	// args := map[string]string{
 //	// 	"s": "2",
@@ -149,12 +173,12 @@ func TestTransfer(t *testing.T) {
 	fmt.Println("转账前balanceDetails:", br1)
 
 	fmt.Println("accounr address:", acc.Address)
-	sdkClient, err := xchain.NewSDKClient(node)
+	sdkClient, err := xchain.NewXuperClient(node)
 	if err != nil {
 		t.Error(err)
 	}
 
-	tf := transfer.InitTrans(acc, bcname, sdkClient)
+	tf := transfer.InitTransWithClient(acc, bcname, sdkClient)
 
 	toa, err := account.CreateAccount(1, 1)
 	if err != nil {

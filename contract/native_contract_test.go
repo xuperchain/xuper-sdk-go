@@ -19,12 +19,12 @@ func TestNativeContract_Deploy(t *testing.T) {
 	contractName := "golangcounter8.3"
 	runtime := "go"
 	fmt.Printf("account address:【%s】\npriv:【%s】\npublic:【%s】\n", acc.Address, acc.PrivateKey, acc.PublicKey)
-	sdkClient, err := xchain.NewSDKClient(node)
+	sdkClient, err := xchain.NewXuperClient(node)
 	if err != nil {
 		t.Error(err)
 	}
 	path := "./counter"
-	nativeContract := InitNativeContract(acc, bcname, contractName, contractAccount, sdkClient)
+	nativeContract := InitNativeContractWithClient(acc, bcname, contractName, contractAccount, sdkClient)
 	args := map[string]string{
 		"creator": "XC2222222222222222@xuper",
 	}
@@ -46,14 +46,14 @@ func TestNativeInvoke(t *testing.T) {
 	bcname := "xuper"
 	cName := "golangcounter8.3"
 	cAccount := "XC2222222222222222@xuper"
-	sdkClient, err := xchain.NewSDKClient(node)
+	sdkClient, err := xchain.NewXuperClient(node)
 	if err != nil {
 		t.Error(err)
 	}
 	args := map[string]string{
 		"key": "test",
 	}
-	nativeContract := InitNativeContract(acc, bcname, cName, cAccount, sdkClient)
+	nativeContract := InitNativeContractWithClient(acc, bcname, cName, cAccount, sdkClient)
 	mName := "Increase"
 	r, e := nativeContract.InvokeNativeContract(mName, args)
 	if e != nil {
@@ -74,12 +74,12 @@ func TestNativeContract_Upgrade(t *testing.T) {
 	contractName := "golangcounter8.3"
 	//runtime := "go"
 	fmt.Printf("account address:【%s】\npriv:【%s】\npublic:【%s】\n", acc.Address, acc.PrivateKey, acc.PublicKey)
-	sdkClient, err := xchain.NewSDKClient(node)
+	sdkClient, err := xchain.NewXuperClient(node)
 	if err != nil {
 		t.Error(err)
 	}
 	path := "./counter2"
-	nativeContract := InitNativeContract(acc, bcname, contractName, contractAccount, sdkClient)
+	nativeContract := InitNativeContractWithClient(acc, bcname, contractName, contractAccount, sdkClient)
 	args := map[string]string{
 		"creator": "XC2222222222222222@xuper",
 	}

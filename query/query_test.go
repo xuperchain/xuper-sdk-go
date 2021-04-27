@@ -10,7 +10,7 @@ import (
 var node = "127.0.0.1:37101"
 
 func TestQueryClient_QueryBlockByHeight(t *testing.T) {
-	sdkClient, err := xchain.NewSDKClient(node)
+	sdkClient, err := xchain.NewXuperClient(node)
 	if err != nil {
 		t.Errorf("New sdk error")
 	}
@@ -21,7 +21,7 @@ func TestQueryClient_QueryBlockByHeight(t *testing.T) {
 	}
 	chainName := "xuper"
 
-	qc := InitClient(acc, chainName, sdkClient)
+	qc := InitClientWithClient(acc, chainName, sdkClient)
 	b, err := qc.QueryBlockByHeight(12)
 	if err != nil {
 		t.Error(err)

@@ -20,35 +20,35 @@ func TestDeployWasmContract(t *testing.T) {
 	t.Logf("RetrieveAccount: %+v", acc)
 	t.Logf("public: %+v", acc.PublicKey)
 
-	//var testDeployWasmContracts = []struct {
-	//	account         *account.Account
-	//	bcname          string
-	//	contractName    string
-	//	contractAccount string
-	//}{
-	//	{
-	//		account:         acc,
-	//		bcname:          "xuper",
-	//		contractName:    "counter.wasm1",
-	//		contractAccount: "XC2222222222222222@xuper",
-	//	},
-	//}
-	//sdkClient, err := xchain.NewSDKClient(wasmNode)
-	//if err != nil {
-	//	t.Error(err)
-	//}
-	//
-	//args := map[string]string{
-	//	"creator": "xchain",
-	//}
-	////codePath := "../example/contract_code/counter.wasm"
-	//codePath := "./counter2.wasm"
-	//runtime := "c"
-	//for _, arg := range testDeployWasmContracts {
-	//	wasmContract := InitWasmContract(arg.account, arg.bcname, arg.contractName, arg.contractAccount, sdkClient)
-	//	txid, err := wasmContract.DeployWasmContract(args, codePath, runtime)
-	//	t.Logf("DeployWasmContract txid: %v, err: %v", txid, err)
-	//}
+	var testDeployWasmContracts = []struct {
+		account         *account.Account
+		bcname          string
+		contractName    string
+		contractAccount string
+	}{
+		{
+			account:         acc,
+			bcname:          "xuper",
+			contractName:    "counterwasm5",
+			contractAccount: "XC2222222222222222@xuper",
+		},
+	}
+	sdkClient, err := xchain.NewXuperClient(wasmNode)
+	if err != nil {
+		t.Error(err)
+	}
+
+	args := map[string]string{
+		"creator": "xchain",
+	}
+	//codePath := "../example/contract_code/counter.wasm"
+	codePath := "./counter2.wasm"
+	runtime := "c"
+	for _, arg := range testDeployWasmContracts {
+		wasmContract := InitWasmContractWithClient(arg.account, arg.bcname, arg.contractName, arg.contractAccount, sdkClient)
+		txid, err := wasmContract.DeployWasmContract(args, codePath, runtime)
+		t.Logf("DeployWasmContract txid: %v, err: %v", txid, err)
+	}
 }
 
 func TestInvokeWasmContract(t *testing.T) {
@@ -67,11 +67,11 @@ func TestInvokeWasmContract(t *testing.T) {
 		{
 			account:         acc,
 			bcname:          "xuper",
-			contractName:    "counter.wasm1",
+			contractName:    "counterwasm2",
 			contractAccount: "XC2222222222222222@xuper",
 		},
 	}
-	sdkClient, err := xchain.NewSDKClient(wasmNode)
+	sdkClient, err := xchain.NewXuperClient(wasmNode)
 	if err != nil {
 		t.Error(err)
 	}
@@ -80,7 +80,7 @@ func TestInvokeWasmContract(t *testing.T) {
 	}
 	for _, arg := range testInvokeWasmContracts {
 		for _, method := range []string{"increase", "get"} {
-			wasmContract := InitWasmContract(arg.account, arg.bcname, arg.contractName, arg.contractAccount, sdkClient)
+			wasmContract := InitWasmContractWithClient(arg.account, arg.bcname, arg.contractName, arg.contractAccount, sdkClient)
 			txid, err := wasmContract.InvokeWasmContract(method, args)
 			t.Logf("InvokeWasmContract txid: %v, err: %v", txid, err)
 		}

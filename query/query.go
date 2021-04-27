@@ -11,14 +11,14 @@ type QueryClient struct {
 	xchain.Xchain
 }
 
-func InitClient(account *account.Account, bcName string, sdkClient *xchain.SDKClient) *QueryClient {
+func InitClientWithClient(account *account.Account, bcName string, xuperClient *xchain.XuperClient) *QueryClient {
 	commConfig := config.GetInstance()
 	return &QueryClient{
 		Xchain: xchain.Xchain{
-			Cfg:       commConfig,
-			Account:   account,
-			ChainName: bcName,
-			SDKClient: sdkClient,
+			Cfg:         commConfig,
+			Account:     account,
+			ChainName:   bcName,
+			XuperClient: xuperClient,
 		},
 	}
 }

@@ -25,8 +25,8 @@ type NativeContract struct {
 	xchain.Xchain
 }
 
-// InitWasmContract init a client to deploy/invoke/query a wasm contract
-func InitNativeContract(account *account.Account, bcName, contractName, contractAccount string, sdkClient *xchain.SDKClient) *NativeContract {
+// InitWasmContractWithClient init a client to deploy/invoke/query a wasm contract
+func InitNativeContractWithClient(account *account.Account, bcName, contractName, contractAccount string, xuperClient *xchain.XuperClient) *NativeContract {
 	commConfig := config.GetInstance()
 	return &NativeContract{
 		ContractName: contractName,
@@ -36,7 +36,26 @@ func InitNativeContract(account *account.Account, bcName, contractName, contract
 			//XchainSer:       node,
 			ChainName:       bcName,
 			ContractAccount: contractAccount,
-			SDKClient:       sdkClient,
+			XuperClient:     xuperClient,
+		},
+	}
+}
+
+func InitNativeContract(account *account.Account, node, bcName, contractName, contractAccount string) *NativeContract {
+	commConfig := config.GetInstance()
+	client, err := xchain.NewXuperClient(node)
+	if err != nil {
+		return nil
+	}
+	return &NativeContract{
+		ContractName: contractName,
+		Xchain: xchain.Xchain{
+			Cfg:             commConfig,
+			Account:         account,
+			XchainSer:       node,
+			ChainName:       bcName,
+			ContractAccount: contractAccount,
+			XuperClient:     client,
 		},
 	}
 }
@@ -73,13 +92,13 @@ func (c *NativeContract) PreDeployNativeContract(arg map[string]string, codepath
 	extraAmount := int64(0)
 
 	// if ComplianceCheck is needed
-	if c.Cfg.ComplianceCheck.IsNeedComplianceCheck == true {
+	if c.Cfg.ComplianceCheck.IsNeedComplianceCheck {
 		authRequires = append(authRequires, c.Cfg.ComplianceCheck.ComplianceCheckEndorseServiceAddr)
 		invokeRPCReq.AuthRequire = authRequires
 
 		//		extraAmount = int64(c.Cfg.ComplianceCheck.ComplianceCheckEndorseServiceFee)
 		// 是否需要支付合规性背书费用
-		if c.Cfg.ComplianceCheck.IsNeedComplianceCheckFee == true {
+		if c.Cfg.ComplianceCheck.IsNeedComplianceCheckFee {
 			extraAmount = int64(c.Cfg.ComplianceCheck.ComplianceCheckEndorseServiceFee)
 		}
 	}
@@ -107,7 +126,7 @@ func (c *NativeContract) PostNativeContract(preExeWithSelRes *pb.PreExecWithSele
 	}
 
 	// if ComplianceCheck is needed
-	if c.Cfg.ComplianceCheck.IsNeedComplianceCheck == true {
+	if c.Cfg.ComplianceCheck.IsNeedComplianceCheck {
 		authRequires = append(authRequires, c.Cfg.ComplianceCheck.ComplianceCheckEndorseServiceAddr)
 	}
 
@@ -162,13 +181,13 @@ func (c *NativeContract) PreUpgradeNativeContract(arg map[string]string, codepat
 	extraAmount := int64(0)
 
 	// if ComplianceCheck is needed
-	if c.Cfg.ComplianceCheck.IsNeedComplianceCheck == true {
+	if c.Cfg.ComplianceCheck.IsNeedComplianceCheck {
 		authRequires = append(authRequires, c.Cfg.ComplianceCheck.ComplianceCheckEndorseServiceAddr)
 		invokeRPCReq.AuthRequire = authRequires
 
 		//		extraAmount = int64(c.Cfg.ComplianceCheck.ComplianceCheckEndorseServiceFee)
 		// 是否需要支付合规性背书费用
-		if c.Cfg.ComplianceCheck.IsNeedComplianceCheckFee == true {
+		if c.Cfg.ComplianceCheck.IsNeedComplianceCheckFee {
 			extraAmount = int64(c.Cfg.ComplianceCheck.ComplianceCheckEndorseServiceFee)
 		}
 	}
@@ -238,13 +257,13 @@ func (c *NativeContract) PreInvokeNativeContract(methodName string, args map[str
 	extraAmount := int64(0)
 
 	// if ComplianceCheck is needed
-	if c.Cfg.ComplianceCheck.IsNeedComplianceCheck == true {
+	if c.Cfg.ComplianceCheck.IsNeedComplianceCheck {
 		authRequires = append(authRequires, c.Cfg.ComplianceCheck.ComplianceCheckEndorseServiceAddr)
 		invokeRPCReq.AuthRequire = authRequires
 
 		//		extraAmount = int64(c.Cfg.ComplianceCheck.ComplianceCheckEndorseServiceFee)
 		// 是否需要支付合规性背书费用
-		if c.Cfg.ComplianceCheck.IsNeedComplianceCheckFee == true {
+		if c.Cfg.ComplianceCheck.IsNeedComplianceCheckFee {
 			extraAmount = int64(c.Cfg.ComplianceCheck.ComplianceCheckEndorseServiceFee)
 		}
 	}

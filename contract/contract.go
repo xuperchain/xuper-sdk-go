@@ -25,8 +25,8 @@ type WasmContract struct {
 	xchain.Xchain
 }
 
-// InitWasmContract init a client to deploy/invoke/query a wasm contract
-func InitWasmContract(account *account.Account, bcName, contractName, contractAccount string, sdkClient *xchain.SDKClient) *WasmContract {
+// InitWasmContractWithClient init a client to deploy/invoke/query a wasm contract
+func InitWasmContractWithClient(account *account.Account, bcName, contractName, contractAccount string, xuperClient *xchain.XuperClient) *WasmContract {
 	commConfig := config.GetInstance()
 
 	return &WasmContract{
@@ -37,7 +37,26 @@ func InitWasmContract(account *account.Account, bcName, contractName, contractAc
 			//XchainSer:       node,
 			ChainName:       bcName,
 			ContractAccount: contractAccount,
-			SDKClient:       sdkClient,
+			XuperClient:     xuperClient,
+		},
+	}
+}
+
+func InitWasmContract(account *account.Account, node, bcName, contractName, contractAccount string) *WasmContract {
+	commConfig := config.GetInstance()
+	xuperClient, err := xchain.NewXuperClient(node)
+	if err != nil {
+		return nil
+	}
+	return &WasmContract{
+		ContractName: contractName,
+		Xchain: xchain.Xchain{
+			Cfg:     commConfig,
+			Account: account,
+			//XchainSer:       node,
+			ChainName:       bcName,
+			ContractAccount: contractAccount,
+			XuperClient:     xuperClient,
 		},
 	}
 }
@@ -74,13 +93,13 @@ func (c *WasmContract) PreDeployWasmContract(arg map[string]string, codepath str
 	extraAmount := int64(0)
 
 	// if ComplianceCheck is needed
-	if c.Cfg.ComplianceCheck.IsNeedComplianceCheck == true {
+	if c.Cfg.ComplianceCheck.IsNeedComplianceCheck {
 		authRequires = append(authRequires, c.Cfg.ComplianceCheck.ComplianceCheckEndorseServiceAddr)
 		invokeRPCReq.AuthRequire = authRequires
 
 		//		extraAmount = int64(c.Cfg.ComplianceCheck.ComplianceCheckEndorseServiceFee)
 		// 是否需要支付合规性背书费用
-		if c.Cfg.ComplianceCheck.IsNeedComplianceCheckFee == true {
+		if c.Cfg.ComplianceCheck.IsNeedComplianceCheckFee {
 			extraAmount = int64(c.Cfg.ComplianceCheck.ComplianceCheckEndorseServiceFee)
 		}
 	}
@@ -130,13 +149,13 @@ func (c *WasmContract) PreUpgradeWasmContract(arg map[string]string, codepath st
 	extraAmount := int64(0)
 
 	// if ComplianceCheck is needed
-	if c.Cfg.ComplianceCheck.IsNeedComplianceCheck == true {
+	if c.Cfg.ComplianceCheck.IsNeedComplianceCheck {
 		authRequires = append(authRequires, c.Cfg.ComplianceCheck.ComplianceCheckEndorseServiceAddr)
 		invokeRPCReq.AuthRequire = authRequires
 
 		//		extraAmount = int64(c.Cfg.ComplianceCheck.ComplianceCheckEndorseServiceFee)
 		// 是否需要支付合规性背书费用
-		if c.Cfg.ComplianceCheck.IsNeedComplianceCheckFee == true {
+		if c.Cfg.ComplianceCheck.IsNeedComplianceCheckFee {
 			extraAmount = int64(c.Cfg.ComplianceCheck.ComplianceCheckEndorseServiceFee)
 		}
 	}
@@ -164,7 +183,7 @@ func (c *WasmContract) PostWasmContract(preExeWithSelRes *pb.PreExecWithSelectUT
 	}
 
 	// if ComplianceCheck is needed
-	if c.Cfg.ComplianceCheck.IsNeedComplianceCheck == true {
+	if c.Cfg.ComplianceCheck.IsNeedComplianceCheck {
 		authRequires = append(authRequires, c.Cfg.ComplianceCheck.ComplianceCheckEndorseServiceAddr)
 	}
 
@@ -213,13 +232,13 @@ func (c *WasmContract) PreInvokeWasmContract(methodName string, args map[string]
 	extraAmount := int64(0)
 
 	// if ComplianceCheck is needed
-	if c.Cfg.ComplianceCheck.IsNeedComplianceCheck == true {
+	if c.Cfg.ComplianceCheck.IsNeedComplianceCheck {
 		authRequires = append(authRequires, c.Cfg.ComplianceCheck.ComplianceCheckEndorseServiceAddr)
 		invokeRPCReq.AuthRequire = authRequires
 
 		//		extraAmount = int64(c.Cfg.ComplianceCheck.ComplianceCheckEndorseServiceFee)
 		// 是否需要支付合规性背书费用
-		if c.Cfg.ComplianceCheck.IsNeedComplianceCheckFee == true {
+		if c.Cfg.ComplianceCheck.IsNeedComplianceCheckFee {
 			extraAmount = int64(c.Cfg.ComplianceCheck.ComplianceCheckEndorseServiceFee)
 		}
 	}

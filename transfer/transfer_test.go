@@ -27,11 +27,11 @@ func TestTransfer(t *testing.T) {
 	}
 	t.Logf("RetrieveAccount: %v\n", acc)
 
-	sdkClient, err := xchain.NewSDKClient(node)
+	sdkClient, err := xchain.NewXuperClient(node)
 	if err != nil {
 		t.Error(err)
 	}
-	trans := InitTrans(acc, bcname, sdkClient)
+	trans := InitTransWithClient(acc, bcname, sdkClient)
 
 	testCase := []struct {
 		to     string
@@ -80,7 +80,7 @@ func TestGoroutine(t *testing.T) { //并发执行
 	//}
 	//t.Logf("RetrieveAccount: %v\n", accFrom)
 
-	sdkClient, err := xchain.NewSDKClient(node)
+	sdkClient, err := xchain.NewXuperClient(node)
 	if err != nil {
 		t.Error(err)
 	}
@@ -88,7 +88,7 @@ func TestGoroutine(t *testing.T) { //并发执行
 	wg.Add(len(accList1))
 
 	for i := 0; i < len(accList1); i++ {
-		trans := InitTrans(accList1[i], bcname, sdkClient)
+		trans := InitTransWithClient(accList1[i], bcname, sdkClient)
 		go func(index int) {
 			txid, err := trans.transfer(accList2[index].Address, "1", "0", "", "")
 			if err != nil {
@@ -143,11 +143,11 @@ func TestSendTokenToWallet(t *testing.T) {
 	}
 	t.Logf("RetrieveAccount: %v\n", accFrom)
 
-	sdkClient, err := xchain.NewSDKClient(node)
+	sdkClient, err := xchain.NewXuperClient(node)
 	if err != nil {
 		t.Error(err)
 	}
-	trans := InitTrans(accFrom, bcname, sdkClient)
+	trans := InitTransWithClient(accFrom, bcname, sdkClient)
 
 	for i := 0; i < len(accList); i++ {
 		tx, err := trans.Transfer(accList[i].Address, "100", "", "")
@@ -196,7 +196,7 @@ func TestSendTokenToWallet(t *testing.T) {
 //	}
 //
 //	for _, arg := range testCase {
-//		trans := InitTrans(arg.account, arg.node, arg.bcname)
+//		trans := InitTransWithClient(arg.account, arg.node, arg.bcname)
 //		balance, err := trans.GetBalance()
 //		t.Logf("get balance: %v, err: %v", balance, err)
 //	}
@@ -211,7 +211,7 @@ func TestSendTokenToWallet(t *testing.T) {
 //
 //	node := "127.0.0.1:37201"
 //	bcname := "xuper"
-//	trans := InitTrans(acc, node, bcname)
+//	trans := InitTransWithClient(acc, node, bcname)
 //
 //	testCase := []struct {
 //		txid string
