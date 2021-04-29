@@ -31,9 +31,8 @@ func InitNativeContractWithClient(account *account.Account, bcName, contractName
 	return &NativeContract{
 		ContractName: contractName,
 		Xchain: xchain.Xchain{
-			Cfg:     commConfig,
-			Account: account,
-			//XchainSer:       node,
+			Cfg:             commConfig,
+			Account:         account,
 			ChainName:       bcName,
 			ContractAccount: contractAccount,
 			XuperClient:     xuperClient,
@@ -344,11 +343,3 @@ func generateInvokeNativeIR(args map[string]string, methodName, contractName str
 		Args:         convertToXuperContractArgs(args),
 	}
 }
-
-//func convertToXuperContractArgs(args map[string]string) map[string][]byte {
-//	argmap := make(map[string][]byte)
-//	for k, v := range args {
-//		argmap[k] = []byte(v)
-//	}
-//	return argmap
-//}

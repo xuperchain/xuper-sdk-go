@@ -31,8 +31,6 @@ func (qc *QueryClient) GetAccountByAk(address string) (*pb.AK2AccountResponse, e
 	return qc.Xchain.GetAccountByAk(address)
 }
 
-//
-//
 func (qc *QueryClient) GetAccountContracts(address string) (*pb.GetAccountContractsResponse, error) {
 	return qc.Xchain.GetAccountContracts(address)
 }

@@ -30,26 +30,6 @@ func InitWatcher(xuperClient *xchain.XuperClient, bcname string, eventConsumerBu
 	}
 }
 
-func (s Watcher) Subscribe(fileter *pb.BlockFilter) (*pb.EventService_SubscribeClient, error) {
-	fileter.Bcname = s.ChainName
-	buf, err := proto.Marshal(fileter)
-	if err != nil {
-		return nil, err
-	}
-	request := &pb.SubscribeRequest{
-		Type:   pb.SubscribeType_BLOCK,
-		Filter: buf,
-	}
-
-	eventClient := *(s.XuperClient.EventClient)
-	stream, err := eventClient.Subscribe(context.Background(), request)
-	if err != nil {
-		return nil, err
-	}
-	stream.Recv()
-	return &stream, nil
-}
-
 type Registration struct {
 	FilteredBlockChan <-chan *FilteredBlock
 	exit              chan<- struct{}
@@ -223,7 +203,7 @@ func (w *Watcher) RegisterBlockEvent(filter *pb.BlockFilter, skipEmptyTx bool) (
 		Filter: buf,
 	}
 
-	xclient := *(w.XuperClient.EventClient)
+	xclient := w.XuperClient.EventClient
 	stream, err := xclient.Subscribe(context.TODO(), request)
 	if err != nil {
 		return nil, err
@@ -241,7 +221,7 @@ func (w *Watcher) RegisterBlockEvent(filter *pb.BlockFilter, skipEmptyTx bool) (
 			close(filteredBlockChan)
 			if err := stream.CloseSend(); err != nil {
 				log.Printf("Unregister block event failed, close stream error: %v", err)
-			} else if err := w.XuperClient.EventConn.Close(); err != nil {
+			} else if err := w.XuperClient.XchainConn.Close(); err != nil {
 				log.Printf("Unregister block event failed, close stream error: %v", err)
 			} else {
 				log.Printf("Unregister block event success...")

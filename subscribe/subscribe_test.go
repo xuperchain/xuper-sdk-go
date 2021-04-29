@@ -35,9 +35,9 @@ func TestCreateBlockFilter(t *testing.T) {
 	require.Equal(t, "to_addr", filter.GetToAddr())
 }
 
+//测试事件订阅，并且于20秒后取消订阅
 func TestWatcher_RegisterBlockEvent(t *testing.T) {
 	node := "127.0.0.1:37101"
-
 	xuperClient, err := xchain.NewXuperClient(node)
 	if err != nil {
 		fmt.Println("NewXuperClient error")
@@ -46,7 +46,7 @@ func TestWatcher_RegisterBlockEvent(t *testing.T) {
 	fmt.Println(xuperClient)
 
 	bcname := "xuper"
-	watcher := InitWatcher(xuperClient, bcname, 4, false)
+	watcher := InitWatcher(xuperClient, bcname, 10, false)
 
 	filter, err := NewBlockFilter("xuper")
 	if err != nil {
@@ -68,5 +68,4 @@ func TestWatcher_RegisterBlockEvent(t *testing.T) {
 
 	time.Sleep(time.Second * 10)
 	reg.Unregister()
-
 }

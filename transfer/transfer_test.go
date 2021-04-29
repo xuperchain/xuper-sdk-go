@@ -53,10 +53,11 @@ func TestTransfer(t *testing.T) {
 	}
 }
 
+//测试并发
 func TestGoroutine(t *testing.T) { //并发执行
 	accList1 := []*account.Account{}
 	accList2 := []*account.Account{}
-	bz1, err := ioutil.ReadFile("./wallet1")
+	bz1, err := ioutil.ReadFile("./wallet3")
 	if err != nil {
 		t.Error(err)
 	}
@@ -65,7 +66,7 @@ func TestGoroutine(t *testing.T) { //并发执行
 		t.Error(err)
 	}
 
-	bz2, err := ioutil.ReadFile("./wallet2")
+	bz2, err := ioutil.ReadFile("./wallet4")
 	if err != nil {
 		t.Error(err)
 	}
@@ -103,29 +104,85 @@ func TestGoroutine(t *testing.T) { //并发执行
 	fmt.Println("任务完成")
 }
 
-func TestCreateAddress(t *testing.T) {
-	accList := []*account.Account{}
-	var language int = 1
-	times := 100
-
-	for i := 0; i < times; i++ {
-		acc, err := account.CreateAccount(uint8(1), language)
-		if err != nil {
-			t.Error(err)
-		}
-		fmt.Printf("%+v\n", acc)
-		accList = append(accList, acc)
+func TestGoroutine1(t *testing.T) { //并发执行
+	accList1 := []*account.Account{}
+	accList2 := []*account.Account{}
+	bz1, err := ioutil.ReadFile("./wallet2")
+	if err != nil {
+		t.Error(err)
 	}
+	err = json.Unmarshal(bz1, &accList1)
+	if err != nil {
+		t.Error(err)
+	}
+
+	bz2, err := ioutil.ReadFile("./wallet3")
+	if err != nil {
+		t.Error(err)
+	}
+	err = json.Unmarshal(bz2, &accList2)
+	if err != nil {
+		t.Error(err)
+	}
+	sdkClient, err := xchain.NewXuperClient(node)
+	if err != nil {
+		t.Error(err)
+	}
+	wg := sync.WaitGroup{}
+	wg.Add(len(accList2))
+
+	for j := 0; j < 100; j++ {
+		for i := 0; i < len(accList1); i++ {
+			trans := InitTransWithClient(accList1[i], bcname, sdkClient)
+			go func(index int) {
+				txid, err := trans.transfer(accList2[index].Address, "100", "0", "", "")
+				if err != nil {
+					t.Error(err)
+				}
+				fmt.Println("交易成功：", txid)
+				wg.Done()
+			}(j*100 + i)
+		}
+		time.Sleep(time.Second * 2)
+	}
+	fmt.Println("等待中。。。")
+	wg.Wait()
+	fmt.Println("任务完成")
+}
+
+// 辅助并发测试，创建多个地址用来测试并发
+func TestCreateAddress(t *testing.T) {
+	accList, err := createAddress(10000)
+	if err != nil {
+		t.Error(err)
+	}
+
 	bz, err := json.Marshal(accList)
 	if err != nil {
 		t.Error(err)
 	}
-	err = ioutil.WriteFile("./wallet2", bz, 777)
+	err = ioutil.WriteFile("./wallet4", bz, 777)
 	if err != nil {
 		t.Error(err)
 	}
 }
 
+func createAddress(n int) ([]*account.Account, error) {
+	accList := []*account.Account{}
+	var language int = 1
+
+	for i := 0; i < n; i++ {
+		acc, err := account.CreateAccount(uint8(1), language)
+		if err != nil {
+			return nil, err
+		}
+		fmt.Printf("%+v\n", acc)
+		accList = append(accList, acc)
+	}
+	return accList, nil
+}
+
+// 辅助并发测试，用来给测试并发的from钱包转账进行转账
 func TestSendTokenToWallet(t *testing.T) {
 	bz, err := ioutil.ReadFile("./wallet2")
 	if err != nil {
@@ -150,15 +207,111 @@ func TestSendTokenToWallet(t *testing.T) {
 	trans := InitTransWithClient(accFrom, bcname, sdkClient)
 
 	for i := 0; i < len(accList); i++ {
-		tx, err := trans.Transfer(accList[i].Address, "100", "", "")
+		tx, err := trans.Transfer(accList[i].Address, "100000", "", "")
 		if err != nil {
 			panic(err)
 		}
 		fmt.Println("执行成功：", tx)
-		time.Sleep(time.Second * 2)
+		time.Sleep(time.Second * 1)
+	}
+}
 
+// 辅助并发测试，输出钱包中文件长度
+func TestLength(t *testing.T) { //并发执行
+	accList1 := []*account.Account{}
+	accList2 := []*account.Account{}
+	accList3 := []*account.Account{}
+	accList4 := []*account.Account{}
+	bz1, err := ioutil.ReadFile("./wallet21")
+	if err != nil {
+		t.Error(err)
 	}
 
+	bz2, err := ioutil.ReadFile("./wallet2")
+	if err != nil {
+		t.Error(err)
+	}
+
+	bz3, err := ioutil.ReadFile("./wallet3")
+	if err != nil {
+		t.Error(err)
+	}
+
+	bz4, err := ioutil.ReadFile("./wallet4")
+	if err != nil {
+		t.Error(err)
+	}
+
+	err = json.Unmarshal(bz1, &accList1)
+	if err != nil {
+		t.Error(err)
+	}
+
+	err = json.Unmarshal(bz2, &accList2)
+	if err != nil {
+		t.Error(err)
+	}
+
+	err = json.Unmarshal(bz3, &accList3)
+	if err != nil {
+		t.Error(err)
+	}
+
+	err = json.Unmarshal(bz4, &accList4)
+	if err != nil {
+		t.Error(err)
+	}
+
+	fmt.Printf("length:\nwallet1:%d\nwallet2:%d\nwallet3:%d\nwallet4:%d\n", len(accList1), len(accList2), len(accList3), len(accList4))
+}
+
+//测试要点，1，交易要能成功 ，不能panic, 2 发送方的确没有付fee
+func TestNoFee(t *testing.T) {
+	accList, err := createAddress(2)
+	if err != nil {
+		t.Error(err)
+	}
+	accFrom, err := account.RetrieveAccount("售 历 定 栽 护 沟 万 城 发 阵 凶 据", 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Logf("RetrieveAccount: %v\n", accFrom)
+
+	sdkClient, err := xchain.NewXuperClient(node)
+	if err != nil {
+		t.Error(err)
+	}
+	trans := InitTransWithClient(accFrom, bcname, sdkClient)
+	txId1, err := trans.transfer(accList[0].Address, "100", "", "", "")
+	if err != nil {
+		t.Error(err)
+	}
+	acc1Client := InitTransWithClient(accList[0], bcname, sdkClient)
+	acc2Client := InitTransWithClient(accList[1], bcname, sdkClient)
+	balance1, err := acc1Client.GetBalance()
+	if err != nil {
+		t.Error()
+	}
+	balance2, err := acc2Client.GetBalance()
+	if err != nil {
+		t.Error()
+	}
+	fmt.Printf("balances account1: %s, account2: %s\n", balance1, balance2)
+	txid2, err := acc1Client.transfer(accList[1].Address, "1", "", "", "")
+	if err != nil {
+		t.Error(err)
+	}
+
+	balance1, err = acc1Client.GetBalance()
+	if err != nil {
+		t.Error()
+	}
+	balance2, err = acc2Client.GetBalance()
+	if err != nil {
+		t.Error()
+	}
+	fmt.Printf("after nofee transfer balances \naccount1: %s, account2: %s\n", balance1, balance2)
+	fmt.Printf("tx1:%s\ntx2:%s\n", txId1, txid2)
 }
 
 //func TestGetBalace(t *testing.T) {
