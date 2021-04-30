@@ -82,20 +82,6 @@ func FromFilteredBlockPB(pbblock *pb.FilteredBlock) *FilteredBlock {
 	return block
 }
 
-// InitWatcher init a client to watch event
-//func InitWatcher(node string, eventConsumerBufferSize uint) (*Watcher, error) {
-//	conn, err := grpc.Dial(node, grpc.WithInsecure(), grpc.WithMaxMsgSize(64<<20-1))
-//	if err != nil {
-//		return nil, err
-//	}
-//
-//	return &Watcher{
-//		eventClient:             pb.NewEventServiceClient(conn),
-//		eventConsumerBufferSize: eventConsumerBufferSize,
-//		eventConn:               conn,
-//	}, nil
-//}
-
 // create a block filter
 func NewBlockFilter(bcname string, opts ...BlockFilterOption) (blockFilter *pb.BlockFilter, err error) {
 	blockFilter = &pb.BlockFilter{
@@ -221,8 +207,6 @@ func (w *Watcher) RegisterBlockEvent(filter *pb.BlockFilter, skipEmptyTx bool) (
 			close(filteredBlockChan)
 			if err := stream.CloseSend(); err != nil {
 				log.Printf("Unregister block event failed, close stream error: %v", err)
-			} else if err := w.XuperClient.XchainConn.Close(); err != nil {
-				log.Printf("Unregister block event failed, close stream error: %v", err)
 			} else {
 				log.Printf("Unregister block event success...")
 			}
@@ -253,7 +237,6 @@ func (w *Watcher) RegisterBlockEvent(filter *pb.BlockFilter, skipEmptyTx bool) (
 			}
 		}
 	}()
-
 	return reg, nil
 }
 
