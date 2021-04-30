@@ -25,21 +25,39 @@ type Trans struct {
 	xchain.Xchain
 }
 
-// InitTrans init a client to transfer
-func InitTrans(account *account.Account, node, bcname string) *Trans {
+// InitTransWithClient init a client to transfer
+func InitTransWithClient(account *account.Account, bcname string, xuperClient *xchain.XuperClient) *Trans {
 	commConfig := config.GetInstance()
 
 	return &Trans{
 		Xchain: xchain.Xchain{
-			Cfg:       commConfig,
-			Account:   account,
-			XchainSer: node,
-			ChainName: bcname,
+			Cfg:     commConfig,
+			Account: account,
+			//XchainSer: node,
+			ChainName:   bcname,
+			XuperClient: xuperClient,
 		},
 	}
 }
 
-// InitTrans init a client to transfer
+func InitTrans(account *account.Account, node, bcname string) *Trans {
+	commConfig := config.GetInstance()
+	xuperClient, err := xchain.NewXuperClient(node)
+	if err != nil {
+		return nil
+	}
+	return &Trans{
+		Xchain: xchain.Xchain{
+			Cfg:         commConfig,
+			Account:     account,
+			XchainSer:   node,
+			ChainName:   bcname,
+			XuperClient: xuperClient,
+		},
+	}
+}
+
+// InitTransWithClient init a client to transfer
 func InitTransByPlatform(account, platformAccount *account.Account, node, bcname string) *Trans {
 	commConfig := config.GetInstance()
 

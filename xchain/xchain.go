@@ -46,44 +46,92 @@ type Xchain struct {
 	XchainSer             string
 	ContractAccount       string
 	IsNeedComplianceCheck bool
+	XuperClient           *XuperClient
+}
+
+type XuperClient struct {
+	XendorserClient pb.XendorserClient
+	XendorserConn   *grpc.ClientConn
+
+	XchainClient pb.XchainClient
+	EventClient  pb.EventServiceClient
+	XchainConn   *grpc.ClientConn
+}
+
+func NewXuperClient(url string) (*XuperClient, error) {
+	xchainConn, err := grpc.Dial(url, grpc.WithInsecure(), grpc.WithMaxMsgSize(64<<20-1))
+	if err != nil {
+		return nil, err
+	}
+	xchainClient := pb.NewXchainClient(xchainConn)
+
+	endorseServiceHost := config.GetInstance().EndorseServiceHost
+	endorseConn, err := grpc.Dial(endorseServiceHost, grpc.WithInsecure(), grpc.WithMaxMsgSize(64<<20-1))
+	if err != nil {
+		log.Printf("PreExecWithSelecUTXO Connect EndorseServiceHost failed, err: %v", err)
+	}
+	endorseClient := pb.NewXendorserClient(endorseConn)
+
+	eventClient := pb.NewEventServiceClient(xchainConn)
+
+	xuperClient := &XuperClient{
+		XchainClient: xchainClient,
+		XchainConn:   xchainConn,
+
+		XendorserClient: endorseClient,
+		XendorserConn:   endorseConn,
+		EventClient:     eventClient,
+	}
+	return xuperClient, nil
+}
+
+func (xc *Xchain) CloseClient() error {
+	var err error
+	err = xc.XuperClient.XchainConn.Close()
+	if err != nil {
+		return err
+	}
+	err = xc.XuperClient.XendorserConn.Close()
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 // PreExecWithSelecUTXO preExec and selectUTXO
 func (xc *Xchain) PreExecWithSelecUTXO() (*pb.PreExecWithSelectUTXOResponse, error) {
-	requestData, err := json.Marshal(xc.PreSelUTXOReq)
-	if err != nil {
-		log.Printf("PreExecWithSelecUTXO json marshal failed, err: %v", err)
-		return nil, err
-	}
-
-	endorserRequest := &pb.EndorserRequest{
-		RequestName: "PreExecWithFee",
-		BcName:      xc.ChainName,
-		RequestData: requestData,
-	}
-
-	conn, err := grpc.Dial(xc.Cfg.EndorseServiceHost, grpc.WithInsecure(), grpc.WithMaxMsgSize(64<<20-1))
-	if err != nil {
-		log.Printf("PreExecWithSelecUTXO Connect EndorseServiceHost failed, err: %v", err)
-	}
-	defer conn.Close()
-	ctx, cancel := context.WithTimeout(context.Background(), 15000*time.Millisecond)
-	defer cancel()
-	c := pb.NewXendorserClient(conn)
-	endorserResponse, err := c.EndorserCall(ctx, endorserRequest)
-	if err != nil {
-		log.Printf("PreExecWithSelecUTXO EndorserCall failed, err: %v", err)
-		return nil, fmt.Errorf("EndorserCall error! Response is: %v", err)
-	}
-
-	responseData := endorserResponse.ResponseData
-
+	ctx := context.Background()
 	preExecWithSelectUTXOResponse := new(pb.PreExecWithSelectUTXOResponse)
-	err = json.Unmarshal(responseData, preExecWithSelectUTXOResponse)
-	if err != nil {
-		return nil, err
+	if xc.Cfg.ComplianceCheck.IsNeedComplianceCheck {
+		requestData, err := json.Marshal(xc.PreSelUTXOReq)
+		if err != nil {
+			log.Printf("PreExecWithSelecUTXO json marshal failed, err: %v", err)
+			return nil, err
+		}
+		endorserRequest := &pb.EndorserRequest{
+			RequestName: "PreExecWithFee",
+			BcName:      xc.ChainName,
+			RequestData: requestData,
+		}
+		c := xc.XuperClient.XendorserClient
+		endorserResponse, err := c.EndorserCall(ctx, endorserRequest)
+		if err != nil {
+			log.Printf("PreExecWithSelecUTXO EndorserCall failed, err: %v", err)
+			return nil, fmt.Errorf("EndorserCall error! Response is: %v", err)
+		}
+		responseData := endorserResponse.ResponseData
+		err = json.Unmarshal(responseData, preExecWithSelectUTXOResponse)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		client := xc.XuperClient.XchainClient
+		var err error
+		preExecWithSelectUTXOResponse, err = client.PreExecWithSelectUTXO(ctx, xc.PreSelUTXOReq)
+		if err != nil {
+			return nil, err
+		}
 	}
-
 	log.Printf("Gas will cost: %v\n", preExecWithSelectUTXOResponse.GetResponse().GetGasUsed())
 	for _, res := range preExecWithSelectUTXOResponse.GetResponse().GetResponses() {
 		if res.Status >= 400 {
@@ -91,7 +139,6 @@ func (xc *Xchain) PreExecWithSelecUTXO() (*pb.PreExecWithSelectUTXOResponse, err
 		}
 		log.Printf("contract response: %s\n", string(res.Body))
 	}
-
 	return preExecWithSelectUTXOResponse, nil
 }
 
@@ -473,12 +520,13 @@ func (xc *Xchain) GenRealTxOnly(response *pb.PreExecWithSelectUTXOResponse, hdPu
 	//		}
 	//	}
 
-	utxoOutput := &pb.UtxoOutput{
-		//		UtxoList: utxolist,
-		//		TotalSelected: totalSelected.String(),
-		UtxoList:      response.UtxoOutput.UtxoList,
-		TotalSelected: response.UtxoOutput.TotalSelected,
+	utxoOutput := &pb.UtxoOutput{}
+
+	if response.UtxoOutput != nil {
+		utxoOutput.UtxoList = response.UtxoOutput.UtxoList
+		utxoOutput.TotalSelected = response.UtxoOutput.TotalSelected
 	}
+
 	totalNeed := big.NewInt(0)
 	amount, ok := big.NewInt(0).SetString(xc.TotalToAmount, 10)
 	if !ok {
@@ -490,10 +538,12 @@ func (xc *Xchain) GenRealTxOnly(response *pb.PreExecWithSelectUTXOResponse, hdPu
 	}
 	amount.Add(amount, fee)
 	totalNeed.Add(totalNeed, amount)
-
-	totalSelected, ok := big.NewInt(0).SetString(response.UtxoOutput.TotalSelected, 10)
-	if !ok {
-		return nil, common.ErrInvalidAmount
+	totalSelected := big.NewInt(0)
+	if response.UtxoOutput != nil {
+		totalSelected, ok = big.NewInt(0).SetString(response.UtxoOutput.TotalSelected, 10)
+		if !ok {
+			return nil, common.ErrInvalidAmount
+		}
 	}
 
 	selfAmount := totalSelected.Sub(totalSelected, totalNeed)
@@ -600,6 +650,7 @@ func (xc *Xchain) GenRealTxOnly(response *pb.PreExecWithSelectUTXOResponse, hdPu
 // ComplianceCheck whether the transaction complies with the rule
 func (xc *Xchain) ComplianceCheck(tx *pb.Transaction, fee *pb.Transaction) (
 	*pb.SignatureInfo, error) {
+	ctx := context.Background()
 	txStatus := &pb.TxStatus{
 		Bcname: xc.ChainName,
 		Tx:     tx,
@@ -617,46 +668,26 @@ func (xc *Xchain) ComplianceCheck(tx *pb.Transaction, fee *pb.Transaction) (
 		Fee:         fee,
 		RequestData: requestData,
 	}
-
-	conn, err := grpc.Dial(xc.Cfg.EndorseServiceHost, grpc.WithInsecure(), grpc.WithMaxMsgSize(64<<20-1))
-	if err != nil {
-		log.Printf("ComplianceCheck connect EndorseServiceHost err: %v", err)
-		return nil, err
-	}
-	defer conn.Close()
-	ctx, cancel := context.WithTimeout(context.Background(), 15000*time.Millisecond)
-	defer cancel()
-
-	c := pb.NewXendorserClient(conn)
+	c := xc.XuperClient.XendorserClient
 	endorserResponse, err := c.EndorserCall(ctx, endorserRequest)
 	if err != nil {
 		log.Printf("EndorserCall failed and err is: %v", err)
 		return nil, fmt.Errorf("EndorserCall error! Response is: %v", err)
 	}
-
 	return endorserResponse.GetEndorserSign(), nil
 }
 
 // PostTx posttx
 func (xc *Xchain) PostTx(tx *pb.Transaction) (string, error) {
 	posttx := func(tx *pb.Transaction) error {
-		conn, err := grpc.Dial(xc.XchainSer, grpc.WithInsecure(), grpc.WithMaxMsgSize(64<<20-1))
-		if err != nil {
-			log.Printf("Posttx connect xchain err: %v", err)
-			return err
-		}
-		defer conn.Close()
-		ctx, cancel := context.WithTimeout(context.Background(), 15000*time.Millisecond)
-		defer cancel()
-
+		ctx := context.Background()
+		c := xc.XuperClient.XchainClient
 		txStatus := &pb.TxStatus{
 			Bcname: xc.ChainName,
 			Status: pb.TransactionStatus_UNCONFIRM,
 			Tx:     tx,
 			Txid:   tx.Txid,
 		}
-
-		c := pb.NewXchainClient(conn)
 		res, err := c.PostTx(ctx, txStatus)
 		if err != nil {
 			return err
@@ -664,7 +695,6 @@ func (xc *Xchain) PostTx(tx *pb.Transaction) (string, error) {
 		if res.Header.Error != pb.XChainErrorEnum_SUCCESS {
 			return fmt.Errorf("Failed to post tx: %s", res.Header.Error.String())
 		}
-
 		return nil
 	}
 	err := posttx(tx)
@@ -681,15 +711,14 @@ func (xc *Xchain) GenCompleteTxAndPost(preExeResp *pb.PreExecWithSelectUTXORespo
 	var err error
 	// if ComplianceCheck is needed
 	// 如果需要进行合规性背书
-	if xc.Cfg.ComplianceCheck.IsNeedComplianceCheck == true {
+	if xc.Cfg.ComplianceCheck.IsNeedComplianceCheck {
 		// 如果需要进行合规性背书，但不需要支付合规性背书费用
-		if xc.Cfg.ComplianceCheck.IsNeedComplianceCheckFee == false {
+		if !xc.Cfg.ComplianceCheck.IsNeedComplianceCheckFee {
 			tx, err = xc.GenRealTxOnly(preExeResp, hdPublicKey)
 			if err != nil {
 				log.Printf("GenRealTxOnly failed, err: %v", err)
 				return "", err
 			}
-
 			complianceCheckTx = nil
 		} else {
 			// 如果需要进行合规性背书，且需要支付合规性背书费用
@@ -759,22 +788,13 @@ func (xc *Xchain) GenCompleteTxAndPost(preExeResp *pb.PreExecWithSelectUTXORespo
 
 // GetBalanceDetail get unfrozen balance and frozen balance
 func (xc *Xchain) GetBalanceDetail() (string, error) {
-	conn, err := grpc.Dial(xc.XchainSer, grpc.WithInsecure(), grpc.WithMaxMsgSize(64<<20-1))
-	if err != nil {
-		log.Printf("GetBalance connect xchain err: %v", err)
-		return "", err
-	}
-	defer conn.Close()
-	ctx, cancel := context.WithTimeout(context.Background(), 15000*time.Millisecond)
-	defer cancel()
-
+	c := xc.XuperClient.XchainClient
 	tfds := []*pb.TokenFrozenDetails{{Bcname: xc.ChainName}}
 	addStatus := &pb.AddressBalanceStatus{
 		Address: xc.Account.Address,
 		Tfds:    tfds,
 	}
-
-	c := pb.NewXchainClient(conn)
+	ctx := context.Background()
 	res, err := c.GetBalanceDetail(ctx, addStatus)
 	if err != nil {
 		return "", err
@@ -782,22 +802,14 @@ func (xc *Xchain) GetBalanceDetail() (string, error) {
 	if res.Header.Error != pb.XChainErrorEnum_SUCCESS {
 		return "", errors.New(res.Header.Error.String())
 	}
-
 	balanceJSON, err := json.Marshal(res.Tfds[0].Tfd)
 	return string(balanceJSON), err
 }
 
 // QueryTx get tx's status
 func (xc *Xchain) QueryTx(txid string) (*pb.TxStatus, error) {
-	conn, err := grpc.Dial(xc.XchainSer, grpc.WithInsecure(), grpc.WithMaxMsgSize(64<<20-1))
-	if err != nil {
-		log.Printf("QueryTx connect xchain err: %v", err)
-		return nil, err
-	}
-	defer conn.Close()
-	ctx, cancel := context.WithTimeout(context.Background(), 15000*time.Millisecond)
-	defer cancel()
-
+	c := xc.XuperClient.XchainClient
+	ctx := context.Background()
 	rawTxid, err := hex.DecodeString(txid)
 	if err != nil {
 		return nil, fmt.Errorf("txid format is wrong: %s", txid)
@@ -806,8 +818,6 @@ func (xc *Xchain) QueryTx(txid string) (*pb.TxStatus, error) {
 		Bcname: xc.ChainName,
 		Txid:   rawTxid,
 	}
-
-	c := pb.NewXchainClient(conn)
 	res, err := c.QueryTx(ctx, txStatus)
 	if err != nil {
 		return nil, err
@@ -823,16 +833,8 @@ func (xc *Xchain) QueryTx(txid string) (*pb.TxStatus, error) {
 
 // PreExec pre exec
 func (xc *Xchain) PreExec() (*pb.InvokeRPCResponse, error) {
-	conn, err := grpc.Dial(xc.XchainSer, grpc.WithInsecure(), grpc.WithMaxMsgSize(64<<20-1))
-	if err != nil {
-		log.Printf("Posttx connect xchain err: %v", err)
-		return nil, err
-	}
-	defer conn.Close()
-	ctx, cancel := context.WithTimeout(context.Background(), 15000*time.Millisecond)
-	defer cancel()
-
-	c := pb.NewXchainClient(conn)
+	c := xc.XuperClient.XchainClient
+	ctx := context.Background()
 	preExeRPCRes, err := c.PreExec(ctx, xc.InvokeRPCReq)
 	if err != nil {
 		return nil, err
@@ -845,4 +847,58 @@ func (xc *Xchain) PreExec() (*pb.InvokeRPCResponse, error) {
 	}
 	log.Printf("Gas will cost: %v\n", preExeRPCRes.GetResponse().GetGasUsed())
 	return preExeRPCRes, nil
+}
+
+func (xc *Xchain) QueryBlockByHeight(height int64) (*pb.Block, error) {
+	c := xc.XuperClient.XchainClient
+	blockHeightPB := &pb.BlockHeight{
+		Bcname: xc.ChainName,
+		Height: height,
+	}
+	ctx := context.Background()
+	block, err := c.GetBlockByHeight(ctx, blockHeightPB)
+	if err != nil {
+		return nil, err
+	}
+	return block, nil
+}
+
+func (xc *Xchain) GetAccountByAk(address string) (*pb.AK2AccountResponse, error) {
+	AK2AccountRequest := &pb.AK2AccountRequest{
+		Bcname:  xc.ChainName,
+		Address: address,
+	}
+	xchainClient := xc.XuperClient.XchainClient
+	return xchainClient.GetAccountByAK(context.Background(), AK2AccountRequest)
+}
+
+func (xc *Xchain) GetAccountContracts(address string) (*pb.GetAccountContractsResponse, error) {
+	getAccountContractReq := &pb.GetAccountContractsRequest{
+		Bcname:  xc.ChainName,
+		Account: address,
+	}
+	xchainClient := xc.XuperClient.XchainClient
+	return xchainClient.GetAccountContracts(context.Background(), getAccountContractReq)
+}
+
+func (xc *Xchain) QueryUTXORecord(addr string, utxoItemNum int64) (*pb.UtxoRecordDetail, error) {
+	request := &pb.UtxoRecordDetail{
+		Bcname:       xc.ChainName,
+		AccountName:  addr,
+		DisplayCount: utxoItemNum,
+	}
+
+	xchainClient := xc.XuperClient.XchainClient
+	return xchainClient.QueryUtxoRecord(context.Background(), request)
+}
+
+func (xc *Xchain) QueryContractMethondAcl(contract string, method string) (*pb.AclStatus, error) {
+	in := &pb.AclStatus{
+		Bcname:       xc.ChainName,
+		ContractName: contract,
+		MethodName:   method,
+	}
+	xchainClient := xc.XuperClient.XchainClient
+	return xchainClient.QueryACL(context.Background(), in)
+
 }
