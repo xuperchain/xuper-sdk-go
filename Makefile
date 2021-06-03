@@ -17,12 +17,9 @@ build:
 	PLATFORM=$(PLATFORM) ./build.sh
 
 test:
-	go test github.com/xuperchain/xuper-sdk-go/account
-	go test github.com/xuperchain/xuper-sdk-go/transfer
-	go test github.com/xuperchain/xuper-sdk-go/common
-	go test github.com/xuperchain/xuper-sdk-go/contract_account
-	go test github.com/xuperchain/xuper-sdk-go/contract
-	go test github.com/xuperchain/xuper-sdk-go/xchain
+	go test ./account/...
+	go test ./common/...
+	go test ./xuper/...
 
 clean:
 	rm -rf main

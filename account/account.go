@@ -7,12 +7,14 @@ import (
 	"io/ioutil"
 	"log"
 
-	"github.com/xuperchain/xuper-sdk-go/common"
-	"github.com/xuperchain/xuper-sdk-go/crypto"
+	"github.com/xuperchain/xuper-sdk-go/v2/common"
+	"github.com/xuperchain/xuper-sdk-go/v2/crypto"
 )
 
 // Account account structure
 type Account struct {
+	contractAccount string
+
 	Address    string
 	PrivateKey string
 	PublicKey  string
@@ -135,4 +137,18 @@ func GetAccountFromFile(path, passwd string) (*Account, error) {
 		return nil, err
 	}
 	return account, err
+}
+
+func (a *Account) SetContractAccount(contractAccount string) error {
+	// TODO check parameter valid.
+	a.contractAccount = contractAccount
+	return nil
+}
+
+func (a *Account) GetAuthRequire() string {
+	return ""
+}
+
+func (a *Account) GetContractAccount() string {
+	return a.contractAccount
 }
