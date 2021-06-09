@@ -47,6 +47,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+	bob.SetContractAccount(contractAccount)
 	tx.Sign(bob)
 
 	// 收集到足够的签名后，将交易发送出去。

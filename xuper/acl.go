@@ -13,3 +13,17 @@ type Pm struct {
 func (a *Acl) AddAK(ak string, weight int) {
 	a.AksWeight[ak] = weight
 }
+
+func getDefaultACL(address string) string {
+	return `
+	{
+		"pm": {
+			"rule": 1,
+			"acceptValue": 1.0
+		},
+		"aksWeight": {
+			"` + address + `": 1.0
+		}
+	}
+	`
+}

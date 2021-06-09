@@ -152,3 +152,7 @@ func (a *Account) GetAuthRequire() string {
 func (a *Account) GetContractAccount() string {
 	return a.contractAccount
 }
+
+func (a *Account) HasContractAccount() bool {
+	return a.contractAccount != ""
+}

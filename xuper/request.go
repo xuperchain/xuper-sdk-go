@@ -5,12 +5,12 @@ import "github.com/xuperchain/xuper-sdk-go/v2/account"
 type Request struct {
 	initiatorAccount *account.Account
 
-	// contract parameters.
+	// contract parameters, kernel or user contract.
 	module       string
-	runtime      string
 	code         []byte
 	contractName string
-	args         map[string]string
+	methodName   string
+	args         map[string][]byte
 
 	// transfer parameters.
 	transferTo     string
@@ -50,7 +50,7 @@ func (r *Request) SetInitiatorAccount(account *account.Account) error {
 	return nil
 }
 
-func (r *Request) SetArgs(args map[string]string) error {
+func (r *Request) SetArgs(args map[string][]byte) error {
 	r.args = args
 	return nil
 }
@@ -60,10 +60,10 @@ func (r *Request) SetModule(module string) error {
 	return nil
 }
 
-func (r *Request) SetRuntime(runtime string) error {
-	r.runtime = runtime
-	return nil
-}
+// func (r *Request) SetRuntime(runtime string) error {
+// 	// r.runtime = runtime
+// 	return nil
+// }
 
 func (r *Request) SetContractName(contractName string) error {
 	r.contractName = contractName
