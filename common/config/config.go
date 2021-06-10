@@ -33,15 +33,20 @@ const CRYPTO_GM = "gm"
 
 var config *CommConfig
 
+// todo
 func GetInstance() *CommConfig {
 
 	if config == nil {
-		config = GetConfig(defaultConfFile)
+		var err error
+		config, err = GetConfig(defaultConfFile)
+		if err != nil {
+
+		}
 	}
 	return config
 }
 
-func GetConfig(confFile string) *CommConfig {
+func GetConfig(confFile string) (*CommConfig, error) {
 	// default config
 	commConfig := &CommConfig{
 		EndorseServiceHost: "10.144.94.18:8848",

@@ -26,7 +26,7 @@ type Proposal struct {
 	request *Request
 
 	preResp           *pb.PreExecWithSelectUTXOResponse
-	feePreResp        *pb.UtxoOutput // todo 合约账户支付 gasUsed & fee 处理。
+	feePreResp        *pb.UtxoOutput
 	tx                *Transaction
 	complianceCheckTx *pb.Transaction
 
@@ -83,10 +83,10 @@ func (p *Proposal) PreExecWithSelectUtxo() error {
 			BcName:      req.Bcname,
 			RequestData: requestData,
 		}
-		c := *p.xclient.ec
+		c := p.xclient.ec
 		endorserResponse, err := c.EndorserCall(ctx, endorserRequest)
 		if err != nil {
-			return errors.Wrap(err, "EndorserCall failed") // todo error wrap?
+			return errors.Wrap(err, "EndorserCall failed")
 		}
 		responseData := endorserResponse.ResponseData
 		err = json.Unmarshal(responseData, preExecWithSelectUTXOResponse)
@@ -94,11 +94,11 @@ func (p *Proposal) PreExecWithSelectUtxo() error {
 			return err
 		}
 	} else {
-		c := *p.xclient.xc
+		c := p.xclient.xc
 		var err error
 		preExecWithSelectUTXOResponse, err = c.PreExecWithSelectUTXO(ctx, req)
 		if err != nil {
-			return errors.Wrap(err, "PreExecWithSelectUTXO failed") // todo error wrap?
+			return errors.Wrap(err, "PreExecWithSelectUTXO failed")
 		}
 
 		// AK 发起交易，仅使用合约账户支付手续费时，需要选择 utxo。
@@ -109,13 +109,11 @@ func (p *Proposal) PreExecWithSelectUtxo() error {
 			}
 			amount.Add(amount, big.NewInt(preExecWithSelectUTXOResponse.GetResponse().GetGasUsed()))
 
-			feeReq, err := p.genSelectUtxoRequest(p.request.initiatorAccount.GetContractAccount(), amount.String())
-			if err != nil {
-				return errors.Wrap(err, "gen fee select utxu request failed")
-			}
+			feeReq := p.genSelectUtxoRequest(p.request.initiatorAccount.GetContractAccount(), amount.String())
+
 			p.feePreResp, err = c.SelectUTXO(ctx, feeReq)
 			if err != nil {
-				return errors.Wrap(err, "SelectUTXO from contract account failed") // todo error wrap?
+				return errors.Wrap(err, "SelectUTXO from contract account failed")
 			}
 		}
 	}
@@ -346,7 +344,7 @@ func (p *Proposal) calcSelfAmount(totalSelected *big.Int) (string, error) {
 
 	// amount
 	if p.request.opt.contractInvokeAmount != "" {
-		invokeAmount, ok := big.NewInt(0).SetString(p.request.opt.contractInvokeAmount, 10) // todo
+		invokeAmount, ok := big.NewInt(0).SetString(p.request.opt.contractInvokeAmount, 10)
 		if !ok {
 			return "", common.ErrInvalidAmount
 		}
@@ -354,7 +352,7 @@ func (p *Proposal) calcSelfAmount(totalSelected *big.Int) (string, error) {
 	}
 
 	if p.request.transferAmount != "" {
-		transferAmount, ok := big.NewInt(0).SetString(p.request.transferAmount, 10) // todo
+		transferAmount, ok := big.NewInt(0).SetString(p.request.transferAmount, 10)
 		if !ok {
 			return "", common.ErrInvalidAmount
 		}
@@ -362,17 +360,19 @@ func (p *Proposal) calcSelfAmount(totalSelected *big.Int) (string, error) {
 	}
 
 	// fee
-	if p.request.opt.fee != "" {
-		fee, ok := big.NewInt(0).SetString(p.request.opt.fee, 10)
-		if !ok {
-			return "", common.ErrInvalidAmount
+	if !p.request.opt.onlyFeeFromAccount {
+		if p.request.opt.fee != "" {
+			fee, ok := big.NewInt(0).SetString(p.request.opt.fee, 10)
+			if !ok {
+				return "", common.ErrInvalidAmount
+			}
+			amount.Add(amount, fee)
 		}
-		amount.Add(amount, fee)
-	}
 
-	// gas
-	gasUsed := big.NewInt(preResp.GetResponse().GetGasUsed())
-	amount.Add(amount, gasUsed)
+		// gas
+		gasUsed := big.NewInt(preResp.GetResponse().GetGasUsed())
+		amount.Add(amount, gasUsed)
+	}
 
 	// total
 	totalNeed.Add(totalNeed, amount)
@@ -408,6 +408,11 @@ func (p *Proposal) genTx() (*pb.Transaction, []byte, error) {
 		if preResp.UtxoOutput != nil {
 			utxoOutput.UtxoList = preResp.GetUtxoOutput().GetUtxoList()
 			utxoOutput.TotalSelected = preResp.GetUtxoOutput().GetTotalSelected()
+		}
+
+		// fee from account
+		if p.feePreResp != nil {
+			utxoOutput.UtxoList = append(utxoOutput.UtxoList, p.feePreResp.GetUtxoList()...)
 		}
 	}
 
@@ -456,8 +461,12 @@ func (p *Proposal) genPureTxInputs(utxoOutputs *pb.UtxoOutput) []*pb.TxInput {
 	return txInputs
 }
 
-func (p *Proposal) genSelectUtxoRequest(address, amount string) (*pb.UtxoInput, error) {
-	return nil, nil
+func (p *Proposal) genSelectUtxoRequest(address, amount string) *pb.UtxoInput {
+	return &pb.UtxoInput{
+		Bcname:    p.getChainName(),
+		Address:   address,
+		TotalNeed: amount,
+	}
 }
 
 func (p *Proposal) genPreExecUtxoRequest() (*pb.PreExecWithSelectUTXORequest, error) {
@@ -520,18 +529,44 @@ func (p *Proposal) generateMultiTxOutputs(selfAmount string, gasUsed *big.Int) (
 	}
 
 	// 4. fee & gasUsed
-	fee := gasUsed
+	feeOutput, err := p.makeFeeTxOutput()
+	if err != nil {
+		return nil, err
+	}
+	txOutputs = append(txOutputs, feeOutput...)
 
-	if req.opt.fee != "" && req.opt.fee != "0" {
-		feeInt, ok := new(big.Int).SetString(req.opt.fee, 10)
-		if !ok {
-			return nil, common.ErrInvalidAmount
-		}
-		fee = fee.Add(fee, feeInt)
+	return txOutputs, nil
+}
+
+func (p *Proposal) makeFeeTxOutput() ([]*pb.TxOutput, error) {
+	txOutputs := make([]*pb.TxOutput, 0, 1)
+	fee, err := p.calcAllFee()
+	if err != nil {
+		return nil, err
+	}
+
+	// no gasUsed & fee.
+	if fee.Cmp(big.NewInt(0)) <= 0 {
+		return txOutputs, nil
 	}
 
 	if fee.Cmp(big.NewInt(0)) > 0 {
-		txOutput, err := p.makeTxOutput("$", gasUsed.String())
+		txOutput, err := p.makeTxOutput("$", fee.String())
+		if err != nil {
+			return nil, err
+		}
+		txOutputs = append(txOutputs, txOutput)
+	}
+
+	// fee from contract account, calc account self output.
+	if p.request.opt.onlyFeeFromAccount && p.feePreResp != nil {
+		total, ok := big.NewInt(0).SetString(p.feePreResp.GetTotalSelected(), 10)
+		if !ok {
+			return nil, errors.New("invalid proposal feePreResp totalSelected")
+		}
+		feeSelf := total.Sub(total, fee)
+
+		txOutput, err := p.makeTxOutput(p.request.initiatorAccount.GetContractAccount(), feeSelf.String())
 		if err != nil {
 			return nil, err
 		}
@@ -541,11 +576,28 @@ func (p *Proposal) generateMultiTxOutputs(selfAmount string, gasUsed *big.Int) (
 	return txOutputs, nil
 }
 
+func (p *Proposal) calcAllFee() (*big.Int, error) {
+	allFee := big.NewInt(0)
+	if p.request.opt.fee != "" {
+		fee, ok := big.NewInt(0).SetString(p.request.opt.fee, 10)
+		if !ok {
+			return nil, common.ErrInvalidAmount
+		}
+		allFee.Add(allFee, fee)
+	}
+
+	// gas
+	gasUsed := big.NewInt(p.preResp.GetResponse().GetGasUsed())
+	allFee.Add(allFee, gasUsed)
+
+	return allFee, nil
+}
+
 func (p *Proposal) makeTxOutput(addr, amount string) (*pb.TxOutput, error) {
 	txOutput := new(pb.TxOutput)
 	txOutput.ToAddr = []byte(addr)
-	realToAmount, isSuccess := new(big.Int).SetString(amount, 10)
-	if isSuccess != true {
+	realToAmount, ok := new(big.Int).SetString(amount, 10)
+	if !ok {
 		return nil, common.ErrInvalidAmount
 	}
 	txOutput.Amount = realToAmount.Bytes()
@@ -615,7 +667,7 @@ func (p *Proposal) calcTotalAmount() (int64, error) {
 		}
 	}
 
-	if req.opt.fee != "" {
+	if !req.opt.onlyFeeFromAccount && req.opt.fee != "" {
 		if amount, err := strconv.ParseInt(req.opt.fee, 10, 64); err == nil {
 			totalAmount += amount
 		} else {

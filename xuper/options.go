@@ -3,11 +3,18 @@ package xuper
 type clientOptions struct {
 	configFile  string
 	useGrpcGZIP bool
-	grpcTLSPath string
+	grpcTLS     *grpcTLSConfig
+}
+
+type grpcTLSConfig struct {
+	serverName string
+	cacertFile string
+	certFile   string
+	keyFile    string
 }
 
 type txOptions struct {
-	feeFromAccount       bool // 这个字段应该不需要。还需仔细看下！！！
+	feeFromAccount       bool
 	fee                  string
 	bcname               string
 	contractInvokeAmount string
