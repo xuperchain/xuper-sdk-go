@@ -34,6 +34,7 @@ const CRYPTO_GM = "gm"
 var config *CommConfig
 
 func GetInstance() *CommConfig {
+
 	if config == nil {
 		config = GetConfig(defaultConfFile)
 	}

@@ -7,18 +7,18 @@ import (
 	"github.com/xuperchain/crypto/client/service/base"
 	"github.com/xuperchain/crypto/client/service/gm"
 	"github.com/xuperchain/crypto/client/service/xchain"
+	"github.com/xuperchain/xuper-sdk-go/v2/common/config"
 )
 
 func getInstance() interface{} {
-	// switch config.GetInstance().Crypto {
-	// case config.CRYPTO_XCHAIN:
-	// 	return &xchain.XchainCryptoClient{}
-	// case config.CRYPTO_GM:
-	// 	return &gm.GmCryptoClient{}
-	// default:
-	// 	return &xchain.XchainCryptoClient{}
-	// }
-	return &xchain.XchainCryptoClient{}
+	switch config.GetInstance().Crypto {
+	case config.CRYPTO_XCHAIN:
+		return &xchain.XchainCryptoClient{}
+	case config.CRYPTO_GM:
+		return &gm.GmCryptoClient{}
+	default:
+		return &xchain.XchainCryptoClient{}
+	}
 }
 
 // GetCryptoClient get crypto client

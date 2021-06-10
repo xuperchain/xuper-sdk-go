@@ -18,7 +18,7 @@ import (
 
 const (
 	// TxVersion tx version number
-	TxVersion = 1
+	TxVersion = 3
 )
 
 // GetNonce get nonce value

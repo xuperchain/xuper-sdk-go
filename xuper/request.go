@@ -20,7 +20,7 @@ type Request struct {
 }
 
 type requestOptions struct {
-	feeFromAccount       bool
+	onlyFeeFromAccount   bool
 	fee                  string
 	bcname               string
 	contractInvokeAmount string

@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/pkg/errors"
+
 	"github.com/xuperchain/xuper-sdk-go/v2/common"
 	"github.com/xuperchain/xuper-sdk-go/v2/common/config"
 	"github.com/xuperchain/xuper-sdk-go/v2/crypto"
@@ -19,43 +20,63 @@ const (
 	defaultChainName = "xuper"
 )
 
+// Proposal 代表单个请求，构造交易，但不 post。
 type Proposal struct {
 	xclient *XClient
 	request *Request
 
 	preResp           *pb.PreExecWithSelectUTXOResponse
+	feePreResp        *pb.UtxoOutput // todo 合约账户支付 gasUsed & fee 处理。
 	tx                *Transaction
 	complianceCheckTx *pb.Transaction
+
+	cfg *config.CommConfig
 }
 
+// NewProposal new Proposal instance.
+func NewProposal(xclient *XClient, request *Request, cfg *config.CommConfig) (*Proposal, error) {
+	if xclient == nil || request == nil || cfg == nil {
+		return nil, errors.New("new proposal failed, parameters can not be nil")
+	}
+
+	return &Proposal{
+		xclient: xclient,
+		request: request,
+		cfg:     cfg,
+	}, nil
+}
+
+// Build 发起预执行，构造交易。
 func (p *Proposal) Build() (*Transaction, error) {
-	preResp, err := p.PreExecWithSelectUtxo()
+	err := p.PreExecWithSelectUtxo()
 	if err != nil {
 		return nil, err
 	}
 
-	tx, err := p.GenCompleteTx(preResp)
+	tx, err := p.GenCompleteTx()
 	if err != nil {
 		return nil, err
 	}
+	p.tx = tx
 
 	return tx, nil
 }
 
-func (p *Proposal) PreExecWithSelectUtxo() (*pb.PreExecWithSelectUTXOResponse, error) {
+// PreExecWithSelectUtxo 预执行并选择 utxo，如果有背书则调用 EndorserCall。
+func (p *Proposal) PreExecWithSelectUtxo() error {
 
 	req, err := p.genPreExecUtxoRequest()
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	ctx := context.Background()
 	preExecWithSelectUTXOResponse := new(pb.PreExecWithSelectUTXOResponse)
 
-	if config.GetInstance().ComplianceCheck.IsNeedComplianceCheck {
+	if p.cfg.ComplianceCheck.IsNeedComplianceCheck {
 		requestData, err := json.Marshal(req)
 		if err != nil {
-			return nil, err
+			return err
 		}
 		endorserRequest := &pb.EndorserRequest{
 			RequestName: "PreExecWithFee",
@@ -65,44 +86,72 @@ func (p *Proposal) PreExecWithSelectUtxo() (*pb.PreExecWithSelectUTXOResponse, e
 		c := *p.xclient.ec
 		endorserResponse, err := c.EndorserCall(ctx, endorserRequest)
 		if err != nil {
-			return nil, errors.Wrap(err, "EndorserCall failed") // todo error wrap?
+			return errors.Wrap(err, "EndorserCall failed") // todo error wrap?
 		}
 		responseData := endorserResponse.ResponseData
 		err = json.Unmarshal(responseData, preExecWithSelectUTXOResponse)
 		if err != nil {
-			return nil, err
+			return err
 		}
 	} else {
 		c := *p.xclient.xc
 		var err error
 		preExecWithSelectUTXOResponse, err = c.PreExecWithSelectUTXO(ctx, req)
 		if err != nil {
-			return nil, errors.Wrap(err, "PreExecWithSelectUTXO failed") // todo error wrap?
+			return errors.Wrap(err, "PreExecWithSelectUTXO failed") // todo error wrap?
+		}
+
+		// AK 发起交易，仅使用合约账户支付手续费时，需要选择 utxo。
+		if p.request.opt.onlyFeeFromAccount {
+			amount, ok := big.NewInt(0).SetString(p.request.opt.fee, 10)
+			if !ok {
+				return errors.Wrap(common.ErrInvalidAmount, "invalid request fee")
+			}
+			amount.Add(amount, big.NewInt(preExecWithSelectUTXOResponse.GetResponse().GetGasUsed()))
+
+			feeReq, err := p.genSelectUtxoRequest(p.request.initiatorAccount.GetContractAccount(), amount.String())
+			if err != nil {
+				return errors.Wrap(err, "gen fee select utxu request failed")
+			}
+			p.feePreResp, err = c.SelectUTXO(ctx, feeReq)
+			if err != nil {
+				return errors.Wrap(err, "SelectUTXO from contract account failed") // todo error wrap?
+			}
 		}
 	}
 
 	for _, res := range preExecWithSelectUTXOResponse.GetResponse().GetResponses() {
 		if res.Status >= 400 {
-			return nil, fmt.Errorf("contract invoke error status:%d message:%s", res.Status, res.Message)
+			return fmt.Errorf("contract invoke error status:%d message:%s", res.Status, res.Message)
 		}
 	}
 
-	return preExecWithSelectUTXOResponse, nil
+	p.preResp = preExecWithSelectUTXOResponse
+	return nil
 }
 
-func (p *Proposal) GenCompleteTx(preResp *pb.PreExecWithSelectUTXOResponse) (*Transaction, error) {
+// GenCompleteTx 根据预执行结果构造完整的交易。
+func (p *Proposal) GenCompleteTx() (*Transaction, error) {
 	var (
-		tx  *pb.Transaction
-		err error
+		tx         *pb.Transaction
+		digestHash []byte
+		err        error
+
+		preResp = p.preResp
 	)
 
-	if config.GetInstance().ComplianceCheck.IsNeedComplianceCheck {
-		tx, err = p.genTxWithComplianceCheck(preResp)
+	// public method should check proposal's preResp.
+	if preResp == nil {
+		return nil, errors.New("proposal preResp can not be nil")
+	}
+
+	if p.cfg.ComplianceCheck.IsNeedComplianceCheck {
+		tx, digestHash, err = p.genTxWithComplianceCheck()
 		if err != nil {
 			return nil, err
 		}
 	} else {
-		tx, err = p.genTx(preResp, nil)
+		tx, digestHash, err = p.genTx()
 		if err != nil {
 			return nil, err
 		}
@@ -117,56 +166,55 @@ func (p *Proposal) GenCompleteTx(preResp *pb.PreExecWithSelectUTXOResponse) (*Tr
 	}
 
 	transaction := &Transaction{
-		Tx: tx,
-		// ComplianceCheckTx: nil,
+		Tx:               tx,
 		ContractResponse: ContractResponse,
 		Fee:              p.request.opt.fee,
 		GasUsed:          preResp.GetResponse().GetGasUsed(),
-		DigestHash:       nil, // todo
+		DigestHash:       digestHash,
 	}
 
 	return transaction, nil
 }
 
-func (p *Proposal) genTxWithComplianceCheck(preResp *pb.PreExecWithSelectUTXOResponse) (*pb.Transaction, error) {
+func (p *Proposal) genTxWithComplianceCheck() (*pb.Transaction, []byte, error) {
 	var (
 		complianceCheckTx *pb.Transaction
 		err               error
 	)
 
-	if config.GetInstance().ComplianceCheck.IsNeedComplianceCheckFee {
-		complianceCheckTx, err = p.genComplianceCheckTx(preResp)
+	if p.cfg.ComplianceCheck.IsNeedComplianceCheckFee {
+		complianceCheckTx, err = p.genComplianceCheckTx()
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
+		p.complianceCheckTx = complianceCheckTx
 	}
 
-	tx, err := p.genTx(preResp, complianceCheckTx)
+	tx, hash, err := p.genTx()
 	if err != nil {
-		return nil, err
+		return nil, hash, err
 	}
 
-	return tx, nil
+	return tx, hash, nil
 }
 
-func (p *Proposal) genComplianceCheckTx(preResp *pb.PreExecWithSelectUTXOResponse) (*pb.Transaction, error) {
-	complianceCheckFee := config.GetInstance().ComplianceCheck.ComplianceCheckEndorseServiceFee
-	complianceCheckFeeAddr := config.GetInstance().ComplianceCheck.ComplianceCheckEndorseServiceAddr
-	utxoOutput := preResp.GetUtxoOutput()
+func (p *Proposal) genComplianceCheckTx() (*pb.Transaction, error) {
+	complianceCheckFee := p.cfg.ComplianceCheck.ComplianceCheckEndorseServiceFee
+	complianceCheckFeeAddr := p.cfg.ComplianceCheck.ComplianceCheckEndorseServiceAddr
+	utxoOutput := p.preResp.GetUtxoOutput()
 
 	checkTxOutput, err := p.generateComplianceCheckTxOutput(complianceCheckFeeAddr, strconv.Itoa(complianceCheckFee))
 	if err != nil {
 		return nil, err
 	}
 
-	complianceCheckFeeBigInt := new(big.Int).SetInt64(int64(complianceCheckFee)) // 不会有这么多的手续费，所以暂不考虑溢出。
+	complianceCheckFeeBigInt := new(big.Int).SetInt64(int64(complianceCheckFee))
 	txInputs, deltaTxOutput, err := p.generateComplianceCheckTxInput(utxoOutput, complianceCheckFeeBigInt)
 
 	if deltaTxOutput != nil {
 		checkTxOutput = append(checkTxOutput, deltaTxOutput)
 	}
 
-	initiator := p.request.initiatorAccount
 	tx := &pb.Transaction{
 		Desc:      []byte(""),
 		Version:   common.TxVersion,
@@ -174,12 +222,23 @@ func (p *Proposal) genComplianceCheckTx(preResp *pb.PreExecWithSelectUTXORespons
 		Timestamp: time.Now().UnixNano(),
 		TxInputs:  txInputs,
 		TxOutputs: checkTxOutput,
-		Initiator: initiator.Address,
+		Initiator: p.getInitiator(),
 	}
 
-	err = common.SetSeed()
+	// initiator sign tx and calc tx ID.
+	_, err = p.signTx(tx)
 	if err != nil {
 		return nil, err
+	}
+
+	return tx, nil
+}
+
+func (p *Proposal) signTx(tx *pb.Transaction) ([]byte, error) {
+	initiator := p.request.initiatorAccount
+	err := common.SetSeed()
+	if err != nil {
+		return nil, errors.Wrap(err, "Set seed failed.")
 	}
 	tx.Nonce = common.GetNonce()
 
@@ -188,13 +247,13 @@ func (p *Proposal) genComplianceCheckTx(preResp *pb.PreExecWithSelectUTXORespons
 	if err != nil {
 		return nil, err
 	}
-	// digestHash, dhErr := txhash.MakeTxDigestHash(tx)
-	// if dhErr != nil {
-	// 	return nil, dhErr
-	// }
 
-	// sign, err := cryptoClient.SignECDSA(privateKey, digestHash)
-	sign, err := cryptoClient.SignECDSA(privateKey, nil) // todo
+	digestHash, err := common.MakeTxDigestHash(tx)
+	if err != nil {
+		return nil, err
+	}
+
+	sign, err := cryptoClient.SignECDSA(privateKey, digestHash)
 
 	signatureInfo := &pb.SignatureInfo{
 		PublicKey: initiator.PublicKey,
@@ -207,13 +266,12 @@ func (p *Proposal) genComplianceCheckTx(preResp *pb.PreExecWithSelectUTXORespons
 	tx.InitiatorSigns = signatureInfos
 
 	// make txid
-	// tx.Txid, _ = txhash.MakeTransactionID(tx) // todo
-	return nil, nil
-}
+	tx.Txid, err = common.MakeTransactionID(tx)
+	if err != nil {
+		return nil, errors.Wrap(err, "Make transaction ID failed.")
+	}
 
-func (p *Proposal) populateTx(desc string, output []*pb.TxOutput, input []*pb.TxInput) (*pb.Transaction, error) {
-
-	return nil, nil
+	return digestHash, nil
 }
 
 // generateTxOutput generate txoutput part
@@ -227,13 +285,6 @@ func (p *Proposal) generateComplianceCheckTxOutput(to, amount string) ([]*pb.TxO
 		}
 		accounts = append(accounts, account)
 	}
-	// if fee != "0" {
-	// 	feeAccount := &pb.TxDataAccount{
-	// 		Address: "$",
-	// 		Amount:  fee,
-	// 	}
-	// 	accounts = append(accounts, feeAccount)
-	// }
 
 	bigZero := big.NewInt(0)
 	txOutputs := []*pb.TxOutput{}
@@ -280,7 +331,7 @@ func (p *Proposal) generateComplianceCheckTxInput(utxoOutputs *pb.UtxoOutput, to
 	if utxoTotal.Cmp(totalNeed) > 0 {
 		delta := utxoTotal.Sub(utxoTotal, totalNeed)
 		txOutput = &pb.TxOutput{
-			ToAddr: []byte(p.request.initiatorAccount.Address),
+			ToAddr: []byte(p.getInitiator()),
 			Amount: delta.Bytes(),
 		}
 	}
@@ -288,41 +339,16 @@ func (p *Proposal) generateComplianceCheckTxInput(utxoOutputs *pb.UtxoOutput, to
 	return txInputs, txOutput, nil
 }
 
-func (p *Proposal) genTx(preResp *pb.PreExecWithSelectUTXOResponse, lastTx *pb.Transaction) (*pb.Transaction, error) {
-	utxoOutput := &pb.UtxoOutput{}
-	totalSelected := big.NewInt(0)
+func (p *Proposal) calcSelfAmount(totalSelected *big.Int) (string, error) {
 	totalNeed := big.NewInt(0)
-	utxolist := []*pb.Utxo{}
-
-	if lastTx != nil {
-		for index, txOutput := range lastTx.TxOutputs {
-			if string(txOutput.ToAddr) == p.request.initiatorAccount.Address {
-				utxo := &pb.Utxo{
-					Amount:    txOutput.Amount,
-					ToAddr:    txOutput.ToAddr,
-					RefTxid:   lastTx.Txid,
-					RefOffset: int32(index),
-				}
-				utxolist = append(utxolist, utxo)
-
-				utxoAmount := big.NewInt(0).SetBytes(utxo.Amount)
-				totalSelected.Add(totalSelected, utxoAmount)
-			}
-		}
-	} else {
-		if preResp.UtxoOutput != nil {
-			utxoOutput.UtxoList = preResp.UtxoOutput.UtxoList
-			utxoOutput.TotalSelected = preResp.UtxoOutput.TotalSelected
-		}
-	}
-
 	amount := big.NewInt(0)
+	preResp := p.preResp
 
 	// amount
 	if p.request.opt.contractInvokeAmount != "" {
 		invokeAmount, ok := big.NewInt(0).SetString(p.request.opt.contractInvokeAmount, 10) // todo
 		if !ok {
-			return nil, common.ErrInvalidAmount
+			return "", common.ErrInvalidAmount
 		}
 		amount.Add(amount, invokeAmount)
 	}
@@ -330,7 +356,7 @@ func (p *Proposal) genTx(preResp *pb.PreExecWithSelectUTXOResponse, lastTx *pb.T
 	if p.request.transferAmount != "" {
 		transferAmount, ok := big.NewInt(0).SetString(p.request.transferAmount, 10) // todo
 		if !ok {
-			return nil, common.ErrInvalidAmount
+			return "", common.ErrInvalidAmount
 		}
 		amount.Add(amount, transferAmount)
 	}
@@ -339,7 +365,7 @@ func (p *Proposal) genTx(preResp *pb.PreExecWithSelectUTXOResponse, lastTx *pb.T
 	if p.request.opt.fee != "" {
 		fee, ok := big.NewInt(0).SetString(p.request.opt.fee, 10)
 		if !ok {
-			return nil, common.ErrInvalidAmount
+			return "", common.ErrInvalidAmount
 		}
 		amount.Add(amount, fee)
 	}
@@ -353,9 +379,43 @@ func (p *Proposal) genTx(preResp *pb.PreExecWithSelectUTXOResponse, lastTx *pb.T
 
 	selfAmount := totalSelected.Sub(totalSelected, totalNeed)
 
-	txOutputs, err := p.generateMultiTxOutputs(selfAmount.String(), gasUsed)
+	return selfAmount.String(), nil
+}
+
+func (p *Proposal) genTx() (*pb.Transaction, []byte, error) {
+	utxoOutput := &pb.UtxoOutput{}
+	totalSelected := big.NewInt(0)
+	preResp := p.preResp
+
+	utxolist := []*pb.Utxo{}
+
+	if p.complianceCheckTx != nil {
+		for index, txOutput := range p.complianceCheckTx.TxOutputs {
+			if string(txOutput.ToAddr) == p.getInitiator() {
+				utxo := &pb.Utxo{
+					Amount:    txOutput.Amount,
+					ToAddr:    txOutput.ToAddr,
+					RefTxid:   p.complianceCheckTx.Txid,
+					RefOffset: int32(index),
+				}
+				utxolist = append(utxolist, utxo)
+
+				utxoAmount := big.NewInt(0).SetBytes(utxo.Amount)
+				totalSelected.Add(totalSelected, utxoAmount)
+			}
+		}
+	} else {
+		if preResp.UtxoOutput != nil {
+			utxoOutput.UtxoList = preResp.GetUtxoOutput().GetUtxoList()
+			utxoOutput.TotalSelected = preResp.GetUtxoOutput().GetTotalSelected()
+		}
+	}
+
+	selfAmount, err := p.calcSelfAmount(totalSelected)
+
+	txOutputs, err := p.generateMultiTxOutputs(selfAmount, big.NewInt(preResp.GetResponse().GetGasUsed()))
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	txInputs := p.genPureTxInputs(utxoOutput)
@@ -367,20 +427,19 @@ func (p *Proposal) genTx(preResp *pb.PreExecWithSelectUTXOResponse, lastTx *pb.T
 		Timestamp:        time.Now().UnixNano(),
 		TxInputs:         txInputs,
 		TxOutputs:        txOutputs,
-		Initiator:        p.request.initiatorAccount.Address,
+		Initiator:        p.getInitiator(),
 		AuthRequire:      []string{p.request.initiatorAccount.GetAuthRequire()},
 		TxInputsExt:      preResp.GetResponse().GetInputs(),
 		TxOutputsExt:     preResp.GetResponse().GetOutputs(),
 		ContractRequests: preResp.GetResponse().GetRequests(),
 	}
-	err = common.SetSeed()
+	// initiator sign tx and calc tx ID.
+	digestHash, err := p.signTx(tx)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	tx.Nonce = common.GetNonce()
 
-	// todo signature
-	return tx, nil
+	return tx, digestHash, nil
 }
 
 func (p *Proposal) genPureTxInputs(utxoOutputs *pb.UtxoOutput) []*pb.TxInput {
@@ -397,11 +456,12 @@ func (p *Proposal) genPureTxInputs(utxoOutputs *pb.UtxoOutput) []*pb.TxInput {
 	return txInputs
 }
 
+func (p *Proposal) genSelectUtxoRequest(address, amount string) (*pb.UtxoInput, error) {
+	return nil, nil
+}
+
 func (p *Proposal) genPreExecUtxoRequest() (*pb.PreExecWithSelectUTXORequest, error) {
-	utxoAddr := p.request.initiatorAccount.Address
-	if p.request.initiatorAccount.HasContractAccount() {
-		utxoAddr = p.request.initiatorAccount.GetContractAccount()
-	}
+	utxoAddr := p.getInitiator()
 
 	totalAmount, err := p.calcTotalAmount()
 	if err != nil {
@@ -452,24 +512,25 @@ func (p *Proposal) generateMultiTxOutputs(selfAmount string, gasUsed *big.Int) (
 
 	// 3. self
 	if realSelfAmount.Cmp(big.NewInt(0)) > 0 {
-		txOutput, err := p.makeTxOutput(req.initiatorAccount.Address, selfAmount)
+		txOutput, err := p.makeTxOutput(p.getInitiator(), selfAmount)
 		if err != nil {
 			return nil, err
 		}
 		txOutputs = append(txOutputs, txOutput)
 	}
 
-	// 4. fee
+	// 4. fee & gasUsed
+	fee := gasUsed
+
 	if req.opt.fee != "" && req.opt.fee != "0" {
-		txOutput, err := p.makeTxOutput("$", req.opt.fee)
-		if err != nil {
-			return nil, err
+		feeInt, ok := new(big.Int).SetString(req.opt.fee, 10)
+		if !ok {
+			return nil, common.ErrInvalidAmount
 		}
-		txOutputs = append(txOutputs, txOutput)
+		fee = fee.Add(fee, feeInt)
 	}
 
-	// 5. gasUsed
-	if gasUsed.Cmp(big.NewInt(0)) > 0 {
+	if fee.Cmp(big.NewInt(0)) > 0 {
 		txOutput, err := p.makeTxOutput("$", gasUsed.String())
 		if err != nil {
 			return nil, err
@@ -488,6 +549,7 @@ func (p *Proposal) makeTxOutput(addr, amount string) (*pb.TxOutput, error) {
 		return nil, common.ErrInvalidAmount
 	}
 	txOutput.Amount = realToAmount.Bytes()
+
 	return txOutput, nil
 }
 
@@ -496,14 +558,20 @@ func (p *Proposal) getChainName() string {
 	if p.request.opt.bcname != "" {
 		chainName = p.request.opt.bcname
 	}
+
 	return chainName
 }
 
 func (p *Proposal) getInitiator() string {
 	initiator := p.request.initiatorAccount.Address
+	if p.request.opt.onlyFeeFromAccount {
+		return initiator
+	}
+
 	if p.request.initiatorAccount.HasContractAccount() {
 		initiator = p.request.initiatorAccount.GetContractAccount()
 	}
+
 	return initiator
 }
 
@@ -516,6 +584,7 @@ func (p *Proposal) genInvokeRequests() ([]*pb.InvokeRequest, error) {
 		Args:         r.args,
 		Amount:       r.opt.contractInvokeAmount,
 	}
+
 	return []*pb.InvokeRequest{invokeReq}, nil
 }
 
@@ -563,11 +632,8 @@ func (p *Proposal) calcTotalAmount() (int64, error) {
 	}
 
 	// endorser logic
-	cfg := config.GetInstance()
-	if cfg.ComplianceCheck.IsNeedComplianceCheck &&
-		cfg.ComplianceCheck.IsNeedComplianceCheckFee {
-
-		totalAmount += int64(cfg.ComplianceCheck.ComplianceCheckEndorseServiceFee)
+	if p.cfg.ComplianceCheck.IsNeedComplianceCheck && p.cfg.ComplianceCheck.IsNeedComplianceCheckFee {
+		totalAmount += int64(p.cfg.ComplianceCheck.ComplianceCheckEndorseServiceFee)
 	}
 
 	return totalAmount, nil
