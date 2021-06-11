@@ -26,6 +26,7 @@ type XClient struct {
 	xconn *grpc.ClientConn
 
 	ec    pb.XendorserClient
+	esc       pb.EventServiceClient
 	econn *grpc.ClientConn
 
 	cfg *config.CommConfig
@@ -112,6 +113,7 @@ func (x *XClient) initConn() error {
 
 	x.xconn = conn
 	x.xc = pb.NewXchainClient(conn)
+	x.esc = pb.NewEventServiceClient(conn)
 
 	if x.cfg.ComplianceCheck.IsNeedComplianceCheck { // endorser no TLS, mayble future.
 		econn, err := grpc.Dial(x.cfg.EndorseServiceHost, grpc.WithInsecure(), grpc.WithMaxMsgSize(64<<20-1))
