@@ -1,12 +1,14 @@
 package xuper
 
 import (
+	"context"
 	"crypto/tls"
 	"crypto/x509"
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"log"
+
+	"github.com/pkg/errors"
 
 	"github.com/xuperchain/xuper-sdk-go/v2/account"
 	"github.com/xuperchain/xuper-sdk-go/v2/common/config"
@@ -70,7 +72,7 @@ func (x *XClient) init() error {
 func (x *XClient) initConn() error {
 	grpcOpts := []grpc.DialOption{}
 
-	if x.opt.grpcTLS.serverName != "" { // TLS enabled
+	if x.opt.grpcTLS != nil && x.opt.grpcTLS.serverName != "" { // TLS enabled
 		certificate, err := tls.LoadX509KeyPair(x.opt.grpcTLS.certFile, x.opt.grpcTLS.keyFile)
 		if err != nil {
 			log.Fatal(err)
@@ -141,8 +143,56 @@ func (x *XClient) Close() error {
 	return nil
 }
 
+// DeployNativeGoContract deploy native go contract.
+func (x *XClient) DeployNativeGoContract(from *account.Account, name string, code []byte, args map[string]string, opts ...RequestOption) (*Transaction, error) {
+	req, err := NewDeployContractRequest(from, name, code, args, NativeContractType, GoRuntime, opts...)
+	if err != nil {
+		return nil, err
+	}
+	proposal, err := NewProposal(x, req, x.cfg)
+	if err != nil {
+		return nil, err
+	}
+	transaction, err := proposal.Build()
+	if err != nil {
+		return nil, err
+	}
+
+	// build transaction only.
+	if req.opt.notPost {
+		return transaction, nil
+	}
+
+	// post tx.
+	err = x.postTx(transaction.Tx, proposal.getChainName())
+	if err != nil {
+		return transaction, err
+	}
+
+	return transaction, nil
+}
+
+func (x *XClient) postTx(tx *pb.Transaction, bcname string) error {
+	ctx := context.Background()
+	c := x.xc
+	txStatus := &pb.TxStatus{
+		Bcname: bcname,
+		Status: pb.TransactionStatus_UNCONFIRM,
+		Tx:     tx,
+		Txid:   tx.Txid,
+	}
+	res, err := c.PostTx(ctx, txStatus)
+	if err != nil {
+		return errors.Wrap(err, "xuperclient post tx failed")
+	}
+	if res.Header.Error != pb.XChainErrorEnum_SUCCESS {
+		return fmt.Errorf("Failed to post tx: %s", res.Header.Error.String())
+	}
+	return nil
+}
+
 // Transfer t
-func (x *XClient) Transfer(from *account.Account, to, amount string, opts ...TxOption) (*Transaction, error) {
+func (x *XClient) Transfer(from *account.Account, to, amount string, opts ...RequestOption) (*Transaction, error) {
 
 	return nil, nil
 }

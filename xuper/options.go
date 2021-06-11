@@ -1,5 +1,7 @@
 package xuper
 
+import "github.com/pkg/errors"
+
 type clientOptions struct {
 	configFile  string
 	useGrpcGZIP bool
@@ -13,8 +15,8 @@ type grpcTLSConfig struct {
 	keyFile    string
 }
 
-type txOptions struct {
-	feeFromAccount       bool
+type requestOptions struct {
+	onlyFeeFromAccount   bool
 	fee                  string
 	bcname               string
 	contractInvokeAmount string
@@ -22,47 +24,90 @@ type txOptions struct {
 	notPost              bool
 }
 
-// TxOption tx
-type TxOption func(opt *txOptions) error
+// RequestOption tx
+type RequestOption func(opt *requestOptions) error
 
 // ClientOption func
 type ClientOption func(opt *clientOptions) error
 
-// func WithFeeFromAccount() Option {
-// 	return func(opts *options) error {
-// 		opts.feeFromAccount = true
-// 		return nil
-// 	}
-// }
+// WithConfigFile set xuperclient config file.
+func WithConfigFile(configFile string) ClientOption {
+	return func(opts *clientOptions) error {
+		opts.configFile = configFile
+		return nil
+	}
+}
 
-// func WithFee(fee string) Option {
-// 	return func(opts *options) error {
-// 		// todo check fee valid
-// 		opts.fee = fee
-// 		return nil
-// 	}
-// }
+// WithGrpcGZIP use gzip.
+func WithGrpcGZIP() ClientOption {
+	return func(opts *clientOptions) error {
+		opts.useGrpcGZIP = true
+		return nil
+	}
+}
 
-// func WithBcname(name string) Option {
-// 	return func(opts *options) error {
-// 		if name == "" {
-// 			return errors.New("invalid bcname")
-// 		}
-// 		opts.bcname = name
-// 		return nil
-// 	}
-// }
+// WithGrpcTLS grpc TLS cert config.
+func WithGrpcTLS(serverName, cacertFile, certFile, keyFile string) ClientOption {
+	return func(opts *clientOptions) error {
+		if opts.grpcTLS == nil {
+			opts.grpcTLS = new(grpcTLSConfig)
+		}
+		opts.grpcTLS.serverName = serverName
+		opts.grpcTLS.cacertFile = cacertFile
+		opts.grpcTLS.certFile = certFile
+		opts.grpcTLS.keyFile = keyFile
+		return nil
+	}
+}
 
-// func WithContractInvokeAmount(amount string) Option {
-// 	return func(opts *options) error {
-// 		opts.contractInvokeAmount = amount
-// 		return nil
-// 	}
-// }
+// WithFeeFromAccount fee & gas from contract account.
+func WithFeeFromAccount() RequestOption {
+	return func(opts *requestOptions) error {
+		opts.onlyFeeFromAccount = true
+		return nil
+	}
+}
 
-// func WithDesc(desc string) Option {
-// 	return func(opts *options) error {
-// 		opts.desc = desc
-// 		return nil
-// 	}
-// }
+// WithFee set fee.
+func WithFee(fee string) RequestOption {
+	return func(opts *requestOptions) error {
+		// todo check fee valid
+		opts.fee = fee
+		return nil
+	}
+}
+
+// WithBcname set blockchain name.
+func WithBcname(name string) RequestOption {
+	return func(opts *requestOptions) error {
+		if name == "" {
+			return errors.New("invalid bcname")
+		}
+		opts.bcname = name
+		return nil
+	}
+}
+
+// WithContractInvokeAmount set transfer to contract when invoke contract.
+func WithContractInvokeAmount(amount string) RequestOption {
+	return func(opts *requestOptions) error {
+		opts.contractInvokeAmount = amount
+		return nil
+	}
+}
+
+// WithDesc set tx desc.
+func WithDesc(desc string) RequestOption {
+	return func(opts *requestOptions) error {
+		opts.desc = desc
+		return nil
+	}
+}
+
+// WithNotPost generate transaction only, won't post to server.
+func WithNotPost() RequestOption {
+	return func(opts *requestOptions) error {
+		opts.notPost = true
+		return nil
+	}
+}

@@ -9,6 +9,7 @@ import (
 
 func main() {
 	fmt.Printf("%x\n", []byte("abc"))
+	akTransfer()
 }
 
 // akTransfer 普通账户转账（Ak）示例。
@@ -32,7 +33,7 @@ func akTransfer() {
 	node := "127.0.0.1:37101"
 
 	// 创建节点客户端。
-	xclient := xuper.New(node)
+	xclient, _ := xuper.New(node)
 
 	// 转账前查看两个地址余额。
 	fmt.Println(xclient.QueryBalance(me.Address))
@@ -72,7 +73,7 @@ func contractAccountTransfer() {
 
 	// 节点地址。
 	node := "127.0.0.1:37101"
-	xclient := xuper.New(node)
+	xclient, _ := xuper.New(node)
 
 	// 转账前查看两个地址余额。
 	fmt.Println(xclient.QueryBalance(me.Address))

@@ -1,6 +1,15 @@
 package xuper
 
-import "github.com/xuperchain/xuper-sdk-go/v2/account"
+import (
+	"encoding/json"
+	"errors"
+	"fmt"
+
+	"github.com/golang/protobuf/proto"
+	"github.com/xuperchain/xuper-sdk-go/v2/account"
+	"github.com/xuperchain/xuper-sdk-go/v2/common"
+	"github.com/xuperchain/xuperchain/core/pb"
+)
 
 type Request struct {
 	initiatorAccount *account.Account
@@ -19,20 +28,115 @@ type Request struct {
 	opt *requestOptions
 }
 
-type requestOptions struct {
-	onlyFeeFromAccount   bool
-	fee                  string
-	bcname               string
-	contractInvokeAmount string
-	desc                 string
-	notPost              bool
+const (
+	NativeContractType = "naitve"
+	WasmContractType   = "wasm"
+	EvmContractType    = "evm"
+
+	GoRuntime   = "go"
+	CRuntime    = "c"
+	JavaRuntime = "java"
+
+	EvmJSONEncoded     = "jsonEncoded"
+	EvmJSONEncodedTrue = "true"
+
+	XkernelModule           = "xkernel"
+	XkernelDeployMethod     = "Deploy"
+	XkernelUpgradeMethod    = "Upgrade"
+	XkernelNewAccountMethod = "NewAccount"
+
+	ArgAccountName  = "account_name"
+	ArgContractName = "contract_name"
+	ArgContractCode = "contract_code"
+	ArgContractDesc = "contract_desc"
+	ArgInitArgs     = "init_args"
+	ArgContractAbi  = "contract_abi"
+)
+
+func initOpts(opts ...RequestOption) (*requestOptions, error) {
+	opt := &requestOptions{}
+	for _, param := range opts {
+		err := param(opt)
+		if err != nil {
+			return nil, fmt.Errorf("option failed: %v", err)
+		}
+	}
+	return opt, nil
 }
 
-type RequestOption func(opt *requestOptions) error
+// NewRequest new custom request.
+func NewRequest(
+	initiator *account.Account,
+	module, contractName, methodName string,
+	code []byte,
+	args map[string][]byte,
+	transferTo, transferAmount string,
+	opts ...RequestOption,
+) (*Request, error) {
 
-func NewDeployContractRequest(from *account.Account, name string, code []byte, args map[string]string, opts ...RequestOption) (*Request, error) {
+	if initiator == nil {
+		return nil, errors.New("initiator can not be nil")
+	}
 
 	return nil, nil
+}
+
+// NewDeployContractRequest new request for deploy contract, wasm, evm and native.
+func NewDeployContractRequest(from *account.Account, name string, code []byte, args map[string]string, contractType, runtime string, opts ...RequestOption) (*Request, error) {
+	if from == nil || !from.HasContractAccount() {
+		return nil, common.ErrInvalidAccount
+	}
+
+	reqArgs := generateDeployArgs(args, code, contractType, runtime, from.GetContractAccount(), name)
+
+	return NewRequest(from, XkernelModule, "", XkernelDeployMethod, code, reqArgs, "", "", opts...)
+}
+
+func makeRequestArgs() {
+
+}
+
+// 参考
+func generateDeployArgs(arg map[string]string, code []byte, contractType, runtime, contractAccount, contractName string) map[string][]byte {
+	argstmp := convertToXuperContractArgs(arg)
+	initArgs, _ := json.Marshal(argstmp)
+
+	desc := &pb.WasmCodeDesc{
+		ContractType: contractType,
+		Runtime:      runtime,
+	}
+	contractDesc, _ := proto.Marshal(desc)
+
+	args := map[string][]byte{
+		"account_name":  []byte(contractAccount),
+		"contract_name": []byte(contractName),
+		"contract_code": code,
+		"contract_desc": contractDesc,
+		"init_args":     initArgs,
+	}
+	return args
+}
+
+func convertToXuperContractArgs(args map[string]string) map[string][]byte {
+	argmap := make(map[string][]byte)
+	for k, v := range args {
+		argmap[k] = []byte(v)
+	}
+	return argmap
+}
+
+func convertToXuper3EvmArgs(args map[string]interface{}) (map[string][]byte, error) {
+	input, err := json.Marshal(args)
+	if err != nil {
+		return nil, err
+	}
+
+	// 此处与 server 端结构相同，如果 jsonEncoded 字段修改，server 端也要修改（core/contract/evm/creator.go）。
+	ret := map[string][]byte{
+		"input":        input,
+		EvmJSONEncoded: []byte(EvmJSONEncodedTrue),
+	}
+	return ret, nil
 }
 
 func NewInvokeContractRequest(from *account.Account, name string, code []byte, args map[string]string, opts ...RequestOption) (*Request, error) {

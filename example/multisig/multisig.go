@@ -21,14 +21,14 @@ func main() {
 
 	// 创建链的客户端。
 	node := "127.0.0.1:37101"
-	xclient := xuper.New(node)
+	xclient, _ := xuper.New(node)
 
 	// 创建本次交易的请求数据。
 	code := []byte{}
 	args := map[string]string{
 		"creator": "bob",
 	}
-	request, err := xuper.NewDeployContractRequest(me, "counter", code, args)
+	request, err := xuper.NewDeployContractRequest(me, "counter", code, args, "wasm", "c")
 	if err != nil {
 		panic(err)
 	}

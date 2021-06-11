@@ -48,7 +48,7 @@ func NewProposal(xclient *XClient, request *Request, cfg *config.CommConfig) (*P
 
 // Build 发起预执行，构造交易。
 func (p *Proposal) Build() (*Transaction, error) {
-	err := p.PreExecWithSelectUtxo()
+	err := p.PreExecWithSelectUtxo() // T_T!，开放网络所有交易都是通过 AK 支付手续费，除了开放网络，其他的根据是否设置了合约账户，以及是否只是合约账户支付手续费来判断。
 	if err != nil {
 		return nil, err
 	}

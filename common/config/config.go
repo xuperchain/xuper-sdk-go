@@ -71,7 +71,7 @@ func GetConfig(confFile string) (*CommConfig, error) {
 	}
 
 	log.Printf("GetConfig: %v\n", commConfig)
-	return commConfig
+	return commConfig, nil
 }
 
 func SetConfig(checkHost, checkAddr, checkFeeAddr, checkFee string, isNeedCheck, isNeedCheckFee bool, minNewChainAmount string) {
