@@ -3,9 +3,9 @@
 endorseServiceHost: "39.156.69.83:37100"
 complianceCheck:
   # 是否需要进行合规性背书
-  isNeedComplianceCheck: true
+  isNeedComplianceCheck: false
   # 是否需要支付合规性背书费用
-  isNeedComplianceCheckFee: true
+  isNeedComplianceCheckFee: false
   # 合规性背书费用
   complianceCheckEndorseServiceFee: 400
   # 支付合规性背书费用的收款地址

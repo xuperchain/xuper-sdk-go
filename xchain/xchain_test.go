@@ -4,22 +4,43 @@
 package xchain
 
 import (
-	"encoding/hex"
 	"fmt"
-	"math/big"
-	"strconv"
-	"testing"
-	"time"
-
 	"github.com/xuperchain/xuper-sdk-go/account"
-	"github.com/xuperchain/xuper-sdk-go/common"
 	"github.com/xuperchain/xuper-sdk-go/config"
-	"github.com/xuperchain/xuper-sdk-go/crypto"
-	"github.com/xuperchain/xuper-sdk-go/pb"
-	"github.com/xuperchain/xuper-sdk-go/txhash"
+	"testing"
 )
 
 func initXchain() *Xchain {
+	commConfig := config.GetInstance()
+	acc, err := account.RetrieveAccount("江 西 伏 物 十 勘 峡 环 初 至 赏 给", 1)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Printf("RetrieveAccount: %v\n", acc)
+
+	return &Xchain{
+		Cfg:       commConfig,
+		XchainSer: "127.0.0.1:37101",
+		ChainName: "xuper",
+		Account:   acc,
+	}
+}
+
+func TestNewXuperClient(t *testing.T) {
+	node := "127.0.0.1:37101"
+	xuperClient, err := NewXuperClient(node)
+	if err != nil {
+		t.Error(err)
+	}
+	fmt.Printf("%+v", xuperClient)
+}
+
+func initXchainWithClient() *Xchain {
+	node := "127.0.0.1:37101"
+	xuperClient, err := NewXuperClient(node)
+	if err != nil {
+		panic(err)
+	}
 	commConfig := config.GetInstance()
 
 	acc, err := account.RetrieveAccount("江 西 伏 物 十 勘 峡 环 初 至 赏 给", 1)
@@ -29,293 +50,98 @@ func initXchain() *Xchain {
 	fmt.Printf("RetrieveAccount: %v\n", acc)
 
 	return &Xchain{
-		Cfg:       commConfig,
-		XchainSer: "127.0.0.1:37801",
-		ChainName: "xuper",
-		Account:   acc,
+		Cfg:         commConfig,
+		ChainName:   "xuper",
+		Account:     acc,
+		XuperClient: xuperClient,
 	}
 }
 
-func TestTransfer(t *testing.T) {
-	cli := initXchain()
-	cli.Amount = "10"
-	cli.Fee = "0"
-	cli.To = "Bob"
-
-	invokeRequests := []*pb.InvokeRequest{}
-	authRequires := []string{}
-	authRequires = append(authRequires, cli.Cfg.ComplianceCheck.ComplianceCheckEndorseServiceAddr)
-	invokeRPCReq := &pb.InvokeRPCRequest{
-		Bcname:      cli.ChainName,
-		Requests:    invokeRequests,
-		Initiator:   cli.Account.Address,
-		AuthRequire: authRequires,
+func TestXchain_QueryBlockByHeight(t *testing.T) {
+	qc := initXchainWithClient()
+	b, err := qc.QueryBlockByHeight(12)
+	if err != nil {
+		t.Error(err)
 	}
-
-	amountInt64, _ := strconv.ParseInt(cli.Amount, 10, 64)
-	feeInt64, _ := strconv.ParseInt(cli.Fee, 10, 64)
-	needTotalAmount := amountInt64 + int64(cli.Cfg.ComplianceCheck.ComplianceCheckEndorseServiceFee) + feeInt64
-
-	preSelUTXOReq := &pb.PreExecWithSelectUTXORequest{
-		Bcname:      cli.ChainName,
-		Address:     cli.Account.Address,
-		TotalAmount: needTotalAmount,
-		Request:     invokeRPCReq,
+	if b != nil {
+		fmt.Printf("%+v\n", b)
+	} else {
+		fmt.Println("block is nil")
 	}
-
-	cli.PreSelUTXOReq = preSelUTXOReq
-
-	// populates fields
-	cli.InvokeRPCReq = invokeRPCReq
-	cli.Initiator = cli.Account.Address
-	cli.AuthRequire = authRequires
-
-	// test PreExecWithSelecUTXO
-	preExeWithSelRes, err := cli.PreExecWithSelecUTXO()
-	t.Logf("PreExecWithSelecUTXO: %v, err: %v", preExeWithSelRes, err)
-	// test GenComplianceCheckTx
-	complianceCheckTx, err := cli.GenComplianceCheckTx(preExeWithSelRes)
-	t.Logf("GenComplianceCheckTx: %v, err: %v", complianceCheckTx, err)
-
-	// test GenRealTx
-	tx, err := cli.GenRealTx(preExeWithSelRes, complianceCheckTx)
-	t.Logf("GenRealTx: %v, err: %v", tx, err)
-
-	// test ComplianceCheck
-	endorserSign, err := cli.ComplianceCheck(tx, complianceCheckTx)
-	t.Logf("ComplianceCheck: %v, err: %v", endorserSign, err)
-
-	tx.AuthRequireSigns = append(tx.AuthRequireSigns, endorserSign)
-	tx.Txid, _ = txhash.MakeTransactionID(tx)
-
-	// test PostTx
-	err = cli.PostTx(tx)
-	t.Logf("PostTx: err: %v", err)
-
-	txid := hex.EncodeToString(tx.Txid)
-	// test QueryTx
-	completeTx, err := cli.QueryTx(txid)
-	t.Logf("GenCompleteTxAndPost: %v, err: %v", completeTx, err)
 }
 
-func TestTransferV2(t *testing.T) {
-	cli := initXchain()
-
-	cli.Amount = "100"
-	cli.Fee = "0"
-	cli.To = "Bob"
-
-	invokeRequests := []*pb.InvokeRequest{}
-	authRequires := []string{}
-	authRequires = append(authRequires, cli.Cfg.ComplianceCheck.ComplianceCheckEndorseServiceAddr)
-	invokeRPCReq := &pb.InvokeRPCRequest{
-		Bcname:      cli.ChainName,
-		Requests:    invokeRequests,
-		Initiator:   cli.Account.Address,
-		AuthRequire: authRequires,
+func TestXchain_GetAccountByAk(t *testing.T) {
+	qc := initXchainWithClient()
+	b, err := qc.GetAccountByAk(qc.Account.Address)
+	if err != nil {
+		t.Error(err)
 	}
-
-	amountInt64, _ := strconv.ParseInt(cli.Amount, 10, 64)
-	feeInt64, _ := strconv.ParseInt(cli.Fee, 10, 64)
-	needTotalAmount := amountInt64 + int64(cli.Cfg.ComplianceCheck.ComplianceCheckEndorseServiceFee) + feeInt64
-
-	preSelUTXOReq := &pb.PreExecWithSelectUTXORequest{
-		Bcname:      cli.ChainName,
-		Address:     cli.Account.Address,
-		TotalAmount: needTotalAmount,
-		Request:     invokeRPCReq,
+	if b != nil {
+		fmt.Printf("%+v\n", b)
+	} else {
+		fmt.Println("account is nil")
 	}
-
-	cli.PreSelUTXOReq = preSelUTXOReq
-
-	// populates fields
-	cli.InvokeRPCReq = invokeRPCReq
-	cli.Initiator = cli.Account.Address
-	cli.AuthRequire = authRequires
-
-	// test PreExecWithSelecUTXO
-	preExeWithSelRes, err := cli.PreExecWithSelecUTXO()
-	t.Logf("PreExecWithSelecUTXO: %v, err: %v", preExeWithSelRes, err)
-	// test GenComplianceCheckTx
-	complianceCheckTx, err := cli.GenComplianceCheckTx(preExeWithSelRes)
-
-	// test GenerateTxOutput
-	txOutputs, err := cli.GenerateTxOutput(cli.To, cli.Amount, cli.Fee)
-	t.Logf("GenerateTxOutput: %v, err: %v", txOutputs, err)
-
-	utxolist := []*pb.Utxo{}
-	totalSelected := big.NewInt(0)
-	for index, txOutput := range complianceCheckTx.TxOutputs {
-		if string(txOutput.ToAddr) == cli.Initiator {
-			utxo := &pb.Utxo{
-				Amount:    txOutput.Amount,
-				ToAddr:    txOutput.ToAddr,
-				RefTxid:   complianceCheckTx.Txid,
-				RefOffset: int32(index),
-			}
-			utxolist = append(utxolist, utxo)
-			utxoAmount := big.NewInt(0).SetBytes(utxo.Amount)
-			totalSelected.Add(totalSelected, utxoAmount)
-		}
-	}
-	utxoOutput := &pb.UtxoOutput{
-		UtxoList:      utxolist,
-		TotalSelected: totalSelected.String(),
-	}
-	totalNeed := big.NewInt(0)
-	amount, _ := big.NewInt(0).SetString(cli.Amount, 10)
-	fee, _ := big.NewInt(0).SetString(cli.Fee, 10)
-	amount.Add(amount, fee)
-	totalNeed.Add(totalNeed, amount)
-
-	// test GenerateTxInput
-	txInputs, deltaTxOutput, err := cli.GenerateTxInput(utxoOutput, totalNeed)
-	t.Logf("GenerateTxInput: input: %v, output: %v, err: %v", txInputs, deltaTxOutput, err)
-
-	if deltaTxOutput != nil {
-		txOutputs = append(txOutputs, deltaTxOutput)
-	}
-
-	tx := &pb.Transaction{
-		Desc:        []byte("Maybe common transfer transaction"),
-		Version:     common.TxVersion,
-		Coinbase:    false,
-		Timestamp:   time.Now().UnixNano(),
-		TxInputs:    txInputs,
-		TxOutputs:   txOutputs,
-		Initiator:   cli.Initiator,
-		AuthRequire: cli.AuthRequire,
-	}
-
-	tx.TxInputsExt = preExeWithSelRes.GetResponse().GetInputs()
-	tx.TxOutputsExt = preExeWithSelRes.GetResponse().GetOutputs()
-	tx.ContractRequests = preExeWithSelRes.GetResponse().GetRequests()
-	common.SetSeed()
-	tx.Nonce = common.GetNonce()
-	cryptoClient := crypto.GetCryptoClient()
-	privateKey, _ := cryptoClient.GetEcdsaPrivateKeyFromJSON([]byte(cli.Account.PrivateKey))
-
-	digestHash, _ := txhash.MakeTxDigestHash(tx)
-	sign, err := cryptoClient.SignECDSA(privateKey, digestHash)
-	signatureInfo := &pb.SignatureInfo{
-		PublicKey: cli.Account.PublicKey,
-		Sign:      sign,
-	}
-	var signatureInfos []*pb.SignatureInfo
-	signatureInfos = append(signatureInfos, signatureInfo)
-	tx.InitiatorSigns = signatureInfos
-	if cli.ContractAccount != "" {
-		tx.AuthRequireSigns = signatureInfos
-	}
-	// make txid
-	tx.Txid, _ = txhash.MakeTransactionID(tx)
-
-	// test ComplianceCheck
-	endorserSign, err := cli.ComplianceCheck(tx, complianceCheckTx)
-	t.Logf("ComplianceCheck: %v, err: %v", endorserSign, err)
-
-	tx.AuthRequireSigns = append(tx.AuthRequireSigns, endorserSign)
-	tx.Txid, _ = txhash.MakeTransactionID(tx)
-
-	// test PostTx
-	err = cli.PostTx(tx)
-	t.Logf("PostTx: err: %v", err)
-
-	txid := hex.EncodeToString(tx.Txid)
-	// test QueryTx
-	completeTx, err := cli.QueryTx(txid)
-	t.Logf("GenCompleteTxAndPost: %v, err: %v", completeTx, err)
-
 }
 
-func TestTransferV3(t *testing.T) {
-	cli := initXchain()
-
-	cli.Amount = "10"
-	cli.Fee = "0"
-	cli.To = "Bob"
-
-	invokeRequests := []*pb.InvokeRequest{}
-	authRequires := []string{}
-	authRequires = append(authRequires, cli.Cfg.ComplianceCheck.ComplianceCheckEndorseServiceAddr)
-	invokeRPCReq := &pb.InvokeRPCRequest{
-		Bcname:      cli.ChainName,
-		Requests:    invokeRequests,
-		Initiator:   cli.Account.Address,
-		AuthRequire: authRequires,
+func TestXchain_GetAccountContracts(t *testing.T) {
+	qc := initXchainWithClient()
+	b, err := qc.GetAccountContracts("XC2222222222222222@xuper")
+	if err != nil {
+		t.Error(err)
 	}
-	amountInt64, _ := strconv.ParseInt(cli.Amount, 10, 64)
-	feeInt64, _ := strconv.ParseInt(cli.Fee, 10, 64)
-	needTotalAmount := amountInt64 + int64(cli.Cfg.ComplianceCheck.ComplianceCheckEndorseServiceFee) + feeInt64
-	preSelUTXOReq := &pb.PreExecWithSelectUTXORequest{
-		Bcname:      cli.ChainName,
-		Address:     cli.Account.Address,
-		TotalAmount: needTotalAmount,
-		Request:     invokeRPCReq,
+	if b != nil {
+		fmt.Printf("%+v\n", b)
+	} else {
+		fmt.Println("contracts is nil")
 	}
-	cli.PreSelUTXOReq = preSelUTXOReq
-
-	// populates fields
-	cli.InvokeRPCReq = invokeRPCReq
-	cli.Initiator = cli.Account.Address
-	cli.AuthRequire = authRequires
-
-	// test PreExecWithSelecUTXO
-	preExeWithSelRes, err := cli.PreExecWithSelecUTXO()
-	t.Logf("PreExecWithSelecUTXO: %v, err: %v", preExeWithSelRes, err)
-
-	// test GenCompleteTxAndPost
-	tx, err := cli.GenCompleteTxAndPost(preExeWithSelRes)
-	t.Logf("GenCompleteTxAndPost: %v, err: %v", tx, err)
-
-	// test QueryTx
-	completeTx, err := cli.QueryTx(tx)
-	t.Logf("GenCompleteTxAndPost: %v, err: %v", completeTx, err)
 }
 
-func TestGetBalanceDetail(t *testing.T) {
-	cli := initXchain()
-
-	testCase := []string{
-		"Sw5kwvaf3PAwozXxMdFuBrd9UiqXuXhVF",
-		"XC8888888888888888@xuper",
-		"xxxx",
+func TestXchain_QueryUTXORecord(t *testing.T) {
+	qc := initXchainWithClient()
+	b, err := qc.QueryUTXORecord(qc.Account.Address, 1)
+	if err != nil {
+		t.Error(err)
 	}
+	if b != nil {
+		fmt.Printf("%+v\n", b)
+	} else {
+		fmt.Println("record is nil")
+	}
+}
 
-	for _, arg := range testCase {
-		cli.Account = &account.Account{
-			Address: arg,
-		}
-		balance, err := cli.GetBalanceDetail()
-		t.Logf("GetBalanceDetail address: %v, err: %v", balance, err)
+func TestXchain_QueryContractMethondAcl(t *testing.T) {
+	qc := initXchainWithClient()
+	b, err := qc.QueryContractMethondAcl("golangcounter5", "Increase")
+	if err != nil {
+		t.Error(err)
+	}
+	if b != nil {
+		fmt.Printf("%+v\n", b)
+	} else {
+		fmt.Println("method is nil")
 	}
 }
 
 func TestQueryTx(t *testing.T) {
-	acc, err := account.RetrieveAccount("江 西 伏 物 十 勘 峡 环 初 至 赏 给", 1)
+	qc := initXchainWithClient()
+	b, err := qc.QueryTx("c7545ca8c6f604aa9eec972c64ff9c098dcde86a08decb4424c187e5200d4f17")
 	if err != nil {
-		t.Fatal(err)
+		t.Error(err)
 	}
-	t.Logf("RetrieveAccount: %v\n", acc)
-
-	cli := initXchain()
-
-	testCase := []struct {
-		txid string
-	}{
-		{
-			txid: "3a78d06dd39b814af113dbdc15239e675846ec927106d50153665c273f51001e",
-		},
-		{
-			txid: "",
-		},
-		{
-			txid: "fdsfdsa",
-		},
+	if b != nil {
+		fmt.Printf("%+v\n", b)
+	} else {
+		fmt.Println("tx is nil")
 	}
 
-	for _, arg := range testCase {
-		tx, err := cli.QueryTx(arg.txid)
-		t.Logf("Querytx tx: %v, err: %v", tx, err)
+	b2, err := qc.QueryTx("c7545ca8c6f604aa9eec972c64ff9c098dcde86a08decb4424c187e5200d4f19")
+	if b2 != nil {
+		fmt.Printf("%+v\n", b)
+	} else {
+		fmt.Println("tx is nil")
+	}
+	err = qc.CloseClient()
+	if err != nil {
+		t.Error(err)
 	}
 }

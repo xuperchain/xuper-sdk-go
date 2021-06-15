@@ -27,16 +27,34 @@ type EVMContract struct {
 	xchain.Xchain
 }
 
-// InitEVMContract init EVM contract instance.
-func InitEVMContract(account *account.Account, node, bcName, contractName, contractAccount string) *EVMContract {
+// InitEVMContractWithClient init EVM contract instance.
+func InitEVMContractWithClient(account *account.Account, bcName, contractName, contractAccount string, sdkClient *xchain.XuperClient) *EVMContract {
 	return &EVMContract{
 		ContractName: contractName,
 		Xchain: xchain.Xchain{
 			Cfg:             config.GetInstance(),
 			Account:         account,
-			XchainSer:       node,
 			ChainName:       bcName,
 			ContractAccount: contractAccount,
+			XuperClient:     sdkClient,
+		},
+	}
+}
+
+func InitEVMContract(account *account.Account, node, bcName, contractName, contractAccount string) *EVMContract {
+	xuperClient, err := xchain.NewXuperClient(node)
+	if err != nil {
+		return nil
+	}
+	return &EVMContract{
+		ContractName: contractName,
+		Xchain: xchain.Xchain{
+			Cfg:     config.GetInstance(),
+			Account: account,
+			//XchainSer:       node,
+			ChainName:       bcName,
+			ContractAccount: contractAccount,
+			XuperClient:     xuperClient,
 		},
 	}
 }
@@ -148,7 +166,7 @@ func (c *EVMContract) PostEVMContract(preExeWithSelRes *pb.PreExecWithSelectUTXO
 	}
 
 	// if ComplianceCheck is needed
-	if c.Cfg.ComplianceCheck.IsNeedComplianceCheck == true {
+	if c.Cfg.ComplianceCheck.IsNeedComplianceCheck {
 		authRequires = append(authRequires, c.Cfg.ComplianceCheck.ComplianceCheckEndorseServiceAddr)
 	}
 
