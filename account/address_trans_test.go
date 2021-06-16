@@ -27,6 +27,11 @@ func TestTrans(t *testing.T) {
 			Type:          "contract-name",
 			EVMAddress:    "313131312D2D2D73746F72616765646174613131",
 		},
+		{
+			XchainAddress: "mike_test_sol_31",
+			Type:          "contract-name",
+			EVMAddress:    "313131316D696B655F746573745F736F6C5F3331",
+		},
 	}
 
 	for _, c := range cases {
