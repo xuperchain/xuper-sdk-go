@@ -4,6 +4,7 @@
 package contract
 
 import (
+	"sync"
 	"testing"
 
 	"github.com/xuperchain/xuper-sdk-go/account"
@@ -171,4 +172,24 @@ func TestUpgradeWasmContract(t *testing.T) {
 		txid, err := wasmContract.UpgradeWasmContract(args, codePath, runtime)
 		t.Logf("UpgradeWasmContract txid: %v, err: %v", txid, err)
 	}
+}
+
+func TestInvokeWasmContract2(t *testing.T) {
+	acc, _ := account.RetrieveAccount(mnemonic, 1)
+	wasmContract := InitWasmContract(acc, node, "xuper", "counter", "XC1111111111111111@xuper")
+
+	wg := &sync.WaitGroup{}
+	for i := 0; i < 4; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			txid, err := wasmContract.InvokeWasmContract("increase", map[string]string{"key": "counter"})
+			if err != nil {
+				t.Log("err:", err)
+				return
+			}
+			t.Log("txid:", txid)
+		}()
+	}
+	wg.Wait()
 }
