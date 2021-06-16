@@ -27,7 +27,7 @@ type CommConfig struct {
 	Crypto             string                `yaml:"crypto,omitempty"`
 }
 
-const confPath = "./conf"
+const confPath = "../conf"
 const confName = "sdk.yaml"
 
 const CRYPTO_XCHAIN = "xchain"
