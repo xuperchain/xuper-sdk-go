@@ -2,6 +2,9 @@
 # Xuper-SDK XuperUnion Client SDK for Go
 This SDK enables Go developers to build solutions that interact with open chain network of XuperUnion.
 
+[![GoDoc](https://pkg.go.dev/badge/github.com/xuperchain/xuper-sdk-go?utm_source=godoc)](https://pkg.go.dev/github.com/xuperchain/xuper-sdk-go)
+[![Go Report Card](https://goreportcard.com/badge/github.com/xuperchain/xuper-sdk-go)](https://goreportcard.com/report/github.com/xuperchain/xuper-sdk-go)
+[![License](https://img.shields.io/github/license/xuperchain/xuper-sdk-go?style=flat-square)](/LICENSE)
 
 # Getting started
 ## Requirements
@@ -23,10 +26,7 @@ cd xuper-sdk-go
 Run
 ```bash
 make
-./sample
 ```
-# Document
-More detailed and in-depth use of xuper SDK [wiki](https://github.com/xuperchain/xuper-sdk-go/wiki)
 
 # Contributing to the Xuper-SDK
 If you want to contribute to xuper SDK, 
@@ -42,7 +42,7 @@ If you're interested in xuper-SDK, welcome to join us and develop together
 
 
 # XuperUnion go语言的客户端Xuper-SDK
-SDK可以使go的开发者更好的与XuperUnion的公开链网络进行交互
+SDK 可以使 go 的开发者更好的与 XuperUnion 的公开链网络进行交互以及其他 XuperChain 的节点。
 
 # Getting started
 ## 环境配置
@@ -64,11 +64,7 @@ cd xuper-sdk-go
 运行
 ```bash
 make
-./sample
 ```
-
-# 文档
-关于Xuper-SDK更详细、更深入的使用方法链接：[wiki](https://github.com/xuperchain/xuper-sdk-go/wiki)
 
 # 如何参与开发Xuper-SDK
 如果您想为xuper-sdk-go做贡献

@@ -1,14 +1,13 @@
 // Copyright (c) 2019. Baidu Inc. All Rights Reserved.
 
-// package common is related to generate crypto client
+// Package crypto is related to generate crypto client
 package crypto
 
 import (
-	"github.com/xuperchain/xuper-sdk-go/config"
-
 	"github.com/xuperchain/crypto/client/service/base"
 	"github.com/xuperchain/crypto/client/service/gm"
 	"github.com/xuperchain/crypto/client/service/xchain"
+	"github.com/xuperchain/xuper-sdk-go/v2/common/config"
 )
 
 func getInstance() interface{} {
@@ -27,16 +26,6 @@ func GetCryptoClient() base.CryptoClient {
 	cryptoClient := getInstance().(base.CryptoClient)
 	return cryptoClient
 }
-
-//// GetCryptoClient get crypto client
-//func GetCryptoClient() *xchain.XchainCryptoClient {
-//	return &xchain.XchainCryptoClient{}
-//}
-
-//// GetCryptoClient get crypto client
-//func GetCryptoClient() *gm.GmCryptoClient {
-//	return &gm.GmCryptoClient{}
-//}
 
 // GetXchainCryptoClient get xchain crypto client
 func GetXchainCryptoClient() *xchain.XchainCryptoClient {
