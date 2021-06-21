@@ -166,6 +166,11 @@ func (a *Account) SetContractAccount(contractAccount string) error {
 	return nil
 }
 
+// RemoveContractAccount remove contract account from this account.
+func (a *Account) RemoveContractAccount() {
+	a.contractAccount = ""
+}
+
 // GetAuthRequire get this account's authRequire for transaction.
 // If you set contract account, returns $ContractAccount+"/"+$Address, otherwise returns $Address.
 func (a *Account) GetAuthRequire() string {

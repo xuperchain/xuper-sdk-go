@@ -119,7 +119,7 @@ func WithNotPost() RequestOption {
 	}
 }
 
-// WithOtherAuthRequires for mulitysign, other address need sign, exclude initiator.
+// WithOtherAuthRequires for multisign, other address need sign, exclude initiator.
 func WithOtherAuthRequires(authRequires []string) RequestOption {
 	return func(opts *requestOptions) error {
 		opts.otherAuthRequire = authRequires

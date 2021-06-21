@@ -4,7 +4,12 @@
 package account
 
 import (
+	"errors"
+	"fmt"
+	"os"
 	"testing"
+
+	"github.com/xuperchain/xuper-sdk-go/v2/common"
 )
 
 func TestCreateAccount(t *testing.T) {
@@ -103,6 +108,7 @@ func TestCreateAndSaveAccountToFile(t *testing.T) {
 	for _, arg := range testCase {
 		acc, err := CreateAndSaveAccountToFile(arg.path, arg.passwd, arg.strength, arg.language)
 		t.Logf("CreateAndSaveAccountToFile: %v, err: %v", acc, err)
+		fmt.Println(os.RemoveAll(arg.path))
 	}
 }
 
@@ -112,17 +118,62 @@ func TestGetAccountFromFile(t *testing.T) {
 		passwd string
 	}{
 		{
-			path:   "./keys",
+			path:   "./keys/",
 			passwd: "123",
 		},
 		{
-			path:   "./aaa",
+			path:   "./aaa/",
 			passwd: "123",
 		},
 	}
 
 	for _, arg := range testCase {
+		CreateAndSaveAccountToFile(arg.path, arg.passwd, 1, 1)
+
 		acc, err := GetAccountFromFile(arg.path, arg.passwd)
-		t.Logf("GetAccountFromFile: %v, err: %v", acc, err)
+		if err != nil {
+			t.Error(err)
+		}
+		if acc == nil {
+			t.Error("GetAccountFromFile assert failed")
+		}
+		os.RemoveAll(arg.path)
+	}
+}
+
+func TestSetContractAccount(t *testing.T) {
+	acc, _ := CreateAccount(1, 1)
+	err := acc.SetContractAccount("123")
+	if !errors.Is(err, common.ErrInvalidContractAccount) {
+		t.Error(err)
+	}
+
+	err = acc.SetContractAccount("XC123@xuper")
+	if !errors.Is(err, common.ErrInvalidContractAccount) {
+		t.Error(err)
+	}
+
+	err = acc.SetContractAccount("1234567812345678@xuper")
+	if !errors.Is(err, common.ErrInvalidContractAccount) {
+		t.Error(err)
+	}
+
+	err = acc.SetContractAccount("XC1234567812345678@xuper")
+	if err != nil {
+		t.Error(err)
+	}
+
+	ar := acc.GetAuthRequire()
+	if ar != "XC1234567812345678@xuper/"+acc.Address {
+		t.Error("account authRequire assert failed")
+	}
+
+	acc.RemoveContractAccount()
+	if acc.HasContractAccount() {
+		t.Error("Remove contract account test failed")
+	}
+	ar = acc.GetAuthRequire()
+	if ar != acc.Address {
+		t.Error("account authRequire assert failed")
 	}
 }

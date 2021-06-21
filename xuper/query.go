@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"math/big"
 
 	"github.com/xuperchain/xuper-sdk-go/v2/common"
 	"github.com/xuperchain/xuperchain/core/pb"
@@ -106,6 +107,13 @@ func (x *XClient) queryBlockByHeight(height int64, opts ...QueryOption) (*pb.Blo
 		return nil, err
 	}
 
+	if block.Header.Error != pb.XChainErrorEnum_SUCCESS {
+		return nil, errors.New(block.Header.Error.String())
+	}
+	if block.Block == nil {
+		return nil, errors.New("block not found")
+	}
+
 	return block, nil
 }
 
@@ -122,6 +130,10 @@ func (x *XClient) queryAccountACL(account string, opts ...QueryOption) (*ACL, er
 	aclStatus, err := x.xc.QueryACL(context.Background(), in)
 	if err != nil {
 		return nil, err
+	}
+
+	if aclStatus.Header.Error != pb.XChainErrorEnum_SUCCESS {
+		return nil, errors.New(aclStatus.Header.Error.String())
 	}
 
 	acl := &ACL{}
@@ -147,10 +159,13 @@ func (x *XClient) queryMethodACL(name, method string, opts ...QueryOption) (*ACL
 		MethodName:   method,
 	}
 
-	fmt.Printf("in:%+v\n", in)
 	aclStatus, err := x.xc.QueryACL(context.Background(), in)
 	if err != nil {
 		return nil, err
+	}
+
+	if aclStatus.Header.Error != pb.XChainErrorEnum_SUCCESS {
+		return nil, errors.New(aclStatus.Header.Error.String())
 	}
 
 	if aclStatus == nil {
@@ -159,7 +174,7 @@ func (x *XClient) queryMethodACL(name, method string, opts ...QueryOption) (*ACL
 
 	acl := &ACL{}
 	pm := PermissionModel{}
-	pm.Rule = int32(aclStatus.Acl.Pm.Rule) //类型别名转换
+	pm.Rule = int32(aclStatus.GetAcl().GetPm().GetRule())
 	pm.AcceptValue = aclStatus.Acl.Pm.AcceptValue
 
 	acl.PM = pm
@@ -178,16 +193,19 @@ func (x *XClient) queryAccountContracts(account string, opts ...QueryOption) ([]
 		Account: account,
 	}
 
-	ctx := context.Background()
-	res, err := x.xc.GetAccountContracts(ctx, req)
+	resp, err := x.xc.GetAccountContracts(context.TODO(), req)
 	if err != nil {
 		return nil, err
 	}
 
-	return res.GetContractsStatus(), nil
+	if resp.Header.Error != pb.XChainErrorEnum_SUCCESS {
+		return nil, errors.New(resp.Header.Error.String())
+	}
+
+	return resp.GetContractsStatus(), nil
 }
 
-func (x *XClient) queryAddressContracts(address string, opts ...QueryOption) (map[string]*pb.ContractList, error) { //todo  return 修改
+func (x *XClient) queryAddressContracts(address string, opts ...QueryOption) (map[string]*pb.ContractList, error) {
 	opt, err := initQueryOpts(opts...)
 	if err != nil {
 		return nil, err
@@ -198,30 +216,33 @@ func (x *XClient) queryAddressContracts(address string, opts ...QueryOption) (ma
 		Bcname:  getBCname(opt),
 	}
 
-	ctx := context.Background()
-	res, err := x.xc.GetAddressContracts(ctx, req)
+	resp, err := x.xc.GetAddressContracts(context.TODO(), req)
 	if err != nil {
 		return nil, err
 	}
 
-	return res.Contracts, nil
+	if resp.Header.Error != pb.XChainErrorEnum_SUCCESS {
+		return nil, errors.New(resp.Header.Error.String())
+	}
+
+	return resp.GetContracts(), nil
 }
 
-func (x *XClient) queryBalance(address string, opts ...QueryOption) (*pb.AddressStatus, error) {
+func (x *XClient) queryBalance(address string, opts ...QueryOption) (*big.Int, error) {
 	opt, err := initQueryOpts(opts...)
 	if err != nil {
 		return nil, err
 	}
 
+	bcname := getBCname(opt)
 	addrstatus := &pb.AddressStatus{
 		Address: address,
 		Bcs: []*pb.TokenDetail{
-			{Bcname: getBCname(opt)},
+			{Bcname: bcname},
 		},
 	}
 
-	ctx := context.Background()
-	reply, err := x.xc.GetBalance(ctx, addrstatus)
+	reply, err := x.xc.GetBalance(context.TODO(), addrstatus)
 	if err != nil {
 		return nil, err
 	}
@@ -229,35 +250,94 @@ func (x *XClient) queryBalance(address string, opts ...QueryOption) (*pb.Address
 	if reply.Header.Error != pb.XChainErrorEnum_SUCCESS {
 		return nil, errors.New(reply.Header.Error.String())
 	}
-	return reply, nil
-}
 
-func (x *XClient) queryBalanceDetail(address string, opts ...QueryOption) (*pb.AddressBalanceStatus, error) {
-	ctx := context.Background()
-	addressBalanceStatus := &pb.AddressBalanceStatus{
-		Address: address,
+	for _, v := range reply.Bcs {
+		if v.GetBcname() == bcname {
+			if v.GetBalance() == "" {
+				return big.NewInt(0), nil
+			}
+			bal, ok := big.NewInt(0).SetString(v.GetBalance(), 10)
+			if !ok {
+				return nil, errors.New("invalid balabce query from chain")
+			}
+			return bal, nil
+		}
 	}
 
-	return x.xc.GetBalanceDetail(ctx, addressBalanceStatus)
+	return nil, errors.New("invalid bcname:" + bcname)
 }
 
-func (x *XClient) querySystemStatus(opts ...QueryOption) (*pb.SystemsStatusReply, error) {
-	req := &pb.CommonIn{}
-	ctx := context.Background()
-	return x.xc.GetSystemStatus(ctx, req)
+// BalanceDetail address or account balance detailds.
+type BalanceDetail struct {
+	Balance  string
+	IsFrozen bool
 }
 
-func (x *XClient) queryBlockChains(opts ...QueryOption) (*pb.BCStatus, error) {
+func (x *XClient) queryBalanceDetail(address string, opts ...QueryOption) ([]*BalanceDetail, error) {
 	opt, err := initQueryOpts(opts...)
 	if err != nil {
 		return nil, err
 	}
 
-	bcStatusPB := &pb.BCStatus{
-		Bcname: getBCname(opt),
+	ctx := context.Background()
+	addressBalanceStatus := &pb.AddressBalanceStatus{
+		Address: address,
 	}
 
-	return x.xc.GetBlockChainStatus(context.TODO(), bcStatusPB)
+	bs, err := x.xc.GetBalanceDetail(ctx, addressBalanceStatus)
+	if err != nil {
+		return nil, err
+	}
+
+	if bs.Header.Error != pb.XChainErrorEnum_SUCCESS {
+		return nil, errors.New(bs.Header.Error.String())
+	}
+
+	bcname := getBCname(opt)
+	for _, tfd := range bs.Tfds {
+		if tfd.Bcname == bcname {
+			if tfd.Error != pb.XChainErrorEnum_SUCCESS {
+				return nil, errors.New(bs.Header.Error.String())
+			}
+
+			result := make([]*BalanceDetail, 0, len(tfd.Tfd))
+			for _, v := range tfd.Tfd {
+				result = append(result, &BalanceDetail{
+					Balance:  v.Balance,
+					IsFrozen: v.IsFrozen,
+				})
+			}
+
+			return result, nil
+		}
+	}
+
+	return nil, fmt.Errorf("Can not query balabce detail for bcname: %s", bcname)
+}
+
+func (x *XClient) querySystemStatus(opts ...QueryOption) (*pb.SystemsStatusReply, error) {
+	ss, err := x.xc.GetSystemStatus(context.TODO(), &pb.CommonIn{})
+	if err != nil {
+		return nil, err
+	}
+
+	if ss.Header.Error != pb.XChainErrorEnum_SUCCESS {
+		return nil, errors.New(ss.Header.Error.String())
+	}
+	return ss, nil
+}
+
+func (x *XClient) queryBlockChains(opts ...QueryOption) ([]string, error) {
+	bcs, err := x.xc.GetBlockChains(context.TODO(), &pb.CommonIn{})
+	if err != nil {
+		return nil, err
+	}
+
+	if bcs.Header.Error != pb.XChainErrorEnum_SUCCESS {
+		return nil, errors.New(bcs.Header.Error.String())
+	}
+
+	return bcs.GetBlockchains(), nil
 }
 
 func (x *XClient) queryBlockChainStatus(chainName string, opts ...QueryOption) (*pb.BCStatus, error) {
@@ -270,16 +350,32 @@ func (x *XClient) queryBlockChainStatus(chainName string, opts ...QueryOption) (
 		Bcname: getBCname(opt),
 	}
 
-	return x.xc.GetBlockChainStatus(context.TODO(), bcStatusPB)
+	bcs, err := x.xc.GetBlockChainStatus(context.TODO(), bcStatusPB)
+	if err != nil {
+		return nil, err
+	}
+
+	if bcs.Header.Error != pb.XChainErrorEnum_SUCCESS {
+		return nil, errors.New(bcs.Header.Error.String())
+	}
+
+	return bcs, err
 }
 
-func (x *XClient) queryNetURL(opts ...QueryOption) (*pb.RawUrl, error) {
-	req := &pb.CommonIn{}
-	ctx := context.Background()
-	return x.xc.GetNetURL(ctx, req)
+func (x *XClient) queryNetURL(opts ...QueryOption) (string, error) {
+	rawURL, err := x.xc.GetNetURL(context.TODO(), &pb.CommonIn{})
+	if err != nil {
+		return "", err
+	}
+
+	if rawURL.Header.Error != pb.XChainErrorEnum_SUCCESS {
+		return "", errors.New(rawURL.Header.Error.String())
+	}
+
+	return rawURL.GetRawUrl(), nil
 }
 
-func (x *XClient) queryAccountByAK(address string, opts ...QueryOption) (*pb.AK2AccountResponse, error) {
+func (x *XClient) queryAccountByAK(address string, opts ...QueryOption) ([]string, error) {
 	opt, err := initQueryOpts(opts...)
 	if err != nil {
 		return nil, err
@@ -290,5 +386,13 @@ func (x *XClient) queryAccountByAK(address string, opts ...QueryOption) (*pb.AK2
 		Address: address,
 	}
 
-	return x.xc.GetAccountByAK(context.Background(), AK2AccountRequest)
+	resp, err := x.xc.GetAccountByAK(context.TODO(), AK2AccountRequest)
+	if err != nil {
+		return nil, err
+	}
+
+	if resp.Header.Error != pb.XChainErrorEnum_SUCCESS {
+		return nil, errors.New(resp.Header.Error.String())
+	}
+	return resp.GetAccount(), nil
 }

@@ -23,8 +23,11 @@ type Transaction struct {
 	DigestHash []byte
 }
 
-// Sign account sign for tx, for mulitysign.
+// Sign account sign for tx, for multisign.multisign
 func (t *Transaction) Sign(account *account.Account) error {
+	if account == nil {
+		return errors.New("Transaction sign account can not be nil")
+	}
 	// 对于多签，在交易预执行时就需要写好所有的需要签名的地址到 AuthRequire 字段，其他地址再进行签名时，需要检查是否已经在 AuthRequire 字段中。
 	// 同时签名的顺序也要保持一致，不然上链时会失败。
 	if !inSlice(t.Tx.AuthRequire, account.GetAuthRequire()) {

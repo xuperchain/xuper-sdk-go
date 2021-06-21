@@ -217,25 +217,6 @@ func determineContractName(contractName string) error {
 	return validContractName(contractName)
 }
 
-// determine whether it is a contract name
-func determineContractNameFromEVM(evmAddr crypto.Address) (string, error) {
-	var addr string
-	var err error
-
-	evmAddrWithPrefix := evmAddr.Bytes()
-	evmAddrStrWithPrefix := string(evmAddrWithPrefix)
-	if evmAddrStrWithPrefix[0:4] != contractNamePrefixs {
-		return "", fmt.Errorf("not a valid contract name from evm")
-	}
-	addr, err = evmAddressToContractName(evmAddr)
-
-	if err != nil {
-		return "", err
-	}
-
-	return addr, nil
-}
-
 func validContractName(contractName string) error {
 	// param absence check
 	// contract naming rule check

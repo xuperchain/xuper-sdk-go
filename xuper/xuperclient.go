@@ -15,6 +15,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"math/big"
 	"regexp"
 
 	"github.com/pkg/errors"
@@ -422,7 +423,15 @@ func (x *XClient) PreExecTx(req *Request) (*Transaction, error) {
 	if err != nil {
 		return nil, err
 	}
-	return proposal.tx, nil
+
+	var cr *pb.ContractResponse
+	if len(proposal.preResp.GetResponse().GetResponses()) > 0 {
+		cr = proposal.preResp.GetResponse().GetResponses()[len(proposal.preResp.GetResponse().GetResponses())-1]
+	}
+
+	return &Transaction{
+		ContractResponse: cr,
+	}, nil
 }
 
 // PostTx post tx to node.
@@ -465,7 +474,7 @@ func (x *XClient) postTx(tx *pb.Transaction, bcname string) error {
 // Parameters
 //  - `txID` : transaction id
 func (x *XClient) QueryTxByID(txID string, opts ...QueryOption) (*pb.Transaction, error) {
-	return x.queryTxByID(txID)
+	return x.queryTxByID(txID, opts...)
 }
 
 // QueryBlockByID query the block by blockID
@@ -473,7 +482,7 @@ func (x *XClient) QueryTxByID(txID string, opts ...QueryOption) (*pb.Transaction
 // Parameters:
 //   - `blockID`  : block id
 func (x *XClient) QueryBlockByID(blockID string, opts ...QueryOption) (*pb.Block, error) {
-	return x.queryBlockByID(blockID)
+	return x.queryBlockByID(blockID, opts...)
 }
 
 // QueryBlockByHeight query the block by block height
@@ -481,7 +490,7 @@ func (x *XClient) QueryBlockByID(blockID string, opts ...QueryOption) (*pb.Block
 // Parameters:
 //   - `height`  : block height
 func (x *XClient) QueryBlockByHeight(height int64, opts ...QueryOption) (*pb.Block, error) {
-	return x.queryBlockByHeight(height)
+	return x.queryBlockByHeight(height, opts...)
 }
 
 // QueryAccountACL query the ACL by account
@@ -489,7 +498,7 @@ func (x *XClient) QueryBlockByHeight(height int64, opts ...QueryOption) (*pb.Blo
 // Parameters:
 //   - `account`  : account, such as XC1111111111111111@xuper
 func (x *XClient) QueryAccountACL(account string, opts ...QueryOption) (*ACL, error) {
-	return x.queryAccountACL(account)
+	return x.queryAccountACL(account, opts...)
 }
 
 // QueryMethodACL query the ACL by method
@@ -498,7 +507,7 @@ func (x *XClient) QueryAccountACL(account string, opts ...QueryOption) (*ACL, er
 //   - `name`     : contract name
 //   - `account`  : account
 func (x *XClient) QueryMethodACL(name, method string, opts ...QueryOption) (*ACL, error) {
-	return x.queryMethodACL(name, method)
+	return x.queryMethodACL(name, method, opts...)
 }
 
 // QueryAccountContracts query all contracts for account
@@ -506,41 +515,45 @@ func (x *XClient) QueryMethodACL(name, method string, opts ...QueryOption) (*ACL
 // Parameters:
 //   - `account`  : account,such as XC1111111111111111@xuper
 func (x *XClient) QueryAccountContracts(account string, opts ...QueryOption) ([]*pb.ContractStatus, error) {
-	return x.queryAccountContracts(account)
+	return x.queryAccountContracts(account, opts...)
 }
 
 // QueryAddressContracts query all contracts for address
 //
 // Parameters:
 //   - `address`  : address
+//
+// Returns:
+//   - `map`  : contractAccount => contractStatusList
+//   - `error`: error
 func (x *XClient) QueryAddressContracts(address string, opts ...QueryOption) (map[string]*pb.ContractList, error) {
-	return x.queryAddressContracts(address)
+	return x.queryAddressContracts(address, opts...)
 }
 
 // QueryBalance query balance by the address
 //
 // Parameters:
 //   - `address`  : address
-func (x *XClient) QueryBalance(address string, opts ...QueryOption) (*pb.AddressStatus, error) {
-	return x.queryBalance(address)
+func (x *XClient) QueryBalance(address string, opts ...QueryOption) (*big.Int, error) {
+	return x.queryBalance(address, opts...)
 }
 
 // QueryBalanceDetail query the balance detail by address
 //
 // Parameters:
 //   - `address`  : address
-func (x *XClient) QueryBalanceDetail(address string, opts ...QueryOption) (*pb.AddressBalanceStatus, error) {
-	return x.queryBalanceDetail(address)
+func (x *XClient) QueryBalanceDetail(address string, opts ...QueryOption) ([]*BalanceDetail, error) { // todo 返回结果包装
+	return x.queryBalanceDetail(address, opts...)
 }
 
 // QuerySystemStatus query the system status
 func (x *XClient) QuerySystemStatus(opts ...QueryOption) (*pb.SystemsStatusReply, error) {
-	return x.querySystemStatus()
+	return x.querySystemStatus(opts...)
 }
 
 // QueryBlockChains query block chains
-func (x *XClient) QueryBlockChains(opts ...QueryOption) (*pb.BCStatus, error) {
-	return x.queryBlockChains()
+func (x *XClient) QueryBlockChains(opts ...QueryOption) ([]string, error) {
+	return x.queryBlockChains(opts...)
 }
 
 // QueryBlockChainStatus query the block chain status
@@ -552,14 +565,14 @@ func (x *XClient) QueryBlockChainStatus(chainName string, opts ...QueryOption) (
 }
 
 // QueryNetURL query the net URL
-func (x *XClient) QueryNetURL(opts ...QueryOption) (*pb.RawUrl, error) {
-	return x.queryNetURL()
+func (x *XClient) QueryNetURL(opts ...QueryOption) (string, error) {
+	return x.queryNetURL(opts...)
 }
 
 // QueryAccountByAK query the account  by AK
 //
 // Parameters:
 //   - `address`  : address
-func (x *XClient) QueryAccountByAK(address string, opts ...QueryOption) (*pb.AK2AccountResponse, error) {
-	return x.queryAccountByAK(address)
+func (x *XClient) QueryAccountByAK(address string, opts ...QueryOption) ([]string, error) {
+	return x.queryAccountByAK(address, opts...)
 }

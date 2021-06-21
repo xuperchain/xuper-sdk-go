@@ -369,7 +369,7 @@ func (p *Proposal) generateComplianceCheckTxOutput(to, amount string) ([]*pb.TxO
 func (p *Proposal) generateComplianceCheckTxInput(utxoOutputs *pb.UtxoOutput, totalNeed *big.Int) ([]*pb.TxInput, *pb.TxOutput, error) {
 	var txInputs []*pb.TxInput
 	var txOutput *pb.TxOutput
-	for _, utxo := range utxoOutputs.UtxoList {
+	for _, utxo := range utxoOutputs.GetUtxoList() {
 		txInput := &pb.TxInput{}
 		txInput.RefTxid = utxo.RefTxid
 		txInput.RefOffset = utxo.RefOffset
@@ -378,9 +378,9 @@ func (p *Proposal) generateComplianceCheckTxInput(utxoOutputs *pb.UtxoOutput, to
 		txInputs = append(txInputs, txInput)
 	}
 
-	utxoTotal, ok := big.NewInt(0).SetString(utxoOutputs.TotalSelected, 10)
+	utxoTotal, ok := big.NewInt(0).SetString(utxoOutputs.GetTotalSelected(), 10)
 	if !ok {
-		return nil, nil, fmt.Errorf("Invalid utxoOutputs.TotalSelected: %s", utxoOutputs.TotalSelected)
+		return nil, nil, fmt.Errorf("Invalid utxoOutputs.TotalSelected: %s", utxoOutputs.GetTotalSelected())
 	}
 
 	// input > output, generate output-input to me

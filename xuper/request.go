@@ -185,7 +185,11 @@ func NewDeployContractRequest(from *account.Account, name string, abi, code []by
 	if from == nil || !from.HasContractAccount() {
 		return nil, common.ErrInvalidAccount
 	}
-	// todo check parameters
+
+	if name == "" || contractType == "" || len(code) == 0 {
+		return nil, common.ErrInvalidParam
+	}
+
 	reqArgs := generateDeployArgs(args, abi, code, contractType, runtime, from.GetContractAccount(), name)
 
 	return NewRequest(from, Xkernel3Module, "", XkernelDeployMethod, reqArgs, "", "", opts...)
@@ -198,7 +202,7 @@ func NewInvokeContractRequest(from *account.Account, module, name, method string
 	}
 
 	if module == "" && name == "" && method == "" {
-		return nil, errors.New("invalid parameters")
+		return nil, common.ErrInvalidParam
 	}
 
 	reqArgs, err := generateInvokeArgs(args, module)
@@ -215,6 +219,10 @@ func NewUpgradeContractRequest(from *account.Account, module, name string, code 
 		return nil, common.ErrInvalidAccount
 	}
 
+	if module == "" || name == "" || len(code) == 0 {
+		return nil, common.ErrInvalidParam
+	}
+
 	reqArgs := generateDeployArgs(args, nil, code, module, "", from.GetContractAccount(), name)
 	return NewRequest(from, Xkernel3Module, name, XkernelUpgradeMethod, reqArgs, "", "", opts...)
 }
@@ -222,6 +230,10 @@ func NewUpgradeContractRequest(from *account.Account, module, name string, code 
 // NewCreateContractAccountRequest new
 func NewCreateContractAccountRequest(from *account.Account, contractAccount string, opts ...RequestOption) (*Request, error) {
 	if from == nil {
+		return nil, common.ErrInvalidAccount
+	}
+
+	if contractAccount == "" {
 		return nil, common.ErrInvalidAccount
 	}
 
@@ -240,6 +252,10 @@ func NewSetMethodACLRequest(from *account.Account, name, method string, acl *ACL
 
 	if acl == nil {
 		return nil, errors.New("invalid ACL")
+	}
+
+	if method == "" || name == "" {
+		return nil, common.ErrInvalidParam
 	}
 
 	args, err := genMethodACLArgs(acl, name, method)
