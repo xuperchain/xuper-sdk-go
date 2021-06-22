@@ -33,7 +33,7 @@ type Request struct {
 
 const (
 	// NativeContractModule native contract module.
-	NativeContractModule = "naitve"
+	NativeContractModule = "native"
 	// WasmContractModule wasm contract module.
 	WasmContractModule = "wasm"
 	// EvmContractModule evm contract module.

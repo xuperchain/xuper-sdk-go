@@ -15,12 +15,11 @@ func main() {
 // akTransfer 普通账户转账（Ak）示例。
 func akTransfer() {
 	// 创建或者使用已有账户，此处为新创建一个账户。
-	me, err := account.CreateAccount(1, 1)
+	from, err := account.RetrieveAccount("玉 脸 驱 协 介 跨 尔 籍 杆 伏 愈 即", 1)
 	if err != nil {
-		panic(err)
+		fmt.Printf("retrieveAccount err: %v\n", err)
+		return
 	}
-	fmt.Println(me.Address)
-	fmt.Println(me.Mnemonic)
 
 	to, err := account.CreateAccount(1, 1)
 	if err != nil {
@@ -36,17 +35,17 @@ func akTransfer() {
 	xclient, _ := xuper.New(node)
 
 	// 转账前查看两个地址余额。
-	fmt.Println(xclient.QueryBalance(me.Address))
+	fmt.Println(xclient.QueryBalance(from.Address))
 	fmt.Println(xclient.QueryBalance(to.Address))
 
-	tx, err := xclient.Transfer(me, to.Address, "10")
+	tx, err := xclient.Transfer(from, to.Address, "10")
 	if err != nil {
 		panic(err)
 	}
 	fmt.Printf("%x\n", tx.Tx.Txid)
 
 	// 转账后查看两个地址余额。
-	fmt.Println(xclient.QueryBalance(me.Address))
+	fmt.Println(xclient.QueryBalance(from.Address))
 	fmt.Println(xclient.QueryBalance(to.Address))
 }
 
