@@ -13,6 +13,29 @@ import (
 	"github.com/xuperchain/xuperchain/core/pb"
 )
 
+func TestNewXClient(t *testing.T) {
+	x, err := New("127.0.0.1:9999")
+	if err != nil {
+		t.Error("New xuperclient asser failed:", err)
+	}
+	x.Close()
+
+	_, err = New("127.0.0.1:9999", WithConfigFile("./conf/sdk.yaml"))
+	if err == nil {
+		t.Error("New xuperclient asser failed:", err)
+	}
+
+	x, err = New("127.0.0.1:9999", WithGrpcGZIP())
+	if err != nil {
+		t.Error("New xuperclient asser failed:", err)
+	}
+	x.Close()
+	_, err = New("127.0.0.1:9999", WithGrpcGZIP(), WithGrpcTLS("aaa", "aaa", "aaa", "aaa"))
+	if err == nil {
+		t.Error("New xuperclient asser failed:", err)
+	}
+}
+
 func String(t *pb.Transaction) string {
 	b, err := json.Marshal(*t)
 	if err != nil {
@@ -47,6 +70,12 @@ func TestXClient_RegisterBlockEvent(t *testing.T) {
 	}
 
 	reg, err := watcher.RegisterBlockEvent(filter, watcher.SkipEmptyTx)
+	if err != nil {
+		t.Error("RegisterBlockEvent")
+		t.Error(err)
+	}
+
+	_, err = client.RegisterBlockEvent(filter, false)
 	if err != nil {
 		t.Error("RegisterBlockEvent")
 		t.Error(err)
@@ -159,7 +188,7 @@ func TestXClient_QueryBalance(t *testing.T) {
 	address := "dpzuVdosQrF2kmzumhVeFQZa1aYcdgFpN"
 	client := newClient()
 
-	bal, err := client.queryBalance(address)
+	bal, err := client.QueryBalance(address)
 	if err != nil {
 		t.Fatalf("err:%s\n", err.Error())
 	}
@@ -171,7 +200,7 @@ func TestXClient_QueryBalanceDetail(t *testing.T) {
 	address := "dpzuVdosQrF2kmzumhVeFQZa1aYcdgFpN"
 	client := newClient()
 
-	addrBalanceStatus, err := client.queryBalanceDetail(address)
+	addrBalanceStatus, err := client.QueryBalanceDetail(address)
 	if err != nil {
 		t.Fatalf("err:%s\n", err.Error())
 	}
@@ -421,6 +450,570 @@ func string2Bigint(v string) *big.Int {
 	return b
 }
 
-func TestDeployNativeGoContract(t *testing.T) {
+func TestDeployContract(t *testing.T) {
+
+	type Case struct {
+		from                    *account.Account
+		name                    string
+		runtime                 string
+		abi                     []byte
+		code                    []byte
+		args                    map[string]string
+		fee                     *big.Int
+		opts                    []RequestOption
+		cfg                     *config.CommConfig
+		hasContractAcc          bool
+		onlyFeeFromContractAccc bool
+		desc                    string
+	}
+
+	cases := []Case{
+		{
+			from:    aks[1],
+			name:    "hello",
+			code:    []byte("code"),
+			runtime: GoRuntime,
+			cfg: &config.CommConfig{
+				ComplianceCheck: config.ComplianceCheckConfig{},
+			},
+			hasContractAcc: true,
+			desc:           "部署 go native 合约。",
+		},
+		{
+			from:    aks[1],
+			name:    "hello",
+			code:    []byte("code"),
+			runtime: JavaRuntime,
+			cfg: &config.CommConfig{
+				ComplianceCheck: config.ComplianceCheckConfig{},
+			},
+			hasContractAcc:          true,
+			onlyFeeFromContractAccc: true,
+			opts:                    []RequestOption{WithFeeFromAccount(), WithFee("10")},
+			desc:                    "部署 java native 合约，account 支付 fee，fee=10。",
+		},
+		{
+			from:    aks[1],
+			name:    "hello",
+			code:    []byte("code"),
+			runtime: EvmContractModule,
+			cfg: &config.CommConfig{
+				ComplianceCheck: config.ComplianceCheckConfig{
+					IsNeedComplianceCheck: true,
+				},
+			},
+			hasContractAcc: true,
+			desc:           "部署 evm 合约，需要背书，不需要背书手续费。",
+		},
+		{
+			from:    aks[1],
+			name:    "hello",
+			code:    []byte("code"),
+			runtime: CRuntime,
+			opts:    []RequestOption{WithFeeFromAccount(), WithFee("10")},
+			cfg: &config.CommConfig{
+				ComplianceCheck: config.ComplianceCheckConfig{
+					IsNeedComplianceCheck:                true,
+					IsNeedComplianceCheckFee:             true,
+					ComplianceCheckEndorseServiceFee:     100,
+					ComplianceCheckEndorseServiceFeeAddr: "aaa",
+					ComplianceCheckEndorseServiceAddr:    "bbb",
+				},
+			},
+			hasContractAcc: true,
+			desc:           "部署 wasm 合约，背书手续费100",
+		},
+		{
+			from:    aks[1],
+			name:    "hello",
+			code:    []byte("code"),
+			runtime: CRuntime,
+			cfg: &config.CommConfig{
+				ComplianceCheck: config.ComplianceCheckConfig{
+					IsNeedComplianceCheck:                true,
+					IsNeedComplianceCheckFee:             true,
+					ComplianceCheckEndorseServiceFee:     100,
+					ComplianceCheckEndorseServiceFeeAddr: "aaa",
+					ComplianceCheckEndorseServiceAddr:    "bbb",
+				},
+			},
+			hasContractAcc: true,
+			desc:           "部署 wasm 合约，背书手续费100，account 支付手续费，fee=10。",
+		},
+	}
+
+	for _, c := range cases {
+		if testNode != "" {
+			panic("Please implement me")
+		} else {
+			// mock 不检查余额。
+			xc := newClient()
+			xc.cfg = c.cfg
+			if c.hasContractAcc {
+				c.from.SetContractAccount(contractAcc[1])
+			}
+
+			switch c.runtime {
+			case JavaRuntime:
+				_, err := xc.DeployNativeJavaContract(c.from, c.name, c.code, c.args, c.opts...)
+				if err != nil {
+					t.Error(err)
+				}
+
+				_, err = xc.UpgradeNativeContract(c.from, c.name, c.code, c.args, c.opts...)
+				if err != nil {
+					t.Error(err)
+				}
+			case GoRuntime:
+				_, err := xc.DeployNativeGoContract(c.from, c.name, c.code, c.args, c.opts...)
+				if err != nil {
+					t.Error(err)
+				}
+
+			case CRuntime:
+				_, err := xc.DeployWasmContract(c.from, c.name, c.code, c.args, c.opts...)
+				if err != nil {
+					t.Error(err)
+				}
+
+				_, err = xc.UpgradeWasmContract(c.from, c.name, c.code, c.args, c.opts...)
+				if err != nil {
+					t.Error(err)
+				}
+			case EvmContractModule:
+				_, err := xc.DeployEVMContract(c.from, c.name, c.abi, c.code, c.args, c.opts...)
+				if err != nil {
+					t.Error(err)
+				}
+			default:
+			}
+			c.from.RemoveContractAccount()
+			xc.cfg = nil
+		}
+	}
+}
+
+func TestInvokeContract(t *testing.T) {
+	type Case struct {
+		from                    *account.Account
+		name                    string
+		module                  string
+		method                  string
+		args                    map[string]string
+		fee                     *big.Int
+		opts                    []RequestOption
+		cfg                     *config.CommConfig
+		hasContractAcc          bool
+		onlyFeeFromContractAccc bool
+		desc                    string
+	}
+
+	cases := []Case{
+		{
+			from:   aks[1],
+			name:   "hello",
+			method: "a",
+			module: NativeContractModule,
+			cfg: &config.CommConfig{
+				ComplianceCheck: config.ComplianceCheckConfig{},
+			},
+			hasContractAcc: true,
+			desc:           "调用 native 合约。",
+		},
+		{
+			from:   aks[1],
+			name:   "hello",
+			method: "a",
+			module: WasmContractModule,
+			cfg: &config.CommConfig{
+				ComplianceCheck: config.ComplianceCheckConfig{},
+			},
+			hasContractAcc:          true,
+			onlyFeeFromContractAccc: true,
+			opts:                    []RequestOption{WithFeeFromAccount(), WithFee("10")},
+			desc:                    "调用 wasm 合约，account 支付 fee，fee=10。",
+		},
+		{
+			from:   aks[1],
+			name:   "hello",
+			method: "a",
+			module: WasmContractModule,
+			cfg: &config.CommConfig{
+				ComplianceCheck: config.ComplianceCheckConfig{
+					IsNeedComplianceCheck: true,
+				},
+			},
+			hasContractAcc: true,
+			desc:           "调用 wasm 合约，需要背书，不需要背书手续费。",
+		},
+		{
+			from:   aks[1],
+			name:   "hello",
+			method: "a",
+			module: WasmContractModule,
+			opts: []RequestOption{WithContractInvokeAmount("10"), WithBcname("xuper"),
+				WithDesc("haha"), WithOtherAuthRequires([]string{"a", "b"})},
+			cfg: &config.CommConfig{
+				ComplianceCheck: config.ComplianceCheckConfig{
+					IsNeedComplianceCheck:                true,
+					IsNeedComplianceCheckFee:             true,
+					ComplianceCheckEndorseServiceFee:     100,
+					ComplianceCheckEndorseServiceFeeAddr: "aaa",
+					ComplianceCheckEndorseServiceAddr:    "bbb",
+				},
+			},
+			hasContractAcc: true,
+			desc:           "调用 wasm 合约，背书手续费100",
+		},
+		{
+			from:   aks[1],
+			name:   "hello",
+			method: "a",
+			module: EvmContractModule,
+			opts:   []RequestOption{WithFeeFromAccount(), WithFee("10")},
+			cfg: &config.CommConfig{
+				ComplianceCheck: config.ComplianceCheckConfig{
+					IsNeedComplianceCheck:                true,
+					IsNeedComplianceCheckFee:             true,
+					ComplianceCheckEndorseServiceFee:     100,
+					ComplianceCheckEndorseServiceFeeAddr: "aaa",
+					ComplianceCheckEndorseServiceAddr:    "bbb",
+				},
+			},
+			hasContractAcc: true,
+			desc:           "调用 wasm 合约，背书手续费100，account 支付手续费，fee=10。",
+		},
+	}
+
+	for _, c := range cases {
+		if testNode != "" {
+			panic("Please implement me")
+		} else {
+			// mock 不检查余额。
+			xc := newClient()
+			xc.cfg = c.cfg
+			if c.hasContractAcc {
+				c.from.SetContractAccount(contractAcc[1])
+			}
+
+			switch c.module {
+			case NativeContractModule:
+				_, err := xc.InvokeNativeContract(c.from, c.name, c.method, c.args, c.opts...)
+				if err != nil {
+					t.Error(err)
+				}
+
+				_, err = xc.QueryNativeContract(c.from, c.name, c.method, c.args, c.opts...)
+				if err != nil {
+					t.Error(err)
+				}
+			case WasmContractModule:
+				_, err := xc.InvokeWasmContract(c.from, c.name, c.method, c.args, c.opts...)
+				if err != nil {
+					t.Error(err)
+				}
+				_, err = xc.QueryWasmContract(c.from, c.name, c.method, c.args, c.opts...)
+				if err != nil {
+					t.Error(err)
+				}
+			case EvmContractModule:
+				_, err := xc.InvokeEVMContract(c.from, c.name, c.method, c.args, c.opts...)
+				if err != nil {
+					t.Error(err)
+				}
+				_, err = xc.QueryEVMContract(c.from, c.name, c.method, c.args, c.opts...)
+				if err != nil {
+					t.Error(err)
+				}
+			default:
+			}
+			c.from.RemoveContractAccount()
+			xc.cfg = nil
+		}
+	}
+}
+
+func TestACLSet(t *testing.T) {
+	type Case struct {
+		from                    *account.Account
+		name                    string
+		method                  string
+		acl                     *ACL
+		fee                     *big.Int
+		opts                    []RequestOption
+		cfg                     *config.CommConfig
+		hasContractAcc          bool
+		onlyFeeFromContractAccc bool
+		desc                    string
+	}
+
+	cases := []Case{
+		{
+			from:   aks[1],
+			name:   "hello",
+			method: "a",
+			acl:    getDefaultACL("a"),
+			cfg: &config.CommConfig{
+				ComplianceCheck: config.ComplianceCheckConfig{},
+			},
+			hasContractAcc: true,
+			desc:           "设置合约方法 ACL。",
+		},
+		{
+			from: aks[1],
+			acl:  getDefaultACL("a"),
+			cfg: &config.CommConfig{
+				ComplianceCheck: config.ComplianceCheckConfig{},
+			},
+			hasContractAcc: true,
+			desc:           "设置合约账户 ACL。",
+		},
+		{
+			from:   aks[1],
+			name:   "hello",
+			method: "a",
+			acl:    getDefaultACL("a"),
+			cfg: &config.CommConfig{
+				ComplianceCheck: config.ComplianceCheckConfig{},
+			},
+			hasContractAcc:          true,
+			onlyFeeFromContractAccc: true,
+			opts: []RequestOption{WithFeeFromAccount(), WithFee("10"), WithBcname("xuper"),
+				WithDesc("haha"), WithOtherAuthRequires([]string{"a", "b"})},
+			desc: "设置方法 ACL，account 支付 fee，fee=10。",
+		},
+		{
+			from: aks[1],
+			acl:  getDefaultACL("a"),
+			cfg: &config.CommConfig{
+				ComplianceCheck: config.ComplianceCheckConfig{
+					IsNeedComplianceCheck: true,
+				},
+			},
+			hasContractAcc: true,
+			desc:           "设置合约账户 ACL，需要背书，不需要背书手续费。",
+		},
+		{
+			from:   aks[1],
+			name:   "hello",
+			method: "a",
+			acl:    getDefaultACL("a"),
+			opts:   []RequestOption{WithContractInvokeAmount("10")},
+			cfg: &config.CommConfig{
+				ComplianceCheck: config.ComplianceCheckConfig{
+					IsNeedComplianceCheck:                true,
+					IsNeedComplianceCheckFee:             true,
+					ComplianceCheckEndorseServiceFee:     100,
+					ComplianceCheckEndorseServiceFeeAddr: "aaa",
+					ComplianceCheckEndorseServiceAddr:    "bbb",
+				},
+			},
+			hasContractAcc: true,
+			desc:           "调用 wasm 合约，背书手续费100",
+		},
+		{
+			from:   aks[1],
+			name:   "hello",
+			method: "a",
+			acl:    getDefaultACL("a"),
+			opts:   []RequestOption{WithFeeFromAccount(), WithFee("10")},
+			cfg: &config.CommConfig{
+				ComplianceCheck: config.ComplianceCheckConfig{
+					IsNeedComplianceCheck:                true,
+					IsNeedComplianceCheckFee:             true,
+					ComplianceCheckEndorseServiceFee:     100,
+					ComplianceCheckEndorseServiceFeeAddr: "aaa",
+					ComplianceCheckEndorseServiceAddr:    "bbb",
+				},
+			},
+			hasContractAcc: true,
+			desc:           "调用 wasm 合约，背书手续费100，account 支付手续费，fee=10。",
+		},
+	}
+
+	for _, c := range cases {
+		if testNode != "" {
+			panic("Please implement me")
+		} else {
+			// mock 不检查余额。
+			xc := newClient()
+			xc.cfg = c.cfg
+			if c.hasContractAcc {
+				c.from.SetContractAccount(contractAcc[1])
+			}
+
+			if c.name != "" {
+				_, err := xc.SetMethodACL(c.from, c.name, c.method, c.acl, c.opts...)
+				if err != nil {
+					t.Error(err)
+				}
+			} else {
+				_, err := xc.SetAccountACL(c.from, c.acl, c.opts...)
+				if err != nil {
+					t.Error(err)
+				}
+			}
+			c.from.RemoveContractAccount()
+			xc.cfg = nil
+		}
+	}
+}
+
+func TestCreateAccount(t *testing.T) {
+	type Case struct {
+		from                    *account.Account
+		account                 string
+		acl                     *ACL
+		fee                     *big.Int
+		opts                    []RequestOption
+		cfg                     *config.CommConfig
+		hasContractAcc          bool
+		onlyFeeFromContractAccc bool
+		desc                    string
+		hasError                bool
+	}
+
+	cases := []Case{
+		{
+			from:    aks[1],
+			account: "",
+			acl:     getDefaultACL("a"),
+			cfg: &config.CommConfig{
+				ComplianceCheck: config.ComplianceCheckConfig{},
+			},
+			hasError: true,
+			desc:     "创建合约账户，账户参数为空。",
+		},
+		{
+			from:     aks[1],
+			account:  "XC1234567812345678@xuper",
+			acl:      getDefaultACL("a"),
+			hasError: true,
+			cfg: &config.CommConfig{
+				ComplianceCheck: config.ComplianceCheckConfig{},
+			},
+			hasContractAcc: true,
+			desc:           "创建合约账户，from 设置了合约账户。",
+		},
+		{
+			from:     aks[1],
+			account:  "hello",
+			acl:      getDefaultACL("a"),
+			hasError: true,
+			cfg: &config.CommConfig{
+				ComplianceCheck: config.ComplianceCheckConfig{},
+			},
+			onlyFeeFromContractAccc: true,
+			opts: []RequestOption{WithFeeFromAccount(), WithFee("10"), WithBcname("xuper"),
+				WithDesc("haha"), WithOtherAuthRequires([]string{"a", "b"})},
+			desc: "创建合约账户，账户不符合规则。",
+		},
+		{
+			from:    aks[1],
+			acl:     getDefaultACL("a"),
+			account: "XC1234567812345678@xuper",
+			cfg: &config.CommConfig{
+				ComplianceCheck: config.ComplianceCheckConfig{
+					IsNeedComplianceCheck: true,
+				},
+			},
+			hasContractAcc: false,
+			desc:           "创建合约账户 ok。",
+		},
+		{
+			from:    aks[1],
+			account: "XC1234567812345678@xuper",
+			acl:     getDefaultACL("a"),
+			opts:    []RequestOption{WithContractInvokeAmount("10")},
+			cfg: &config.CommConfig{
+				ComplianceCheck: config.ComplianceCheckConfig{
+					IsNeedComplianceCheck:                true,
+					IsNeedComplianceCheckFee:             true,
+					ComplianceCheckEndorseServiceFee:     100,
+					ComplianceCheckEndorseServiceFeeAddr: "aaa",
+					ComplianceCheckEndorseServiceAddr:    "bbb",
+				},
+			},
+			desc: "创建合约账户，背书手续费100",
+		},
+		{
+			from:    aks[1],
+			account: "XC1234567812345678@xuper",
+			acl:     getDefaultACL("a"),
+			opts:    []RequestOption{WithFeeFromAccount(), WithFee("10")},
+			cfg: &config.CommConfig{
+				ComplianceCheck: config.ComplianceCheckConfig{
+					IsNeedComplianceCheck:                true,
+					IsNeedComplianceCheckFee:             true,
+					ComplianceCheckEndorseServiceFee:     100,
+					ComplianceCheckEndorseServiceFeeAddr: "aaa",
+					ComplianceCheckEndorseServiceAddr:    "bbb",
+				},
+			},
+			hasError: true,
+			desc:     "创建合约账户，背书手续费100，account 支付手续费，fee=10。",
+		},
+	}
+
+	for _, c := range cases {
+		if testNode != "" {
+			panic("Please implement me")
+		} else {
+			// mock 不检查余额。
+			xc := newClient()
+			xc.cfg = c.cfg
+			if c.hasContractAcc {
+				c.from.SetContractAccount(contractAcc[1])
+			}
+
+			tx, err := xc.CreateContractAccount(c.from, c.account, c.opts...)
+			if c.hasError {
+				if err == nil {
+					t.Error("Create contract assert err filed", c.desc)
+				}
+			} else {
+				if err != nil {
+					t.Error("Create contract assert err filed", err, c.desc)
+				}
+
+				if len(tx.Tx.GetTxid()) == 0 {
+					t.Error("Create contract assert tx filed", c.desc)
+				}
+			}
+			c.from.RemoveContractAccount()
+			xc.cfg = nil
+		}
+	}
+}
+
+func TestRequest(t *testing.T) {
+	r := new(Request)
+	r.SetArgs(map[string][]byte{"a": []byte("a")})
+	r.SetContractName("counter")
+	acc, _ := account.CreateAccount(1, 1)
+	r.SetInitiatorAccount(acc)
+	r.SetModule("xx")
+	r.SetTransferAmount("10")
+	r.SetTransferTo("bob")
+
+	if r.contractName != "counter" {
+		t.Error("Request set assert failed")
+	}
+
+	if r.module != "xx" {
+		t.Error("Request set assert failed")
+	}
+
+	if r.transferTo != "bob" {
+		t.Error("Request set assert failed")
+	}
+
+	if r.transferAmount != "10" {
+		t.Error("Request set assert failed")
+	}
+
+	if r.initiatorAccount.Address != acc.Address {
+		t.Error("Request set assert failed")
+	}
 
 }

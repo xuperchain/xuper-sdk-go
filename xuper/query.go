@@ -37,7 +37,6 @@ func (x *XClient) queryTxByID(txID string, opts ...QueryOption) (*pb.Transaction
 		return nil, err
 	}
 
-	ctx := context.Background()
 	opt, err := initQueryOpts(opts...)
 	if err != nil {
 		return nil, err
@@ -47,12 +46,12 @@ func (x *XClient) queryTxByID(txID string, opts ...QueryOption) (*pb.Transaction
 		Bcname: getBCname(opt),
 		Txid:   rawTx,
 	}
-	res, err := x.xc.QueryTx(ctx, txStatus)
+	res, err := x.xc.QueryTx(context.TODO(), txStatus)
 	if err != nil {
 		return nil, err
 	}
-	if res.Header.Error != pb.XChainErrorEnum_SUCCESS {
-		return nil, errors.New(res.Header.Error.String())
+	if res.GetHeader().GetError() != pb.XChainErrorEnum_SUCCESS {
+		return nil, errors.New(res.GetHeader().GetError().String())
 	}
 	if res.Tx == nil {
 		return nil, common.ErrTxNotFound
@@ -76,13 +75,13 @@ func (x *XClient) queryBlockByID(blockID string, opts ...QueryOption) (*pb.Block
 		Blockid:     rawBlockid,
 		NeedContent: true,
 	}
-	ctx := context.Background()
-	block, err := x.xc.GetBlock(ctx, blockIDPB)
+
+	block, err := x.xc.GetBlock(context.TODO(), blockIDPB)
 	if err != nil {
 		return nil, err
 	}
-	if block.Header.Error != pb.XChainErrorEnum_SUCCESS {
-		return nil, errors.New(block.Header.Error.String())
+	if block.GetHeader().GetError() != pb.XChainErrorEnum_SUCCESS {
+		return nil, errors.New(block.GetHeader().GetError().String())
 	}
 	if block.Block == nil {
 		return nil, errors.New("block not found")
@@ -101,14 +100,14 @@ func (x *XClient) queryBlockByHeight(height int64, opts ...QueryOption) (*pb.Blo
 		Bcname: getBCname(opt),
 		Height: height,
 	}
-	ctx := context.Background()
-	block, err := x.xc.GetBlockByHeight(ctx, blockHeightPB)
+
+	block, err := x.xc.GetBlockByHeight(context.TODO(), blockHeightPB)
 	if err != nil {
 		return nil, err
 	}
 
-	if block.Header.Error != pb.XChainErrorEnum_SUCCESS {
-		return nil, errors.New(block.Header.Error.String())
+	if block.GetHeader().GetError() != pb.XChainErrorEnum_SUCCESS {
+		return nil, errors.New(block.GetHeader().GetError().String())
 	}
 	if block.Block == nil {
 		return nil, errors.New("block not found")
@@ -127,13 +126,13 @@ func (x *XClient) queryAccountACL(account string, opts ...QueryOption) (*ACL, er
 		Bcname:      getBCname(opt),
 		AccountName: account,
 	}
-	aclStatus, err := x.xc.QueryACL(context.Background(), in)
+	aclStatus, err := x.xc.QueryACL(context.TODO(), in)
 	if err != nil {
 		return nil, err
 	}
 
-	if aclStatus.Header.Error != pb.XChainErrorEnum_SUCCESS {
-		return nil, errors.New(aclStatus.Header.Error.String())
+	if aclStatus.GetHeader().GetError() != pb.XChainErrorEnum_SUCCESS {
+		return nil, errors.New(aclStatus.GetHeader().GetError().String())
 	}
 
 	acl := &ACL{}
@@ -159,13 +158,13 @@ func (x *XClient) queryMethodACL(name, method string, opts ...QueryOption) (*ACL
 		MethodName:   method,
 	}
 
-	aclStatus, err := x.xc.QueryACL(context.Background(), in)
+	aclStatus, err := x.xc.QueryACL(context.TODO(), in)
 	if err != nil {
 		return nil, err
 	}
 
-	if aclStatus.Header.Error != pb.XChainErrorEnum_SUCCESS {
-		return nil, errors.New(aclStatus.Header.Error.String())
+	if aclStatus.GetHeader().GetError() != pb.XChainErrorEnum_SUCCESS {
+		return nil, errors.New(aclStatus.GetHeader().GetError().String())
 	}
 
 	if aclStatus == nil {
@@ -198,8 +197,8 @@ func (x *XClient) queryAccountContracts(account string, opts ...QueryOption) ([]
 		return nil, err
 	}
 
-	if resp.Header.Error != pb.XChainErrorEnum_SUCCESS {
-		return nil, errors.New(resp.Header.Error.String())
+	if resp.GetHeader().GetError() != pb.XChainErrorEnum_SUCCESS {
+		return nil, errors.New(resp.GetHeader().GetError().String())
 	}
 
 	return resp.GetContractsStatus(), nil
@@ -221,8 +220,8 @@ func (x *XClient) queryAddressContracts(address string, opts ...QueryOption) (ma
 		return nil, err
 	}
 
-	if resp.Header.Error != pb.XChainErrorEnum_SUCCESS {
-		return nil, errors.New(resp.Header.Error.String())
+	if resp.GetHeader().GetError() != pb.XChainErrorEnum_SUCCESS {
+		return nil, errors.New(resp.GetHeader().GetError().String())
 	}
 
 	return resp.GetContracts(), nil
@@ -247,12 +246,16 @@ func (x *XClient) queryBalance(address string, opts ...QueryOption) (*big.Int, e
 		return nil, err
 	}
 
-	if reply.Header.Error != pb.XChainErrorEnum_SUCCESS {
-		return nil, errors.New(reply.Header.Error.String())
+	if reply.GetHeader().GetError() != pb.XChainErrorEnum_SUCCESS {
+		return nil, errors.New(reply.GetHeader().GetError().String())
 	}
 
 	for _, v := range reply.Bcs {
 		if v.GetBcname() == bcname {
+			if v.GetError() != pb.XChainErrorEnum_SUCCESS {
+				return nil, errors.New(v.GetError().String())
+			}
+
 			if v.GetBalance() == "" {
 				return big.NewInt(0), nil
 			}
@@ -289,15 +292,15 @@ func (x *XClient) queryBalanceDetail(address string, opts ...QueryOption) ([]*Ba
 		return nil, err
 	}
 
-	if bs.Header.Error != pb.XChainErrorEnum_SUCCESS {
-		return nil, errors.New(bs.Header.Error.String())
+	if bs.GetHeader().GetError() != pb.XChainErrorEnum_SUCCESS {
+		return nil, errors.New(bs.GetHeader().GetError().String())
 	}
 
 	bcname := getBCname(opt)
 	for _, tfd := range bs.Tfds {
 		if tfd.Bcname == bcname {
-			if tfd.Error != pb.XChainErrorEnum_SUCCESS {
-				return nil, errors.New(bs.Header.Error.String())
+			if tfd.GetError() != pb.XChainErrorEnum_SUCCESS {
+				return nil, errors.New(bs.GetHeader().GetError().String())
 			}
 
 			result := make([]*BalanceDetail, 0, len(tfd.Tfd))
@@ -321,8 +324,8 @@ func (x *XClient) querySystemStatus(opts ...QueryOption) (*pb.SystemsStatusReply
 		return nil, err
 	}
 
-	if ss.Header.Error != pb.XChainErrorEnum_SUCCESS {
-		return nil, errors.New(ss.Header.Error.String())
+	if ss.GetHeader().GetError() != pb.XChainErrorEnum_SUCCESS {
+		return nil, errors.New(ss.GetHeader().GetError().String())
 	}
 	return ss, nil
 }
@@ -333,8 +336,8 @@ func (x *XClient) queryBlockChains(opts ...QueryOption) ([]string, error) {
 		return nil, err
 	}
 
-	if bcs.Header.Error != pb.XChainErrorEnum_SUCCESS {
-		return nil, errors.New(bcs.Header.Error.String())
+	if bcs.GetHeader().GetError() != pb.XChainErrorEnum_SUCCESS {
+		return nil, errors.New(bcs.GetHeader().GetError().String())
 	}
 
 	return bcs.GetBlockchains(), nil
@@ -355,8 +358,8 @@ func (x *XClient) queryBlockChainStatus(chainName string, opts ...QueryOption) (
 		return nil, err
 	}
 
-	if bcs.Header.Error != pb.XChainErrorEnum_SUCCESS {
-		return nil, errors.New(bcs.Header.Error.String())
+	if bcs.GetHeader().GetError() != pb.XChainErrorEnum_SUCCESS {
+		return nil, errors.New(bcs.GetHeader().GetError().String())
 	}
 
 	return bcs, err
@@ -368,8 +371,8 @@ func (x *XClient) queryNetURL(opts ...QueryOption) (string, error) {
 		return "", err
 	}
 
-	if rawURL.Header.Error != pb.XChainErrorEnum_SUCCESS {
-		return "", errors.New(rawURL.Header.Error.String())
+	if rawURL.GetHeader().GetError() != pb.XChainErrorEnum_SUCCESS {
+		return "", errors.New(rawURL.GetHeader().GetError().String())
 	}
 
 	return rawURL.GetRawUrl(), nil
@@ -391,8 +394,8 @@ func (x *XClient) queryAccountByAK(address string, opts ...QueryOption) ([]strin
 		return nil, err
 	}
 
-	if resp.Header.Error != pb.XChainErrorEnum_SUCCESS {
-		return nil, errors.New(resp.Header.Error.String())
+	if resp.GetHeader().GetError() != pb.XChainErrorEnum_SUCCESS {
+		return nil, errors.New(resp.GetHeader().GetError().String())
 	}
 	return resp.GetAccount(), nil
 }

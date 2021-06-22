@@ -25,4 +25,10 @@ func TestAcl(t *testing.T) {
 	} else if v != 1.0 {
 		t.Error("Acl AddAK assert failed")
 	}
+
+	acl1 := &ACL{}
+	acl1.AddAK("aa", 1.0)
+	if w, _ := acl1.AksWeight["aa"]; w != 1.0 {
+		t.Error("Acl AddAK assert failed")
+	}
 }
