@@ -62,9 +62,9 @@ const (
 	// XkernelNewAccountMethod xkernel contract create contract account method.
 	XkernelNewAccountMethod = "NewAccount"
 	// XkernelSetAccountACLMethod xkernel contract set account ACL method.
-	XkernelSetAccountACLMethod = "SetAccountACL"
+	XkernelSetAccountACLMethod = "SetAccountAcl"
 	// XkernelSetMethodACLMethod xkernel contract set method ACL method.
-	XkernelSetMethodACLMethod = "SetMethodACL"
+	XkernelSetMethodACLMethod = "SetMethodAcl"
 
 	// ArgAccountName account name field.
 	ArgAccountName = "account_name"

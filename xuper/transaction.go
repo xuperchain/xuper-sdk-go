@@ -56,6 +56,7 @@ func (t *Transaction) Sign(account *account.Account) error {
 	}
 
 	t.Tx.AuthRequireSigns = append(t.Tx.AuthRequireSigns, signatureInfo)
+	t.Tx.InitiatorSigns = append(t.Tx.InitiatorSigns, signatureInfo)
 
 	// make txid
 	t.Tx.Txid, err = common.MakeTransactionID(t.Tx)
@@ -65,6 +66,10 @@ func (t *Transaction) Sign(account *account.Account) error {
 
 func inSlice(slice []string, str string) bool {
 	for _, v := range slice {
+		if v == str {
+			return true
+		}
+
 		splitRes := strings.Split(v, "/")
 		addr := splitRes[len(splitRes)-1]
 		if addr == str {

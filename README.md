@@ -28,6 +28,14 @@ Run
 make
 ```
 
+Use go get Xuper-SDK
+```bash
+go get github.com/xuperchain/xuper-sdk-go/v2
+```
+
+## example
+xuper-go-sdk more [example](https://github.com/xuperchain/xuper-sdk-go/tree/master/example)
+
 # Contributing to the Xuper-SDK
 If you want to contribute to xuper SDK, 
 please read the source code, understand the current technology, and then develop it.
@@ -65,6 +73,14 @@ cd xuper-sdk-go
 ```bash
 make
 ```
+
+使用 go get 安装 Xuper-SDK
+```bash
+go get github.com/xuperchain/xuper-sdk-go/v2
+```
+
+## 示例
+xuper-go-sdk 使用示例请参考[example](https://github.com/xuperchain/xuper-sdk-go/tree/master/example)
 
 # 如何参与开发Xuper-SDK
 如果您想为xuper-sdk-go做贡献
