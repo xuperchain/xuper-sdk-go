@@ -14,7 +14,6 @@ import (
 	"crypto/x509"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"math/big"
 	"regexp"
 
@@ -93,7 +92,7 @@ func (x *XClient) initConn() error {
 	if x.opt.grpcTLS != nil && x.opt.grpcTLS.serverName != "" { // TLS enabled
 		certificate, err := tls.LoadX509KeyPair(x.opt.grpcTLS.certFile, x.opt.grpcTLS.keyFile)
 		if err != nil {
-			log.Fatal(err)
+			return err
 		}
 
 		certPool := x509.NewCertPool()
@@ -229,6 +228,38 @@ func (x *XClient) DeployEVMContract(from *account.Account, name string, abi, bin
 	return x.Do(req)
 }
 
+// UpgradeWasmContract upgrade wasm contract.
+//
+// Parameters:
+//   - `from`: Transaction initiator.
+//   - `name`: Contract name.
+//   - `code`: Contract code bytes.
+//   - `args`: Contract init args.
+func (x *XClient) UpgradeWasmContract(from *account.Account, name string, code []byte, args map[string]string, opts ...RequestOption) (*Transaction, error) {
+	req, err := NewUpgradeContractRequest(from, WasmContractModule, name, code, args, opts...)
+	if err != nil {
+		return nil, err
+	}
+
+	return x.Do(req)
+}
+
+// UpgradeNativeContract upgrade native contract.
+//
+// Parameters:
+//   - `from`: Transaction initiator.
+//   - `name`: Contract name.
+//   - `code`: Contract code bytes.
+//   - `args`: Contract init args.
+func (x *XClient) UpgradeNativeContract(from *account.Account, name string, code []byte, args map[string]string, opts ...RequestOption) (*Transaction, error) {
+	req, err := NewUpgradeContractRequest(from, NativeContractModule, name, code, args, opts...)
+	if err != nil {
+		return nil, err
+	}
+
+	return x.Do(req)
+}
+
 // InvokeWasmContract invoke wasm c++ contract.
 //
 // Parameters:
@@ -341,7 +372,7 @@ func (x *XClient) Transfer(from *account.Account, to, amount string, opts ...Req
 // CreateContractAccount create contract account for initiator.
 //
 // Parameters:
-//   - `from`           : Transaction initiator.
+//   - `from`           : Transaction initiator. NOTE: from must be NOT set contract account, if you set please remove it.
 //   - `contractAccount`:The contract account you want to create, such as: XC8888888899999999@xuper.
 func (x *XClient) CreateContractAccount(from *account.Account, contractAccount string, opts ...RequestOption) (*Transaction, error) {
 	if ok, _ := regexp.MatchString(`^XC\d{16}@*`, contractAccount); !ok {
@@ -542,7 +573,7 @@ func (x *XClient) QueryBalance(address string, opts ...QueryOption) (*big.Int, e
 //
 // Parameters:
 //   - `address`  : address
-func (x *XClient) QueryBalanceDetail(address string, opts ...QueryOption) ([]*BalanceDetail, error) { // todo 返回结果包装
+func (x *XClient) QueryBalanceDetail(address string, opts ...QueryOption) ([]*BalanceDetail, error) {
 	return x.queryBalanceDetail(address, opts...)
 }
 

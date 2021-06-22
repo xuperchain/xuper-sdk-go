@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/xuperchain/xuper-sdk-go/v2/common"
@@ -138,6 +139,92 @@ func TestGetAccountFromFile(t *testing.T) {
 			t.Error("GetAccountFromFile assert failed")
 		}
 		os.RemoveAll(arg.path)
+	}
+}
+
+func TestGetAccountFromPalinFile(t *testing.T) {
+	testCase := []struct {
+		path       string
+		hasAddress bool
+		hasPubkey  bool
+		hasPrivkey bool
+	}{
+		{
+			path:       "./keys/",
+			hasAddress: true,
+			hasPubkey:  true,
+			hasPrivkey: true,
+		},
+		{
+			path:       "./aaa/",
+			hasAddress: true,
+			hasPubkey:  true,
+			hasPrivkey: false,
+		},
+		{
+			path:       "./aaa/",
+			hasAddress: false,
+			hasPubkey:  true,
+			hasPrivkey: true,
+		},
+		{
+			path:       "./aaa/",
+			hasAddress: true,
+			hasPubkey:  false,
+			hasPrivkey: true,
+		},
+	}
+	for _, c := range testCase {
+		acc, _ := CreateAccount(1, 1)
+
+		err := os.MkdirAll(c.path, 0750)
+		if err != nil {
+			t.Error(err)
+		}
+
+		if c.hasAddress {
+			fs, err := os.Create(filepath.Join(c.path, "address"))
+			if err != nil {
+				t.Error(err)
+			}
+			fs.WriteString(acc.Address)
+			fs.Close()
+		}
+		if c.hasPubkey {
+			fs, err := os.Create(filepath.Join(c.path, "public.key"))
+			if err != nil {
+				t.Error(err)
+			}
+			fs.WriteString(acc.PublicKey)
+			fs.Close()
+		}
+		if c.hasPrivkey {
+			fs, err := os.Create(filepath.Join(c.path, "private.key"))
+			if err != nil {
+				t.Error(err)
+			}
+			fs.WriteString(acc.PrivateKey)
+			fs.Close()
+		}
+
+		acc1, err := GetAccountFromPlainFile(c.path)
+		if err != nil {
+			if !(!c.hasAddress || !c.hasPrivkey || !c.hasPubkey) {
+				t.Error(err)
+			}
+		} else {
+			if acc1.Address != acc.Address {
+				t.Error("TestGetAccountFromPalinFile address not match.")
+			}
+			if acc1.PublicKey != acc.PublicKey {
+				t.Error("TestGetAccountFromPalinFile address not match.")
+			}
+			if acc1.PrivateKey != acc.PrivateKey {
+				t.Error("TestGetAccountFromPalinFile address not match.")
+			}
+		}
+
+		os.RemoveAll(c.path)
 	}
 }
 

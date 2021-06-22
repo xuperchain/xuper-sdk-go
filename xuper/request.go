@@ -229,7 +229,7 @@ func NewUpgradeContractRequest(from *account.Account, module, name string, code 
 
 // NewCreateContractAccountRequest new
 func NewCreateContractAccountRequest(from *account.Account, contractAccount string, opts ...RequestOption) (*Request, error) {
-	if from == nil {
+	if from == nil || from.HasContractAccount() {
 		return nil, common.ErrInvalidAccount
 	}
 

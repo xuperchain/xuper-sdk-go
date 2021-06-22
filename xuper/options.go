@@ -38,6 +38,14 @@ type ClientOption func(opt *clientOptions) error
 // QueryOption query opt.
 type QueryOption func(opt *queryOption) error
 
+// WithQueryBcname query method bcname option.
+func WithQueryBcname(bcname string) QueryOption {
+	return func(opts *queryOption) error {
+		opts.bcname = bcname
+		return nil
+	}
+}
+
 // WithConfigFile set xuperclient config file.
 func WithConfigFile(configFile string) ClientOption {
 	return func(opts *clientOptions) error {

@@ -34,7 +34,7 @@ func TestBuild(t *testing.T) {
 		t.Log(a)
 	}
 }
-func TestNew(t *testing.T) {
+func TestNewProposal(t *testing.T) {
 	type Case struct {
 		xclient        *XClient
 		request        *Request
@@ -630,7 +630,7 @@ func (mcx *MockXClient) PreExec(ctx context.Context, in *pb.InvokeRPCRequest, op
 		Requests: in.GetRequests(),
 		Inputs:   []*pb.TxInputExt{{Bucket: "a", Key: []byte("a"), RefTxid: []byte("b"), RefOffset: 0}},
 		Outputs:  []*pb.TxOutputExt{{Bucket: "a", Key: []byte("a"), Value: []byte("b")}},
-		Response: [][]byte{crb},
+		Response: [][]byte{crb, crb},
 	}
 
 	response := &pb.InvokeRPCResponse{
@@ -682,10 +682,18 @@ func (mec *MockEClient) EndorserCall(ctx context.Context, in *pb.EndorserRequest
 			Requests: peur.GetRequest().GetRequests(),
 		}
 		per := &pb.PreExecWithSelectUTXOResponse{
-			Header:     in.GetHeader(),
-			Bcname:     in.GetBcName(),
-			Response:   ir,
-			UtxoOutput: nil,
+			Header:   in.GetHeader(),
+			Bcname:   in.GetBcName(),
+			Response: ir,
+			UtxoOutput: &pb.UtxoOutput{
+				UtxoList: []*pb.Utxo{
+					{
+						ToAddr: []byte(peur.Address),
+						Amount: big.NewInt(100).Bytes(),
+					},
+				},
+				TotalSelected: "1000",
+			},
 		}
 		data, _ = json.Marshal(per)
 	}
