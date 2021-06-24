@@ -8,8 +8,8 @@ import (
 )
 
 func main() {
-	fmt.Printf("%x\n", []byte("abc"))
 	akTransfer()
+	contractAccountTransfer()
 }
 
 // akTransfer 普通账户转账（Ak）示例。

@@ -80,7 +80,6 @@ func (x *XClient) init() error {
 	} else {
 		x.cfg = config.GetInstance()
 	}
-	fmt.Printf("cfg:%+v\n", x.cfg)
 
 	// init xuper client, endorser client, grpc tls & gzip.
 	return x.initConn()

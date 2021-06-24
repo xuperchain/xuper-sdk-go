@@ -2,9 +2,10 @@ package main
 
 import (
 	"fmt"
+	"io/ioutil"
+
 	"github.com/xuperchain/xuper-sdk-go/v2/account"
 	"github.com/xuperchain/xuper-sdk-go/v2/xuper"
-	"io/ioutil"
 )
 
 func main() {
@@ -114,11 +115,11 @@ func testEVMContract() {
 }
 
 func testNativeContract() {
-	//codePath := "./example/contract/counter"
-	//code, err := ioutil.ReadFile(codePath)
-	//if err != nil {
-	//	panic(err)
-	//}
+	codePath := "./example/contract/counter" // 编译好的二进制文件
+	code, err := ioutil.ReadFile(codePath)
+	if err != nil {
+		panic(err)
+	}
 
 	account, err := account.RetrieveAccount("玉 脸 驱 协 介 跨 尔 籍 杆 伏 愈 即", 1)
 	if err != nil {

@@ -2,23 +2,23 @@ package main
 
 import (
 	"fmt"
-	"github.com/xuperchain/xuper-sdk-go/v2/xuper"
 	"time"
+
+	"github.com/xuperchain/xuper-sdk-go/v2/xuper"
 )
 
-//
-//	time.Sleep(time.Second * 10)
-//	reg.Unregister()
-//
-//}
+func main() {
+	testEvent()
+}
 
 func testEvent() error {
+	// 创建节点客户端
 	client, err := xuper.New("127.0.0.1:37101")
 	if err != nil {
 		return err
 	}
 	watcher := xuper.InitWatcher(client, 10, false)
-	filter, err := xuper.NewBlockFilter("xuper")
+	filter, err := xuper.NewBlockFilter("xuper") // 此处可以添加其他顾虑条件：xuper.WithContract() 等。
 	if err != nil {
 		return err
 	}
@@ -38,9 +38,6 @@ func testEvent() error {
 	time.Sleep(time.Second * 10)
 
 	reg.Unregister()
+	client.Close()
 	return nil
-}
-
-func main() {
-	testEvent()
 }
