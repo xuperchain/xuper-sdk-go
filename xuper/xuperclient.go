@@ -13,10 +13,13 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
+	"io"
 	"io/ioutil"
+	"log"
 	"math/big"
 	"regexp"
 
+	"github.com/golang/protobuf/proto"
 	"github.com/pkg/errors"
 
 	"github.com/xuperchain/xuper-sdk-go/v2/account"
@@ -469,15 +472,76 @@ func (x *XClient) PostTx(tx *Transaction) (*Transaction, error) {
 	return tx, x.postTx(tx.Tx, tx.Bcname)
 }
 
-// RegisterBlockEvent register block event and return *Registration.
-func (x *XClient) RegisterBlockEvent(filter *pb.BlockFilter, skipEmptyTx bool) (*Registration, error) {
-	watcher := InitWatcher(x, 10, false)
-	return watcher.RegisterBlockEvent(filter, skipEmptyTx)
+// WatchBlockEvent new watcher for block event.
+func (x *XClient) WatchBlockEvent(opts ...BlockEventOption) (*Watcher, error) {
+	watcher, err := x.newWatcher(opts...)
+	if err != nil {
+		return nil, err
+	}
+	buf, _ := proto.Marshal(watcher.opt.blockFilter)
+	request := &pb.SubscribeRequest{
+		Type:   pb.SubscribeType_BLOCK,
+		Filter: buf,
+	}
+
+	stream, err := x.esc.Subscribe(context.TODO(), request)
+	if err != nil {
+		return nil, err
+	}
+
+	filteredBlockChan := make(chan *FilteredBlock, watcher.opt.blockChanBufferSize)
+	exit := make(chan struct{})
+	watcher.exit = exit
+	watcher.FilteredBlockChan = filteredBlockChan
+
+	go func() {
+		defer func() {
+			close(filteredBlockChan)
+			if err := stream.CloseSend(); err != nil {
+				log.Printf("Unregister block event failed, close stream error: %v", err)
+			} else {
+				log.Printf("Unregister block event success...")
+			}
+		}()
+		for {
+			select {
+			case <-exit:
+				return
+			default:
+				event, err := stream.Recv()
+				if err == io.EOF {
+					return
+				}
+				if err != nil {
+					log.Printf("Get block event err: %v", err)
+					return
+				}
+				var block pb.FilteredBlock
+				err = proto.Unmarshal(event.Payload, &block)
+				if err != nil {
+					log.Printf("Get block event err: %v", err)
+					return
+				}
+				if len(block.GetTxs()) == 0 && watcher.opt.skipEmptyTx {
+					continue
+				}
+				filteredBlockChan <- fromFilteredBlockPB(&block)
+			}
+		}
+	}()
+	return watcher, nil
 }
 
-// Unregister unregister block event.
-func (x *XClient) Unregister(r *Registration) {
-	r.Unregister()
+func (x *XClient) newWatcher(opts ...BlockEventOption) (*Watcher, error) {
+	opt, err := initEventOpts(opts...)
+	if err != nil {
+		return nil, err
+	}
+
+	watcher := &Watcher{
+		opt: opt,
+	}
+	return watcher, nil
 }
 
 func (x *XClient) postTx(tx *pb.Transaction, bcname string) error {

@@ -8,3 +8,5 @@ output/
 
 # test
 coverage.*
+
+.DS_Store

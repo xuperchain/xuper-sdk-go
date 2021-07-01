@@ -1,36 +1,41 @@
 package xuper
 
 import (
-	"context"
+	"errors"
 	"fmt"
-	"io"
-	"log"
 
 	"github.com/xuperchain/xuperchain/core/pb"
-
-	"github.com/golang/protobuf/proto"
 )
 
 // Watcher event watcher.
 type Watcher struct {
-	*XClient
-	eventConsumerBufferSize uint
-	SkipEmptyTx             bool
-}
-
-// InitWatcher new watcher instance.
-func InitWatcher(xuperClient *XClient, eventConsumerBufferSize uint, skipEmptyTx bool) *Watcher {
-	return &Watcher{
-		xuperClient,
-		eventConsumerBufferSize,
-		skipEmptyTx,
-	}
-}
-
-// Registration registration
-type Registration struct {
 	FilteredBlockChan <-chan *FilteredBlock
 	exit              chan<- struct{}
+
+	opt *blockEventOption
+}
+
+func initEventOpts(opts ...BlockEventOption) (*blockEventOption, error) {
+	opt := &blockEventOption{
+		blockChanBufferSize: 100, // default 100.
+		blockFilter: &pb.BlockFilter{
+			Bcname: "xuper", // default xuper.
+		},
+	}
+
+	for _, param := range opts {
+		err := param(opt)
+		if err != nil {
+			return nil, fmt.Errorf("event option failed: %v", err)
+		}
+	}
+
+	return opt, nil
+}
+
+// Close close watcher.
+func (w *Watcher) Close() {
+	w.exit <- struct{}{}
 }
 
 // FilteredBlock pb.FilteredBlock
@@ -54,8 +59,7 @@ type ContractEvent struct {
 	Body     string `json:"body,omitempty"`
 }
 
-// FromFilteredBlockPB convert pb.FilteredBlock to FilteredBlock
-func FromFilteredBlockPB(pbblock *pb.FilteredBlock) *FilteredBlock {
+func fromFilteredBlockPB(pbblock *pb.FilteredBlock) *FilteredBlock {
 	block := &FilteredBlock{
 		Bcname:      pbblock.Bcname,
 		Blockid:     pbblock.Blockid,
@@ -80,167 +84,115 @@ func FromFilteredBlockPB(pbblock *pb.FilteredBlock) *FilteredBlock {
 	return block
 }
 
-// NewBlockFilter create a block filter
-func NewBlockFilter(bcname string, opts ...BlockFilterOption) (blockFilter *pb.BlockFilter, err error) {
-	blockFilter = &pb.BlockFilter{
-		Bcname: bcname,
-		Range:  &pb.BlockRange{},
-	}
+// BlockEventOption event opt.
+type BlockEventOption func(*blockEventOption) error
 
-	for _, param := range opts {
-		err := param(blockFilter)
-		if err != nil {
-			return nil, fmt.Errorf("option failed: %v", err)
-		}
-	}
+type blockEventOption struct {
+	blockFilter *pb.BlockFilter
 
-	return blockFilter, nil
+	blockChanBufferSize uint
+	skipEmptyTx         bool
 }
 
-// BlockFilterOption describes a functional parameter for the New constructor
-type BlockFilterOption func(*pb.BlockFilter) error
+// WithBlockChanBufferSize block event block channel size, default 100.
+func WithBlockChanBufferSize(size uint) BlockEventOption {
+	return func(f *blockEventOption) error {
+		if size < 0 {
+			return errors.New("Invalid size for watcher blockChanBufferSize chan")
+		}
+		f.blockChanBufferSize = size
+		return nil
+	}
+}
+
+// WithSkipEmplyTx block event skip emply tx block.
+func WithSkipEmplyTx() BlockEventOption {
+	return func(f *blockEventOption) error {
+		f.skipEmptyTx = true
+		return nil
+	}
+}
+
+// WithBlockEventBcname blockchain name.
+func WithBlockEventBcname(name string) BlockEventOption {
+	return func(f *blockEventOption) error {
+		f.blockFilter.Bcname = name
+		return nil
+	}
+}
 
 // WithContract indicates the contract name from which tx are to be received.
-func WithContract(contract string) BlockFilterOption {
-	return func(f *pb.BlockFilter) error {
-		f.Contract = contract
+func WithContract(contract string) BlockEventOption {
+	return func(f *blockEventOption) error {
+		f.blockFilter.Contract = contract
 		return nil
 	}
 }
 
 // WithEventName indicates the event name from which events are to be received.
-func WithEventName(eventName string) BlockFilterOption {
-	return func(f *pb.BlockFilter) error {
-		f.EventName = eventName
+func WithEventName(eventName string) BlockEventOption {
+	return func(f *blockEventOption) error {
+		f.blockFilter.EventName = eventName
 		return nil
 	}
 }
 
 // WithInitiator indicates the contract initiator from which tx are to be received.
-func WithInitiator(initiator string) BlockFilterOption {
-	return func(f *pb.BlockFilter) error {
-		f.Initiator = initiator
+func WithInitiator(initiator string) BlockEventOption {
+	return func(f *blockEventOption) error {
+		f.blockFilter.Initiator = initiator
 		return nil
 	}
 }
 
 // WithAuthRequire indicates the auth require from which tx are to be received.
-func WithAuthRequire(authRequire string) BlockFilterOption {
-	return func(f *pb.BlockFilter) error {
-		f.AuthRequire = authRequire
+func WithAuthRequire(authRequire string) BlockEventOption {
+	return func(f *blockEventOption) error {
+		f.blockFilter.AuthRequire = authRequire
 		return nil
 	}
 }
 
 // WithFromAddr indicates the transfer address from which tx are to be received.
-func WithFromAddr(fromAddr string) BlockFilterOption {
-	return func(f *pb.BlockFilter) error {
-		f.FromAddr = fromAddr
+func WithFromAddr(fromAddr string) BlockEventOption {
+	return func(f *blockEventOption) error {
+		f.blockFilter.FromAddr = fromAddr
 		return nil
 	}
 }
 
 // WithToAddr indicates the receiver address from which tx are to be received.
-func WithToAddr(toAddr string) BlockFilterOption {
-	return func(f *pb.BlockFilter) error {
-		f.ToAddr = toAddr
+func WithToAddr(toAddr string) BlockEventOption {
+	return func(f *blockEventOption) error {
+		f.blockFilter.ToAddr = toAddr
 		return nil
 	}
 }
 
 // WithBlockRange indicates the block range.
-func WithBlockRange(startBlock, endBlock string) BlockFilterOption {
-	return func(f *pb.BlockFilter) error {
-		f.Range.Start = startBlock
-		f.Range.End = endBlock
+func WithBlockRange(startBlock, endBlock string) BlockEventOption {
+	return func(f *blockEventOption) error {
+		if f.blockFilter.Range == nil {
+			f.blockFilter.Range = &pb.BlockRange{}
+		}
+		f.blockFilter.Range.Start = startBlock
+		f.blockFilter.Range.End = endBlock
 		return nil
 	}
 }
 
 // WithExcludeTx indicates if exclude tx.
-func WithExcludeTx(excludeTx bool) BlockFilterOption {
-	return func(f *pb.BlockFilter) error {
-		f.ExcludeTx = excludeTx
+func WithExcludeTx(excludeTx bool) BlockEventOption {
+	return func(f *blockEventOption) error {
+		f.blockFilter.ExcludeTx = excludeTx
 		return nil
 	}
 }
 
 // WithExcludeTxEvent indicates if exclude tx event.
-func WithExcludeTxEvent(excludeTxEvent bool) BlockFilterOption {
-	return func(f *pb.BlockFilter) error {
-		f.ExcludeTxEvent = excludeTxEvent
+func WithExcludeTxEvent(excludeTxEvent bool) BlockEventOption {
+	return func(f *blockEventOption) error {
+		f.blockFilter.ExcludeTxEvent = excludeTxEvent
 		return nil
 	}
-}
-
-// RegisterBlockEvent registers for block events.
-// Registration.Unregister must be called when the registration is no longer needed.
-//  Parameters:
-//  filter is an optional filter that filters out unwanted events.
-//
-//  Returns:
-//  the registration is used to receive events. The channel is closed when Unregister is called.
-func (w *Watcher) RegisterBlockEvent(filter *pb.BlockFilter, skipEmptyTx bool) (*Registration, error) {
-	buf, _ := proto.Marshal(filter)
-	request := &pb.SubscribeRequest{
-		Type:   pb.SubscribeType_BLOCK,
-		Filter: buf,
-	}
-
-	xclient := w.XClient.esc
-	stream, err := xclient.Subscribe(context.TODO(), request)
-	if err != nil {
-		return nil, err
-	}
-
-	filteredBlockChan := make(chan *FilteredBlock, w.eventConsumerBufferSize)
-	exit := make(chan struct{})
-	reg := &Registration{
-		FilteredBlockChan: filteredBlockChan,
-		exit:              exit,
-	}
-
-	go func() {
-		defer func() {
-			close(filteredBlockChan)
-			if err := stream.CloseSend(); err != nil {
-				log.Printf("Unregister block event failed, close stream error: %v", err)
-			} else {
-				log.Printf("Unregister block event success...")
-			}
-		}()
-		for {
-			select {
-			case <-exit:
-				return
-			default:
-				event, err := stream.Recv()
-				if err == io.EOF {
-					return
-				}
-				if err != nil {
-					log.Printf("Get block event err: %v", err)
-					return
-				}
-				var block pb.FilteredBlock
-				err = proto.Unmarshal(event.Payload, &block)
-				if err != nil {
-					log.Printf("Get block event err: %v", err)
-					return
-				}
-				if len(block.GetTxs()) == 0 && skipEmptyTx {
-					continue
-				}
-				filteredBlockChan <- FromFilteredBlockPB(&block)
-			}
-		}
-	}()
-	return reg, nil
-}
-
-// Unregister removes the given registration and closes the event channel.
-//  Parameters:
-//  reg is the registration handle that was returned from RegisterBlockEvent
-func (r *Registration) Unregister() {
-	r.exit <- struct{}{}
 }

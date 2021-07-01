@@ -107,17 +107,17 @@ func CreateAndSaveAccountToFile(path, passwd string, strength uint8, language in
 //   |-- private.key
 //   |-- public.key
 func GetAccountFromPlainFile(path string) (*Account, error) {
-	addr, err := ioutil.ReadFile(filepath.Join(path, "/address"))
+	addr, err := ioutil.ReadFile(filepath.Join(path, "address"))
 	if err != nil {
 		log.Printf("GetAccountFromPlainFile error load address error = %v", err)
 		return nil, err
 	}
-	pubkey, err := ioutil.ReadFile(filepath.Join(path, "/public.key"))
+	pubkey, err := ioutil.ReadFile(filepath.Join(path, "public.key"))
 	if err != nil {
 		log.Printf("GetAccountFromPlainFile error load pubkey error = %v", err)
 		return nil, err
 	}
-	prikey, err := ioutil.ReadFile(filepath.Join(path, "/private.key"))
+	prikey, err := ioutil.ReadFile(filepath.Join(path, "private.key"))
 	if err != nil {
 		log.Printf("GetAccountFromPlainFile error load prikey error = %v", err)
 		return nil, err

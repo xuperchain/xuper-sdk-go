@@ -12,32 +12,34 @@ func main() {
 }
 
 func testEvent() error {
-	// 创建节点客户端
-	client, err := xuper.New("127.0.0.1:37101")
-	if err != nil {
-		return err
-	}
-	watcher := xuper.InitWatcher(client, 10, false)
-	filter, err := xuper.NewBlockFilter("xuper") // 此处可以添加其他顾虑条件：xuper.WithContract() 等。
+	// 创建节点客户端。
+	// client, err := xuper.New("127.0.0.1:37101")
+	client, err := xuper.New("10.12.199.82:8701")
 	if err != nil {
 		return err
 	}
 
-	reg, err := watcher.RegisterBlockEvent(filter, watcher.SkipEmptyTx)
+	// 监听时间，返回 Watcher，通过 Watche 中的 channel 获取block。
+	watcher, err := client.WatchBlockEvent(xuper.WithSkipEmplyTx())
 	if err != nil {
 		return err
 	}
 
 	go func() {
 		for {
-			b := <-reg.FilteredBlockChan
+			b, ok := <-watcher.FilteredBlockChan
+			if !ok {
+				fmt.Println("watch block event channel closed.")
+				return
+			}
 			fmt.Printf("%+v\n", b)
 		}
 	}()
 
-	time.Sleep(time.Second * 10)
+	time.Sleep(time.Second * 3)
 
-	reg.Unregister()
+	// 关闭监听。
+	watcher.Close()
 	client.Close()
 	return nil
 }

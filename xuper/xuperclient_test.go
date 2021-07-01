@@ -60,39 +60,25 @@ func newClient() *XClient {
 	return xclient
 }
 
-func TestXClient_RegisterBlockEvent(t *testing.T) {
+func TestXClient_WatchBlockEvent(t *testing.T) {
 	client := newClient()
-	watcher := InitWatcher(client, 10, false)
-
-	filter, err := NewBlockFilter("xuper")
+	watcher, err := client.WatchBlockEvent()
 	if err != nil {
-		t.Fatalf("create block filter err: %v\n", err)
-	}
-
-	reg, err := watcher.RegisterBlockEvent(filter, watcher.SkipEmptyTx)
-	if err != nil {
-		t.Error("RegisterBlockEvent")
 		t.Error(err)
 	}
 
-	_, err = client.RegisterBlockEvent(filter, false)
-	if err != nil {
-		t.Error("RegisterBlockEvent")
-		t.Error(err)
-	}
-
-	if testNode != "" {
-		go func() {
-			for {
-				b := <-reg.FilteredBlockChan
-				fmt.Printf("%+v\n", b)
+	go func() {
+		select {
+		case _, ok := <-watcher.FilteredBlockChan:
+			if !ok {
+				t.Error("unexpected closed channel")
 			}
-		}()
-		time.Sleep(time.Second * 1)
-		go func() {
-			reg.Unregister()
-		}()
-	}
+		case <-time.After(5 * time.Second):
+			t.Error("timed out waiting for block event")
+		}
+	}()
+
+	time.Sleep(time.Second * 5)
 }
 
 func TestXClient_QueryTxByID(t *testing.T) {
