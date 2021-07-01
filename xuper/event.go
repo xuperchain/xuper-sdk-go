@@ -35,7 +35,7 @@ func initEventOpts(opts ...BlockEventOption) (*blockEventOption, error) {
 
 // Close close watcher.
 func (w *Watcher) Close() {
-	w.exit <- struct{}{}
+	close(w.exit)
 }
 
 // FilteredBlock pb.FilteredBlock
