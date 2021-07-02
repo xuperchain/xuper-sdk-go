@@ -195,7 +195,7 @@ func NewDeployContractRequest(from *account.Account, name string, abi, code []by
 	return NewRequest(from, Xkernel3Module, "", XkernelDeployMethod, reqArgs, "", "", opts...)
 }
 
-// NewInvokeContractRequest new
+// NewInvokeContractRequest new request for invoke contract, wasm, evm and native.
 func NewInvokeContractRequest(from *account.Account, module, name, method string, args map[string]string, opts ...RequestOption) (*Request, error) {
 	if from == nil {
 		return nil, errors.New("invalid initiator")
@@ -227,7 +227,7 @@ func NewUpgradeContractRequest(from *account.Account, module, name string, code 
 	return NewRequest(from, Xkernel3Module, name, XkernelUpgradeMethod, reqArgs, "", "", opts...)
 }
 
-// NewCreateContractAccountRequest new
+// NewCreateContractAccountRequest new request for create contract account.
 func NewCreateContractAccountRequest(from *account.Account, contractAccount string, opts ...RequestOption) (*Request, error) {
 	if from == nil || from.HasContractAccount() {
 		return nil, common.ErrInvalidAccount
@@ -244,7 +244,7 @@ func NewCreateContractAccountRequest(from *account.Account, contractAccount stri
 	return NewRequest(from, Xkernel3Module, "", XkernelNewAccountMethod, args, "", "", opts...)
 }
 
-// NewSetMethodACLRequest new
+// NewSetMethodACLRequest new request for set method ACL.
 func NewSetMethodACLRequest(from *account.Account, name, method string, acl *ACL, opts ...RequestOption) (*Request, error) {
 	if from == nil {
 		return nil, common.ErrInvalidAccount
@@ -265,7 +265,7 @@ func NewSetMethodACLRequest(from *account.Account, name, method string, acl *ACL
 	return NewRequest(from, Xkernel3Module, "", XkernelSetMethodACLMethod, args, "", "", opts...)
 }
 
-// NewSetAccountACLRequest new
+// NewSetAccountACLRequest new request for set contract account acl.
 func NewSetAccountACLRequest(from *account.Account, acl *ACL, opts ...RequestOption) (*Request, error) {
 	if from == nil || !from.HasContractAccount() {
 		return nil, common.ErrInvalidAccount
