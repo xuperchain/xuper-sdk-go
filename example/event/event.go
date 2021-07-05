@@ -13,8 +13,7 @@ func main() {
 
 func testEvent() error {
 	// 创建节点客户端。
-	// client, err := xuper.New("127.0.0.1:37101")
-	client, err := xuper.New("10.12.199.82:8701")
+	client, err := xuper.New("127.0.0.1:37101")
 	if err != nil {
 		return err
 	}
