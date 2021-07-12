@@ -546,7 +546,7 @@ func TestDeployContract(t *testing.T) {
 					t.Error(err)
 				}
 
-				_, err = xc.UpgradeNativeContract(c.from, c.name, c.code, c.args, c.opts...)
+				_, err = xc.UpgradeNativeContract(c.from, c.name, c.code, c.opts...)
 				if err != nil {
 					t.Error(err)
 				}
@@ -562,7 +562,7 @@ func TestDeployContract(t *testing.T) {
 					t.Error(err)
 				}
 
-				_, err = xc.UpgradeWasmContract(c.from, c.name, c.code, c.args, c.opts...)
+				_, err = xc.UpgradeWasmContract(c.from, c.name, c.code, c.opts...)
 				if err != nil {
 					t.Error(err)
 				}
@@ -784,7 +784,7 @@ func TestACLSet(t *testing.T) {
 			name:   "hello",
 			method: "a",
 			acl:    getDefaultACL("a"),
-			opts:   []RequestOption{WithContractInvokeAmount("10")},
+			opts:   []RequestOption{},
 			cfg: &config.CommConfig{
 				ComplianceCheck: config.ComplianceCheckConfig{
 					IsNeedComplianceCheck:                true,
@@ -910,7 +910,7 @@ func TestCreateAccount(t *testing.T) {
 			from:    aks[1],
 			account: "XC1234567812345678@xuper",
 			acl:     getDefaultACL("a"),
-			opts:    []RequestOption{WithContractInvokeAmount("10")},
+			opts:    []RequestOption{},
 			cfg: &config.CommConfig{
 				ComplianceCheck: config.ComplianceCheckConfig{
 					IsNeedComplianceCheck:                true,

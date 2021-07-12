@@ -237,8 +237,8 @@ func (x *XClient) DeployEVMContract(from *account.Account, name string, abi, bin
 //   - `name`: Contract name.
 //   - `code`: Contract code bytes.
 //   - `args`: Contract init args.
-func (x *XClient) UpgradeWasmContract(from *account.Account, name string, code []byte, args map[string]string, opts ...RequestOption) (*Transaction, error) {
-	req, err := NewUpgradeContractRequest(from, WasmContractModule, name, code, args, opts...)
+func (x *XClient) UpgradeWasmContract(from *account.Account, name string, code []byte, opts ...RequestOption) (*Transaction, error) {
+	req, err := NewUpgradeContractRequest(from, WasmContractModule, name, code, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -253,8 +253,8 @@ func (x *XClient) UpgradeWasmContract(from *account.Account, name string, code [
 //   - `name`: Contract name.
 //   - `code`: Contract code bytes.
 //   - `args`: Contract init args.
-func (x *XClient) UpgradeNativeContract(from *account.Account, name string, code []byte, args map[string]string, opts ...RequestOption) (*Transaction, error) {
-	req, err := NewUpgradeContractRequest(from, NativeContractModule, name, code, args, opts...)
+func (x *XClient) UpgradeNativeContract(from *account.Account, name string, code []byte, opts ...RequestOption) (*Transaction, error) {
+	req, err := NewUpgradeContractRequest(from, NativeContractModule, name, code, opts...)
 	if err != nil {
 		return nil, err
 	}

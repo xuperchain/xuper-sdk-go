@@ -261,7 +261,7 @@ func (x *XClient) queryBalance(address string, opts ...QueryOption) (*big.Int, e
 			}
 			bal, ok := big.NewInt(0).SetString(v.GetBalance(), 10)
 			if !ok {
-				return nil, errors.New("invalid balabce query from chain")
+				return nil, errors.New("invalid balance query from chain")
 			}
 			return bal, nil
 		}
@@ -315,7 +315,7 @@ func (x *XClient) queryBalanceDetail(address string, opts ...QueryOption) ([]*Ba
 		}
 	}
 
-	return nil, fmt.Errorf("Can not query balabce detail for bcname: %s", bcname)
+	return nil, fmt.Errorf("Can not query balance detail for bcname: %s", bcname)
 }
 
 func (x *XClient) querySystemStatus(opts ...QueryOption) (*pb.SystemsStatusReply, error) {

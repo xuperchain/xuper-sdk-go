@@ -192,7 +192,7 @@ func NewDeployContractRequest(from *account.Account, name string, abi, code []by
 
 	reqArgs := generateDeployArgs(args, abi, code, contractType, runtime, from.GetContractAccount(), name)
 
-	return NewRequest(from, Xkernel3Module, "", XkernelDeployMethod, reqArgs, "", "", opts...)
+	return NewRequest(from, Xkernel3Module, name, XkernelDeployMethod, reqArgs, "", "", opts...)
 }
 
 // NewInvokeContractRequest new request for invoke contract, wasm, evm and native.
@@ -214,7 +214,7 @@ func NewInvokeContractRequest(from *account.Account, module, name, method string
 }
 
 // NewUpgradeContractRequest new upgrade contract request. NOTE: evm contract upgrade disabled!
-func NewUpgradeContractRequest(from *account.Account, module, name string, code []byte, args map[string]string, opts ...RequestOption) (*Request, error) {
+func NewUpgradeContractRequest(from *account.Account, module, name string, code []byte, opts ...RequestOption) (*Request, error) {
 	if from == nil || !from.HasContractAccount() {
 		return nil, common.ErrInvalidAccount
 	}
@@ -223,7 +223,7 @@ func NewUpgradeContractRequest(from *account.Account, module, name string, code 
 		return nil, common.ErrInvalidParam
 	}
 
-	reqArgs := generateDeployArgs(args, nil, code, module, "", from.GetContractAccount(), name)
+	reqArgs := generateDeployArgs(nil, nil, code, module, "", from.GetContractAccount(), name)
 	return NewRequest(from, Xkernel3Module, name, XkernelUpgradeMethod, reqArgs, "", "", opts...)
 }
 

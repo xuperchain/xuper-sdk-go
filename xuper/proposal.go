@@ -710,6 +710,10 @@ func (p *Proposal) getInitiator() string {
 
 func (p *Proposal) genInvokeRequests() ([]*pb.InvokeRequest, error) {
 	r := p.request
+	if r.contractName == "" && r.opt.contractInvokeAmount != "" {
+		return nil, errors.New("can not set contract invoke amount")
+	}
+
 	if r.module == "" {
 		return nil, nil
 	}

@@ -54,7 +54,7 @@ func testWasmContract() {
 	}
 	fmt.Printf("Invoke Wasm Contract Success! TxID:%x\n", tx.Tx.Txid)
 
-	tx, err = xuperClient.QueryWasmContract(account, contractName, "increase", args)
+	tx, err = xuperClient.QueryWasmContract(account, contractName, "get", args)
 	if err != nil {
 		panic(err)
 	}
@@ -99,14 +99,13 @@ func testEVMContract() {
 	}
 	fmt.Printf("DeployEVMContract SUCCESS! %x\n", tx.Tx.Txid)
 
-	method := "increase"
-	tx, err = xchainClient.InvokeEVMContract(account, contractName, method, args)
+	tx, err = xchainClient.InvokeEVMContract(account, contractName, "increase", args)
 	if err != nil {
 		panic(err)
 	}
 	fmt.Printf("InvokeEVMContract SUCCESS! %x\n", tx.Tx.Txid)
 
-	tx, err = xchainClient.QueryEVMContract(account, contractName, method, args)
+	tx, err = xchainClient.QueryEVMContract(account, contractName, "get", args)
 	if err != nil {
 		panic(err)
 	}
@@ -148,14 +147,13 @@ func testNativeContract() {
 	}
 	fmt.Printf("Deploy Native Go Contract Success! %x\n", tx.Tx.Txid)
 
-	method := "increase"
-	tx, err = xchainClient.InvokeNativeContract(account, contractName, method, args)
+	tx, err = xchainClient.InvokeNativeContract(account, contractName, "increase", args)
 	if err != nil {
 		panic(err)
 	}
 	fmt.Printf("Invoke Native Go Contract Success! %x\n", tx.Tx.Txid)
 
-	tx, err = xchainClient.QueryNativeContract(account, contractName, method, args)
+	tx, err = xchainClient.QueryNativeContract(account, contractName, "get", args)
 	if err != nil {
 		panic(err)
 	}
