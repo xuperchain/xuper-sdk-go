@@ -137,11 +137,11 @@ func (x *XClient) queryAccountACL(account string, opts ...QueryOption) (*ACL, er
 
 	acl := &ACL{}
 	pm := PermissionModel{}
-	pm.Rule = int32(aclStatus.Acl.Pm.Rule) // 类型别名转换
-	pm.AcceptValue = aclStatus.Acl.Pm.AcceptValue
+	pm.Rule = int32(aclStatus.GetAcl().GetPm().GetRule())
+	pm.AcceptValue = aclStatus.GetAcl().GetPm().GetAcceptValue()
 
 	acl.PM = pm
-	acl.AksWeight = aclStatus.Acl.AksWeight
+	acl.AksWeight = aclStatus.GetAcl().GetAksWeight()
 	return acl, nil
 
 }
@@ -174,10 +174,10 @@ func (x *XClient) queryMethodACL(name, method string, opts ...QueryOption) (*ACL
 	acl := &ACL{}
 	pm := PermissionModel{}
 	pm.Rule = int32(aclStatus.GetAcl().GetPm().GetRule())
-	pm.AcceptValue = aclStatus.Acl.Pm.AcceptValue
+	pm.AcceptValue = aclStatus.GetAcl().GetPm().GetAcceptValue()
 
 	acl.PM = pm
-	acl.AksWeight = aclStatus.Acl.AksWeight
+	acl.AksWeight = aclStatus.GetAcl().GetAksWeight()
 	return acl, nil
 }
 
