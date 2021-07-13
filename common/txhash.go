@@ -1,16 +1,16 @@
 package common
 
 import (
-	"github.com/xuperchain/xuperchain/core/pb"
-	"github.com/xuperchain/xuperchain/core/utxo/txhash"
+	"github.com/xuperchain/xuperchain/service/common"
+	"github.com/xuperchain/xuperchain/service/pb"
 )
 
 // MakeTransactionID 计算交易ID，包括签名。
 func MakeTransactionID(tx *pb.Transaction) ([]byte, error) {
-	return txhash.MakeTransactionID(tx)
+	return common.MakeTxId(tx)
 }
 
 // MakeTxDigestHash 计算交易哈希，不包括签名。
 func MakeTxDigestHash(tx *pb.Transaction) ([]byte, error) {
-	return txhash.MakeTxDigestHash(tx)
+	return common.MakeTxDigestHash(tx)
 }

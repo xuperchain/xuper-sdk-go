@@ -8,7 +8,7 @@ import (
 	"github.com/xuperchain/xuper-sdk-go/v2/common"
 	"github.com/xuperchain/xuper-sdk-go/v2/crypto"
 
-	"github.com/xuperchain/xuperchain/core/pb"
+	"github.com/xuperchain/xuperchain/service/pb"
 )
 
 // Transaction xuperchain transaction.

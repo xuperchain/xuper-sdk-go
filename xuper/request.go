@@ -9,7 +9,7 @@ import (
 
 	"github.com/xuperchain/xuper-sdk-go/v2/account"
 	"github.com/xuperchain/xuper-sdk-go/v2/common"
-	"github.com/xuperchain/xuperchain/core/pb"
+	"github.com/xuperchain/xuperchain/service/pb"
 )
 
 // Request xuperchain transaction request.

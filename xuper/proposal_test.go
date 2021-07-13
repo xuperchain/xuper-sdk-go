@@ -11,7 +11,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/xuperchain/xuper-sdk-go/v2/account"
 	"github.com/xuperchain/xuper-sdk-go/v2/common/config"
-	"github.com/xuperchain/xuperchain/core/pb"
+	"github.com/xuperchain/xuperchain/service/pb"
 	"google.golang.org/grpc"
 )
 
@@ -378,6 +378,8 @@ type MockXchainClient interface {
 	pb.XchainClient
 }
 
+var _ MockXchainClient = new(MockXClient)
+
 // 实现 MockXchainClient 接口，
 type MockXClient struct {
 }
@@ -509,6 +511,10 @@ func (mcx *MockXClient) GetSystemStatus(ctx context.Context, in *pb.CommonIn, op
 		Header:        newHeader(),
 		SystemsStatus: &pb.SystemsStatus{},
 	}, nil
+}
+
+func (mcx *MockXClient) GetConsensusStatus(ctx context.Context, in *pb.ConsensusStatRequest, opts ...grpc.CallOption) (*pb.ConsensusStatus, error) {
+	return nil, nil
 }
 
 // GetNetURL return net url

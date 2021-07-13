@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/xuperchain/xuperchain/core/pb"
+	"github.com/xuperchain/xuperchain/service/pb"
 )
 
 // Watcher event watcher.
