@@ -192,7 +192,7 @@ func NewDeployContractRequest(from *account.Account, name string, abi, code []by
 
 	reqArgs := generateDeployArgs(args, abi, code, contractType, runtime, from.GetContractAccount(), name)
 
-	return NewRequest(from, Xkernel3Module, name, XkernelDeployMethod, reqArgs, "", "", opts...)
+	return NewRequest(from, Xkernel3Module, "", XkernelDeployMethod, reqArgs, "", "", opts...)
 }
 
 // NewInvokeContractRequest new request for invoke contract, wasm, evm and native.
@@ -224,7 +224,7 @@ func NewUpgradeContractRequest(from *account.Account, module, name string, code 
 	}
 
 	reqArgs := generateDeployArgs(nil, nil, code, module, "", from.GetContractAccount(), name)
-	return NewRequest(from, Xkernel3Module, name, XkernelUpgradeMethod, reqArgs, "", "", opts...)
+	return NewRequest(from, Xkernel3Module, "", XkernelUpgradeMethod, reqArgs, "", "", opts...)
 }
 
 // NewCreateContractAccountRequest new request for create contract account.
