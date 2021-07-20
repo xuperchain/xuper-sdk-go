@@ -1,7 +1,10 @@
 
-# Xuper-SDK XuperUnion Client SDK for Go
-This SDK enables Go developers to build solutions that interact with open chain network of XuperUnion.
+# xuper-sdk-go XuperChain Client SDK for Go
+This SDK enables Go developers to build solutions that interact with open chain network of XuperChain.
 
+[![GoDoc](https://pkg.go.dev/badge/github.com/xuperchain/xuper-sdk-go-go?utm_source=godoc)](https://pkg.go.dev/github.com/xuperchain/xuper-sdk-go-go)
+[![Go Report Card](https://goreportcard.com/badge/github.com/xuperchain/xuper-sdk-go-go)](https://goreportcard.com/report/github.com/xuperchain/xuper-sdk-go-go)
+[![License](https://img.shields.io/github/license/xuperchain/xuper-sdk-go-go?style=flat-square)](/LICENSE)
 
 # Getting started
 ## Requirements
@@ -13,36 +16,41 @@ This SDK enables Go developers to build solutions that interact with open chain 
 
 ## Simple use samples
 
-Get Xuper-SDK
+Get xuper-sdk-go
 ```bash
-git clone https://github.com/xuperchain/xuper-sdk-go
+git clone https://github.com/xuperchain/xuper-sdk-go-go
 
-cd xuper-sdk-go
+cd xuper-sdk-go-go
 ```
 
-Run
+Run test
 ```bash
 make
-./sample
 ```
-# Document
-More detailed and in-depth use of xuper SDK [wiki](https://github.com/xuperchain/xuper-sdk-go/wiki)
 
-# Contributing to the Xuper-SDK
+Use go get xuper-sdk-go
+```bash
+go get github.com/xuperchain/xuper-sdk-go-go/v2
+```
+
+## example
+xuper-go-sdk more [example](https://github.com/xuperchain/xuper-sdk-go-go/tree/master/example)
+
+# Contributing to the xuper-sdk-go
 If you want to contribute to xuper SDK, 
 please read the source code, understand the current technology, and then develop it.
 After the completion of development, the corresponding test cases shall be supplemented.
 Initiate pull request.
 
 # License
-Xuper-SDK software is licensed under [Apache License, Version 2.0](https://github.com/xuperchain/xuper-sdk-go/blob/master/LICENSE)
+xuper-sdk-go software is licensed under [Apache License, Version 2.0](https://github.com/xuperchain/xuper-sdk-go-go/blob/master/LICENSE)
 
 # Contact us
-If you're interested in xuper-SDK, welcome to join us and develop together
+If you're interested in xuper-sdk-go, welcome to join us and develop together
 
 
-# XuperUnion go语言的客户端Xuper-SDK
-SDK可以使go的开发者更好的与XuperUnion的公开链网络进行交互
+# XuperChain go语言的客户端xuper-sdk-go
+SDK 可以使 go 的开发者更好的与 XuperChain 的公开链网络进行交互以及其他 XuperChain 的节点。
 
 # Getting started
 ## 环境配置
@@ -54,32 +62,36 @@ SDK可以使go的开发者更好的与XuperUnion的公开链网络进行交互
 
 ## 使用
 
-克隆Xuper-SDK仓库
+克隆xuper-sdk-go仓库
 ```
-git clone https://github.com/xuperchain/xuper-sdk-go
+git clone https://github.com/xuperchain/xuper-sdk-go-go
 
-cd xuper-sdk-go
+cd xuper-sdk-go-go
 ```
 
-运行
+运行测试
 ```bash
 make
-./sample
 ```
 
-# 文档
-关于Xuper-SDK更详细、更深入的使用方法链接：[wiki](https://github.com/xuperchain/xuper-sdk-go/wiki)
+使用 go get 安装 xuper-sdk-go
+```bash
+go get github.com/xuperchain/xuper-sdk-go-go/v2
+```
 
-# 如何参与开发Xuper-SDK
-如果您想为xuper-sdk-go做贡献
+## 示例
+xuper-go-sdk 使用示例请参考[example](https://github.com/xuperchain/xuper-sdk-go-go/tree/master/example)
+
+# 如何参与开发xuper-sdk-go
+如果您想为xuper-sdk-go-go做贡献
 请阅读源代码，了解当前技术之后，进行开发
 开发完毕后，补充相应test caset
 发起pull request
 
 # 许可证
-Xuper-SDK使用的许可证是[Apache License, Version 2.0](https://github.com/xuperchain/xuper-sdk-go/blob/master/LICENSE)
+xuper-sdk-go使用的许可证是[Apache License, Version 2.0](https://github.com/xuperchain/xuper-sdk-go-go/blob/master/LICENSE)
 
 # 联系我们
-如果你对Xuper-SDK感兴趣，欢迎加入我们，共同开发
+如果你对xuper-sdk-go感兴趣，欢迎加入我们，共同开发
 
 
