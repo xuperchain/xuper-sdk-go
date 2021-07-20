@@ -1,13 +1,14 @@
-module github.com/xuperchain/xuper-sdk-go
+module github.com/xuperchain/xuper-sdk-go/v2
 
-go 1.12
+go 1.16
 
 require (
 	github.com/btcsuite/btcutil v0.0.0-20190425235716-9e5f4b9a998d
-	github.com/golang/protobuf v1.3.3
+	github.com/golang/protobuf v1.4.2
 	github.com/hyperledger/burrow v0.30.5
-	github.com/xuperchain/crypto v0.0.0-20200701044454-40fff89406a7
-	google.golang.org/genproto v0.0.0-20190927181202-20e1ac93f88c
-	google.golang.org/grpc v1.27.1
+	github.com/pkg/errors v0.9.1
+	github.com/xuperchain/crypto v0.0.0-20201028025054-4d560674bcd6
+	github.com/xuperchain/xuperchain v0.0.0-20210708031936-951e4ade7bdd
+	google.golang.org/grpc v1.33.1
 	gopkg.in/yaml.v2 v2.3.0
 )

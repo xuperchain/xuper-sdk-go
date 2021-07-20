@@ -1,6 +1,6 @@
 // Copyright (c) 2019. Baidu Inc. All Rights Reserved.
 
-// package common is related to common variables and utils funcs
+// Package common is related to common variables and utils funcs
 package common
 
 import (
@@ -18,7 +18,7 @@ import (
 
 const (
 	// TxVersion tx version number
-	TxVersion = 1
+	TxVersion = 3
 )
 
 // GetNonce get nonce value
