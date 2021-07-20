@@ -281,10 +281,11 @@ func (x *XClient) queryBalanceDetail(address string, opts ...QueryOption) ([]*Ba
 	if err != nil {
 		return nil, err
 	}
-
+	tfds := []*pb.TokenFrozenDetails{{Bcname: getBCname(opt)}}
 	ctx := context.Background()
 	addressBalanceStatus := &pb.AddressBalanceStatus{
 		Address: address,
+		Tfds:    tfds,
 	}
 
 	bs, err := x.xc.GetBalanceDetail(ctx, addressBalanceStatus)
