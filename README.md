@@ -2,9 +2,9 @@
 # xuper-sdk-go XuperChain Client SDK for Go
 This SDK enables Go developers to build solutions that interact with open chain network of XuperChain.
 
-[![GoDoc](https://pkg.go.dev/badge/github.com/xuperchain/xuper-sdk-go-go?utm_source=godoc)](https://pkg.go.dev/github.com/xuperchain/xuper-sdk-go-go)
-[![Go Report Card](https://goreportcard.com/badge/github.com/xuperchain/xuper-sdk-go-go)](https://goreportcard.com/report/github.com/xuperchain/xuper-sdk-go-go)
-[![License](https://img.shields.io/github/license/xuperchain/xuper-sdk-go-go?style=flat-square)](/LICENSE)
+[![GoDoc](https://pkg.go.dev/badge/github.com/xuperchain/xuper-sdk-go?utm_source=godoc)](https://pkg.go.dev/github.com/xuperchain/xuper-sdk-go/v2)
+[![Go Report Card](https://goreportcard.com/badge/github.com/xuperchain/xuper-sdk-go)](https://goreportcard.com/report/github.com/xuperchain/xuper-sdk-go)
+[![License](https://img.shields.io/github/license/xuperchain/xuper-sdk-go?style=flat-square)](/LICENSE)
 
 # Getting started
 ## Requirements
