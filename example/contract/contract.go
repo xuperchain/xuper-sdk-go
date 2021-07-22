@@ -109,7 +109,7 @@ func testEVMContract() {
 	if err != nil {
 		panic(err)
 	}
-	fmt.Printf("QueryEVMContract SUCCESS! %x\n", tx.Tx.Txid)
+	fmt.Printf("InvokeEVMContract Success! Response:%s\n", tx.ContractResponse.Body)
 
 }
 
