@@ -15,3 +15,4 @@ complianceCheck:
 #创建平行链所需要的最低费用
 minNewChainAmount: "100"
 crypto: "xchain"
+txVersion: 1

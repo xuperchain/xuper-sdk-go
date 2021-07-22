@@ -39,7 +39,8 @@ var (
 )
 
 // XchainToEVMAddress xchain address transfer to evm address: xchainAddr can be xchain contract account, AK address, xchain contract name.
-// return: evm address, address type, error.
+//
+// Return: evm address, address type, error.
 func XchainToEVMAddress(xchainAddr string) (string, string, error) {
 	var addr crypto.Address
 	var addrType string
@@ -63,7 +64,8 @@ func XchainToEVMAddress(xchainAddr string) (string, string, error) {
 }
 
 // EVMToXchainAddress evm address transfer to xchain address: evmAddr can be evm contract account, AK address, xchain contract name.
-// return: xchain address, address type, error.
+//
+// Return: xchain address, address type, error.
 func EVMToXchainAddress(evmAddr string) (string, string, error) {
 	eAddr, err := crypto.AddressFromHexString(evmAddr)
 	if err != nil {
@@ -213,25 +215,6 @@ func validRawAccount(accountName string) error {
 // determine whether it is a contract name
 func determineContractName(contractName string) error {
 	return validContractName(contractName)
-}
-
-// determine whether it is a contract name
-func determineContractNameFromEVM(evmAddr crypto.Address) (string, error) {
-	var addr string
-	var err error
-
-	evmAddrWithPrefix := evmAddr.Bytes()
-	evmAddrStrWithPrefix := string(evmAddrWithPrefix)
-	if evmAddrStrWithPrefix[0:4] != contractNamePrefixs {
-		return "", fmt.Errorf("not a valid contract name from evm")
-	}
-	addr, err = evmAddressToContractName(evmAddr)
-
-	if err != nil {
-		return "", err
-	}
-
-	return addr, nil
 }
 
 func validContractName(contractName string) error {

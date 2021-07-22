@@ -1,6 +1,6 @@
 // Copyright (c) 2019. Baidu Inc. All Rights Reserved.
 
-// package common is related to common variables and utils funcs
+// Package common is related to common variables and utils funcs
 package common
 
 import (
@@ -14,8 +14,12 @@ var (
 	ErrTxNotFound = errors.New("tx not found")
 	// ErrInvalidAccount invalid account
 	ErrInvalidAccount = errors.New("invalid account")
-	// ErrInvalidContractAccount
+	// ErrInvalidContractAccount contract account invalid
 	ErrInvalidContractAccount = errors.New("conrtact account must be numbers of length 16")
-	// ErrAmountNotEnough
+	// ErrAmountNotEnough amount invalid
 	ErrAmountNotEnough = errors.New("Amount must be bigger than compliancecheck fee which is 10")
+	//ErrInvalidInitiator from account invalid
+	ErrInvalidInitiator = errors.New("From account can not be nil")
+	// ErrInvalidParam param invalid
+	ErrInvalidParam = errors.New("Parmeter invalid")
 )

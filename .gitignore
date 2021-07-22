@@ -5,3 +5,8 @@
 output/
 /.project
 /.gitignore
+
+# test
+coverage.*
+
+.DS_Store
