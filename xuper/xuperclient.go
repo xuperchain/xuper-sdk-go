@@ -651,11 +651,8 @@ func (x *XClient) QueryBlockChains(opts ...QueryOption) ([]string, error) {
 }
 
 // QueryBlockChainStatus query the block chain status
-//
-// Parameters:
-//   - `chainName`  : chainName
-func (x *XClient) QueryBlockChainStatus(chainName string, opts ...QueryOption) (*pb.BCStatus, error) {
-	return x.queryBlockChainStatus(chainName)
+func (x *XClient) QueryBlockChainStatus(opts ...QueryOption) (*pb.BCStatus, error) {
+	return x.queryBlockChainStatus(opts...)
 }
 
 // QueryNetURL query the net URL
