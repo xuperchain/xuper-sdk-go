@@ -579,6 +579,10 @@ func (x *XClient) QueryBlockByID(blockID string, opts ...QueryOption) (*pb.Block
 	return x.queryBlockByID(blockID, opts...)
 }
 
+func (x *XClient) QueryContractCount(opts ...QueryOption) (*pb.ContractStatDataResponse, error) {
+	return x.queryContractCount(opts...)
+}
+
 // QueryBlockByHeight query the block by block height
 //
 // Parameters:
