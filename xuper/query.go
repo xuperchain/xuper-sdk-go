@@ -95,10 +95,9 @@ func (x *XClient) queryContractCount(opts ...QueryOption) (*pb.ContractStatDataR
 	if err != nil {
 		return nil, err
 	}
-
 	request := &pb.ContractStatDataRequest{
 		Header: &pb.Header{},
-		Bcname: opt.bcname,
+		Bcname: getBCname(opt),
 	}
 
 	reply, err := x.xc.QueryContractStatData(context.TODO(), request)
