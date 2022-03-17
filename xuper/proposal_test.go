@@ -736,3 +736,11 @@ func (x *eventServiceSubscribeClient) Recv() (*pb.Event, error) {
 func (mesc *MockESClient) Subscribe(ctx context.Context, in *pb.SubscribeRequest, opts ...grpc.CallOption) (pb.EventService_SubscribeClient, error) {
 	return &eventServiceSubscribeClient{}, nil
 }
+
+func (client *MockXClient) EstimateGas(context.Context, *pb.InvokeRPCRequest, ...grpc.CallOption) (*pb.InvokeRPCResponse, error) {
+	return &pb.InvokeRPCResponse{}, nil
+}
+
+func (client *MockXClient) EstimateGasWithSelectUtxo(context.Context, *pb.PreExecWithSelectUTXORequest, ...grpc.CallOption) (*pb.PreExecWithSelectUTXOResponse, error) {
+	return &pb.PreExecWithSelectUTXOResponse{}, nil
+}

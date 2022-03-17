@@ -119,6 +119,7 @@ func WithDesc(desc string) RequestOption {
 	}
 }
 
+// Deprecated: Use proposal to build transaction directly
 // WithNotPost generate transaction only, won't post to server.
 func WithNotPost() RequestOption {
 	return func(opts *requestOptions) error {

@@ -42,8 +42,9 @@ type XClient struct {
 	esc   pb.EventServiceClient
 	econn *grpc.ClientConn
 
-	cfg *config.CommConfig
-	opt *clientOptions
+	cfg          *config.CommConfig
+	opt          *clientOptions
+	systemStatus map[string]*pb.BCStatus
 }
 
 // New new xuper client.
@@ -85,7 +86,25 @@ func (x *XClient) init() error {
 	}
 
 	// init xuper client, endorser client, grpc tls & gzip.
-	return x.initConn()
+	err = x.initConn()
+	if err != nil {
+		return err
+	}
+	return x.initSystemStatus()
+}
+
+func (x *XClient) initSystemStatus() error {
+	statusResp, err := x.querySystemStatus()
+	if err != nil {
+		return err
+	}
+	status := statusResp.GetSystemsStatus()
+
+	// TODO handle nil error
+	for _, status := range status.BcsStatus {
+		x.systemStatus[status.Bcname] = status
+	}
+	return nil
 }
 
 func (x *XClient) initConn() error {
@@ -423,7 +442,11 @@ func (x *XClient) SetMethodACL(from *account.Account, name, method string, acl *
 
 // Do generete tx & post tx.
 func (x *XClient) Do(req *Request) (*Transaction, error) {
-	transaction, err := x.GenerateTx(req)
+	proposal, err := NewProposal(x, req, x.cfg)
+	if err != nil {
+		return nil, err
+	}
+	transaction, err := proposal.Build()
 	if err != nil {
 		return nil, err
 	}
@@ -437,6 +460,7 @@ func (x *XClient) Do(req *Request) (*Transaction, error) {
 	return x.PostTx(transaction)
 }
 
+// Deprecated: Use proposal.Build directly to build request
 // GenerateTx generate Transaction.
 func (x *XClient) GenerateTx(req *Request) (*Transaction, error) {
 	proposal, err := NewProposal(x, req, x.cfg)

@@ -22,6 +22,10 @@ const (
 )
 
 // Proposal 代表单个请求，构造交易，但不 post。
+// Only
+// proposal is a request build, it should not have public functions like PreExecWithSelectUtxo(but it does)
+// see https://www.geeksforgeeks.org/builder-design-pattern for more about builder design pattern
+// and see https://www.geeksforgeeks.org/single-responsibility-principle-in-java-with-examples/ for more about SRP
 type Proposal struct {
 	xclient *XClient
 	request *Request
@@ -34,6 +38,8 @@ type Proposal struct {
 	cfg *config.CommConfig
 
 	txVersion int32
+	// transactionMode pb.TransactionMod
+	preExecFunc func(ctx context.Context, in *pb.PreExecWithSelectUTXORequest) (*pb.PreExecWithSelectUTXOResponse, error)
 }
 
 // NewProposal new Proposal instance.
@@ -48,45 +54,75 @@ func NewProposal(xclient *XClient, request *Request, cfg *config.CommConfig) (*P
 		v = cfg.TxVersion
 	}
 
-	return &Proposal{
+	p:=&Proposal{
 		xclient:   xclient,
 		request:   request,
 		cfg:       cfg,
 		txVersion: v,
-	}, nil
+	}
+	p.preExecFunc = p.preExecWithSelectUtxo
+	return p,nil
+}
+func (p *Proposal) SetTransactionMod(mod pb.TransactionMod) {
+	if mod == pb.TransactionMod_EOV {
+		p.preExecFunc = p.preExecWithSelectUtxo
+
+	} else if mod == pb.TransactionMod_PV {
+		p.preExecFunc = p.estimateGasWithSelectUtxo
+	}
+
 }
 
-// Build 发起预执行，构造交易。
+// Build 发起预执行，构造交易
+// typiclly a builder should not return errr, but
 func (p *Proposal) Build() (*Transaction, error) {
-	err := p.PreExecWithSelectUtxo() // T_T!，开放网络所有交易都是通过 AK 支付手续费，除了开放网络，其他的根据是否设置了合约账户，以及是否只是合约账户支付手续费来判断。
+	req, err := p.genPreExecUtxoRequest()
 	if err != nil {
 		return nil, err
 	}
-
-	tx, err := p.GenCompleteTx()
+	preExecResp, err := p.preExecFunc(context.TODO(), req)
 	if err != nil {
 		return nil, err
 	}
-	p.tx = tx
+	p.preResp = preExecResp
+	return p.genCompleteTx(preExecResp)
 
-	return tx, nil
 }
 
-// PreExecWithSelectUtxo 预执行并选择 utxo，如果有背书则调用 EndorserCall。
+// T_T!，开放网络所有交易都是通过 AK 支付手续费，除了开放网络，其他的根据是否设置了合约账户，以及是否只是合约账户支付手续费来判断。
 func (p *Proposal) PreExecWithSelectUtxo() error {
-
 	req, err := p.genPreExecUtxoRequest()
 	if err != nil {
 		return err
 	}
+	resp, err := p.preExecWithSelectUtxo(context.TODO(), req)
+	if err != nil {
+		return err
+	}
+	p.preResp = resp
+	tx, err := p.GenCompleteTx()
+	p.tx = tx
+	return err
 
-	ctx := context.Background()
+}
+func (p *Proposal) estimateGasWithSelectUtxo(ctx context.Context, req *pb.PreExecWithSelectUTXORequest) (*pb.PreExecWithSelectUTXOResponse, error) {
+	req, err := p.genPreExecUtxoRequest()
+	if err != nil {
+		return nil, err
+	}
+	return p.xclient.xc.EstimateGasWithSelectUtxo(ctx, req, nil)
+
+}
+
+// PreExecWithSelectUtxo 预执行并选择 utxo，如果有背书则调用 EndorserCall。
+func (p *Proposal) preExecWithSelectUtxo(ctx context.Context, req *pb.PreExecWithSelectUTXORequest) (*pb.PreExecWithSelectUTXOResponse, error) {
+
 	preExecWithSelectUTXOResponse := new(pb.PreExecWithSelectUTXOResponse)
 
 	if p.cfg.ComplianceCheck.IsNeedComplianceCheck {
 		requestData, err := json.Marshal(req)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		endorserRequest := &pb.EndorserRequest{
 			RequestName: "PreExecWithFee",
@@ -96,26 +132,26 @@ func (p *Proposal) PreExecWithSelectUtxo() error {
 		c := p.xclient.ec
 		endorserResponse, err := c.EndorserCall(ctx, endorserRequest)
 		if err != nil {
-			return errors.Wrap(err, "EndorserCall PreExecWithFee failed")
+			return nil, errors.Wrap(err, "EndorserCall PreExecWithFee failed")
 		}
 		responseData := endorserResponse.ResponseData
 		err = json.Unmarshal(responseData, preExecWithSelectUTXOResponse)
 		if err != nil {
-			return err
+			return nil, err
 		}
 	} else {
 		c := p.xclient.xc
 		var err error
 		preExecWithSelectUTXOResponse, err = c.PreExecWithSelectUTXO(ctx, req)
 		if err != nil {
-			return errors.Wrap(err, "PreExecWithSelectUTXO failed")
+			return nil, errors.Wrap(err, "PreExecWithSelectUTXO failed")
 		}
 
 		// AK 发起交易，仅使用合约账户支付手续费时，需要选择 utxo。
 		if p.request.opt.onlyFeeFromAccount {
 			amount, ok := big.NewInt(0).SetString(p.request.opt.fee, 10)
 			if !ok {
-				return errors.Wrap(common.ErrInvalidAmount, "invalid request fee")
+				return nil, errors.Wrap(common.ErrInvalidAmount, "invalid request fee")
 			}
 			amount.Add(amount, big.NewInt(preExecWithSelectUTXOResponse.GetResponse().GetGasUsed()))
 
@@ -123,35 +159,34 @@ func (p *Proposal) PreExecWithSelectUtxo() error {
 
 			p.feePreResp, err = c.SelectUTXO(ctx, feeReq)
 			if err != nil {
-				return errors.Wrap(err, "SelectUTXO from contract account failed")
+				return nil, errors.Wrap(err, "SelectUTXO from contract account failed")
 			}
 		}
 	}
 
 	for _, res := range preExecWithSelectUTXOResponse.GetResponse().GetResponses() {
 		if res.Status >= 400 {
-			return fmt.Errorf("contract invoke error status:%d message:%s", res.Status, res.Message)
+			return nil, fmt.Errorf("contract invoke error status:%d message:%s", res.Status, res.Message)
 		}
 	}
 
-	p.preResp = preExecWithSelectUTXOResponse
-	return nil
+	return preExecWithSelectUTXOResponse, nil
+}
+
+func (p *Proposal) GenCompleteTx() (*Transaction, error) {
+	if p.preResp == nil {
+		return nil, errors.New("proposal preResp can not be nil")
+	}
+	return p.genCompleteTx(p.preResp)
 }
 
 // GenCompleteTx 根据预执行结果构造完整的交易。
-func (p *Proposal) GenCompleteTx() (*Transaction, error) {
+func (p *Proposal) genCompleteTx(preResp *pb.PreExecWithSelectUTXOResponse) (*Transaction, error) {
 	var (
 		tx         *pb.Transaction
 		digestHash []byte
 		err        error
-
-		preResp = p.preResp
 	)
-
-	// public method should check proposal's preResp.
-	if preResp == nil {
-		return nil, errors.New("proposal preResp can not be nil")
-	}
 
 	if p.cfg.ComplianceCheck.IsNeedComplianceCheck {
 		tx, err = p.genTxWithComplianceCheck()
