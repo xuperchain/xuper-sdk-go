@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"io/ioutil"
+	"time"
 
 	"github.com/xuperchain/xuper-sdk-go/v2/account"
 	"github.com/xuperchain/xuper-sdk-go/v2/xuper"
@@ -16,7 +17,7 @@ func main() {
 }
 
 func testWasmContract() {
-	codePath := "./example/contract/counter.wasm"
+	codePath := "example/contract/data/counter.wasm"
 	code, err := ioutil.ReadFile(codePath)
 	if err != nil {
 		panic(err)
@@ -27,34 +28,37 @@ func testWasmContract() {
 		panic("new xuper Client error:")
 	}
 
-	account, err := account.RetrieveAccount("玉 脸 驱 协 介 跨 尔 籍 杆 伏 愈 即", 1)
+	// account, err := account.RetrieveAccount("玉 脸 驱 协 介 跨 尔 籍 杆 伏 愈 即", 1)
+	acc, err := account.GetAccountFromPlainFile("example/contract/data/keys")
 	if err != nil {
 		fmt.Printf("retrieveAccount err: %v\n", err)
 		return
 	}
-	fmt.Printf("retrieveAccount address: %v\n", account.Address)
-	contractAccount := "XC1234567890123456@xuper"
-	contractName := "SDKWasmCount3"
-	err = account.SetContractAccount(contractAccount)
+	fmt.Printf("retrieveAccount address: %v\n", acc.Address)
+	contractAccount := "XC1111111111111111@xuper"
+	timeStamp := fmt.Sprintf("%d", time.Now().Unix())
+	contractName := fmt.Sprintf("counter%s", timeStamp[1:])
+	fmt.Println(contractName)
+	err = acc.SetContractAccount(contractAccount)
 
 	args := map[string]string{
 		"creator": "test",
 		"key":     "test",
 	}
 
-	tx, err := xuperClient.DeployWasmContract(account, contractName, code, args)
+	tx, err := xuperClient.DeployWasmContract(acc, contractName, code, args)
 	if err != nil {
 		panic(err)
 	}
 	fmt.Printf("Deploy wasm Success!TxID:%x\n", tx.Tx.Txid)
 
-	tx, err = xuperClient.InvokeWasmContract(account, contractName, "increase", args)
+	tx, err = xuperClient.InvokeWasmContract(acc, contractName, "increase", args)
 	if err != nil {
 		panic(err)
 	}
 	fmt.Printf("Invoke Wasm Contract Success! TxID:%x\n", tx.Tx.Txid)
 
-	tx, err = xuperClient.QueryWasmContract(account, contractName, "get", args)
+	tx, err = xuperClient.QueryWasmContract(acc, contractName, "get", args)
 	if err != nil {
 		panic(err)
 	}
