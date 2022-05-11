@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/xuperchain/xuperchain/cmd/client/cmd"
 	"log"
 	"math/big"
 	"strconv"
@@ -789,4 +790,139 @@ func (p *Proposal) calcTotalAmount() (int64, error) {
 	}
 
 	return totalAmount, nil
+}
+
+// split the utxo
+func (p *Proposal) utxoSplit(num int64) (*Transaction, error) {
+
+	totalNeed, ok := big.NewInt(0).SetString(p.request.transferAmount, 10)
+	if !ok {
+		return nil, errors.New("get totalNeed error")
+	}
+	// 构造交易
+	tx := &pb.Transaction{
+		Version:   p.txVersion,
+		Coinbase:  false,
+		Nonce:     common.GetNonce(),
+		Timestamp: time.Now().UnixNano(),
+		Initiator: p.getInitiator(),
+	}
+
+	txInputs, txOutput, err := p.genUtxoSplitInputs(totalNeed)
+	if err != nil {
+		return nil, err
+	}
+	tx.TxInputs = txInputs
+
+	txOutputs, err := p.genUtxoSplitOutputs(totalNeed, num)
+	if err != nil {
+		return nil, err
+	}
+	if txOutput != nil {
+		txOutputs = append(txOutputs, txOutput)
+	}
+	tx.TxOutputs = txOutputs
+	invokeReq, err := p.genInvokeRPCRequest()
+	if err != nil {
+		return nil, err
+	}
+
+	preExeRes, err := p.xclient.xc.PreExec(context.Background(), invokeReq)
+	if err != nil {
+		return nil, err
+	}
+
+	tx.ContractRequests = preExeRes.GetResponse().GetRequests()
+	tx.TxInputsExt = preExeRes.GetResponse().GetInputs()
+	tx.TxOutputsExt = preExeRes.GetResponse().GetOutputs()
+
+	digestHash, err := p.signTx(tx)
+	if err != nil {
+		return nil, err
+	}
+	var ContractResponse *pb.ContractResponse
+	if len(preExeRes.GetResponse().GetResponses()) != 0 {
+		// 如果没有背书，那么一个合约调用应该有一个 response。
+		// 有背书或者有 reserved contract 时，会有多个 response，最后一个 response 为本次交易的合约执行结果。
+		// server 端实现代码在 xuperchain 项目：core/utxo/utxo.go:PreExec 接口。
+		ContractResponse = preExeRes.GetResponse().GetResponses()[len(preExeRes.GetResponse().GetResponses())-1]
+	}
+
+	transaction := &Transaction{
+		Tx:               tx,
+		ContractResponse: ContractResponse,
+		Bcname:           p.getChainName(),
+		Fee:              p.request.opt.fee,
+		GasUsed:          preExeRes.GetResponse().GetGasUsed(),
+		DigestHash:       digestHash,
+	}
+	return transaction, nil
+}
+
+func (p *Proposal) genUtxoSplitInputs(totalNeed *big.Int) ([]*pb.TxInput, *pb.TxOutput, error) {
+	fromAddr := p.getInitiator()
+	utxoInput := &pb.UtxoInput{
+		Bcname:    p.getChainName(),
+		Address:   fromAddr,
+		TotalNeed: totalNeed.String(),
+		NeedLock:  false,
+	}
+
+	utxoOutputs, err := p.xclient.xc.SelectUTXO(context.Background(), utxoInput)
+	if err != nil {
+		return nil, nil, fmt.Errorf("%v, details:%v", cmd.ErrSelectUtxo, err)
+	}
+
+	if utxoOutputs.Header.Error != pb.XChainErrorEnum_SUCCESS {
+		return nil, nil, fmt.Errorf("%v, details:%v", cmd.ErrSelectUtxo, utxoOutputs.Header.Error)
+	}
+
+	// 组装 tx inputs
+	var txInputs []*pb.TxInput
+	var txOutput *pb.TxOutput
+	for _, utxo := range utxoOutputs.UtxoList {
+		txInput := &pb.TxInput{}
+		txInput.RefTxid = utxo.RefTxid
+		txInput.RefOffset = utxo.RefOffset
+		txInput.FromAddr = utxo.ToAddr
+		txInput.Amount = utxo.Amount
+		txInputs = append(txInputs, txInput)
+	}
+
+	utxoTotal, ok := big.NewInt(0).SetString(utxoOutputs.TotalSelected, 10)
+	if !ok {
+		return nil, nil, cmd.ErrSelectUtxo
+	}
+
+	// 如果作为交易的输入大于输出，则多出来再生成一笔交易转给自己
+	if utxoTotal.Cmp(totalNeed) > 0 {
+		delta := utxoTotal.Sub(utxoTotal, totalNeed)
+		txOutput = &pb.TxOutput{
+			ToAddr: []byte(fromAddr),
+			Amount: delta.Bytes(),
+		}
+	}
+
+	return txInputs, txOutput, nil
+}
+
+func (p *Proposal) genUtxoSplitOutputs(totalNeed *big.Int, num int64) ([]*pb.TxOutput, error) {
+	txOutputs := []*pb.TxOutput{}
+	amount := big.NewInt(0)
+	rest := totalNeed
+	if big.NewInt(num).Cmp(rest) == 1 {
+		return nil, errors.New("illegal split utxo, split utxo <= BALANCE required")
+	}
+	amount.Div(rest, big.NewInt(num))
+	output := pb.TxOutput{}
+	output.Amount = amount.Bytes()
+	output.ToAddr = []byte(p.getInitiator())
+	for i := int64(1); i < num && rest.Cmp(amount) == 1; i++ {
+		tmpOutput := output
+		txOutputs = append(txOutputs, &tmpOutput)
+		rest.Sub(rest, amount)
+	}
+	output.Amount = rest.Bytes()
+	txOutputs = append(txOutputs, &output)
+	return txOutputs, nil
 }

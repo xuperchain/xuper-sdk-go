@@ -563,6 +563,44 @@ func (x *XClient) postTx(tx *pb.Transaction, bcname string) error {
 	return nil
 }
 
+func (x *XClient) UtxoSplit(from *account.Account, num int64, opts ...RequestOption) (*Transaction, error) {
+	bcname := defaultChainName
+	opt, err := initOpts(opts...)
+	if err != nil {
+		return nil, err
+	}
+	if opt.bcname != "" {
+		bcname = opt.bcname
+	}
+	as := &pb.AddressStatus{}
+	as.Address = from.Address
+	var tokens []*pb.TokenDetail
+	token := pb.TokenDetail{Bcname: bcname}
+	tokens = append(tokens, &token)
+	as.Bcs = tokens
+	ctx := context.Background()
+	bcs, err := x.xc.GetFrozenBalance(ctx, as)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := NewUtxoSplitRequest(from, bcs.Bcs[0].Balance, opts...)
+	if err != nil {
+		return nil, err
+	}
+
+	proposal, err := NewProposal(x, req, x.cfg)
+	if err != nil {
+		return nil, err
+	}
+
+	transaction, err := proposal.utxoSplit(num)
+	if err != nil {
+		return nil, err
+	}
+	return x.PostTx(transaction)
+}
+
 // QueryTxByID query the tx by txID
 //
 // Parameters

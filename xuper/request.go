@@ -278,6 +278,19 @@ func NewSetAccountACLRequest(from *account.Account, acl *ACL, opts ...RequestOpt
 	return NewRequest(from, Xkernel3Module, "", XkernelSetAccountACLMethod, args, "", "", opts...)
 }
 
+func NewUtxoSplitRequest(from *account.Account, amount string, opts ...RequestOption) (*Request, error) {
+	if from == nil {
+		return nil, common.ErrInvalidAccount
+	}
+
+	amount, ok := common.IsValidAmount(amount)
+	if !ok {
+		return nil, common.ErrInvalidAmount
+	}
+
+	return NewRequest(from, "", "", "", nil, from.Address, amount, opts...)
+}
+
 func generateDeployArgs(arg map[string]string, abi, code []byte, module, runtime, contractAccount, contractName string) map[string][]byte {
 	argstmp := map[string][]byte{}
 	if module == EvmContractModule {
