@@ -836,6 +836,46 @@ func (p *Proposal) utxoSplit(num int64) (*Transaction, error) {
 	tx.TxInputsExt = preExeRes.GetResponse().GetInputs()
 	tx.TxOutputsExt = preExeRes.GetResponse().GetOutputs()
 	tx.AuthRequire = []string{p.getInitiator()}
+
+	// 背书服务相关
+	if p.cfg.ComplianceCheck.IsNeedComplianceCheck {
+		req, err := p.genPreExecUtxoRequest()
+		if err != nil {
+			return nil, err
+		}
+		requestData, err := json.Marshal(req)
+		if err != nil {
+			return nil, err
+		}
+		endorserRequest := &pb.EndorserRequest{
+			RequestName: "PreExecWithFee",
+			BcName:      req.Bcname,
+			RequestData: requestData,
+		}
+		c := p.xclient.ec
+		endorserResponse, err := c.EndorserCall(context.Background(), endorserRequest)
+		if err != nil {
+			return nil, errors.New("EndorserCall PreExecWithFee failed")
+		}
+		preExecWithSelectUTXOResponse := new(pb.PreExecWithSelectUTXOResponse)
+		responseData := endorserResponse.ResponseData
+		err = json.Unmarshal(responseData, preExecWithSelectUTXOResponse)
+		if err != nil {
+			return nil, err
+		}
+		p.preResp = preExecWithSelectUTXOResponse
+		complianceCheckTx, err := p.genComplianceCheckTx()
+		if err != nil {
+			return nil, err
+		}
+		p.complianceCheckTx = complianceCheckTx
+		endorserSign, err := p.complianceCheck(tx)
+		if err != nil {
+			return nil, err
+		}
+		tx.AuthRequire = append(tx.AuthRequire, p.cfg.ComplianceCheck.ComplianceCheckEndorseServiceAddr)
+		tx.AuthRequireSigns = append(tx.AuthRequireSigns, endorserSign)
+	}
 	digestHash, err := p.signTx(tx)
 	if err != nil {
 		return nil, err
@@ -846,13 +886,6 @@ func (p *Proposal) utxoSplit(num int64) (*Transaction, error) {
 		// 有背书或者有 reserved contract 时，会有多个 response，最后一个 response 为本次交易的合约执行结果。
 		// server 端实现代码在 xuperchain 项目：core/utxo/utxo.go:PreExec 接口。
 		ContractResponse = preExeRes.GetResponse().GetResponses()[len(preExeRes.GetResponse().GetResponses())-1]
-	}
-
-	if p.cfg.ComplianceCheck.IsNeedComplianceCheck{
-		req, err := p.genPreExecUtxoRequest()
-		if err != nil {
-			return nil, err
-		}
 	}
 
 	transaction := &Transaction{
