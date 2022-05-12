@@ -12,6 +12,7 @@ import (
 	"context"
 	"crypto/tls"
 	"crypto/x509"
+	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -434,6 +435,8 @@ func (x *XClient) Do(req *Request) (*Transaction, error) {
 	}
 
 	// post tx.
+	res, err := json.Marshal(transaction)
+	fmt.Printf("%s", res)
 	return x.PostTx(transaction)
 }
 
@@ -579,7 +582,7 @@ func (x *XClient) UtxoSplit(from *account.Account, num int64, opts ...RequestOpt
 	tokens = append(tokens, &token)
 	as.Bcs = tokens
 	ctx := context.Background()
-	bcs, err := x.xc.GetFrozenBalance(ctx, as)
+	bcs, err := x.xc.GetBalance(ctx, as)
 	if err != nil {
 		return nil, err
 	}
@@ -598,6 +601,8 @@ func (x *XClient) UtxoSplit(from *account.Account, num int64, opts ...RequestOpt
 	if err != nil {
 		return nil, err
 	}
+	res, err := json.Marshal(transaction)
+	fmt.Printf("%s", res)
 	return x.PostTx(transaction)
 }
 

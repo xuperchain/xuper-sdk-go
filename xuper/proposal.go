@@ -835,7 +835,7 @@ func (p *Proposal) utxoSplit(num int64) (*Transaction, error) {
 	tx.ContractRequests = preExeRes.GetResponse().GetRequests()
 	tx.TxInputsExt = preExeRes.GetResponse().GetInputs()
 	tx.TxOutputsExt = preExeRes.GetResponse().GetOutputs()
-
+	tx.AuthRequire = []string{p.getInitiator()}
 	digestHash, err := p.signTx(tx)
 	if err != nil {
 		return nil, err
@@ -846,6 +846,13 @@ func (p *Proposal) utxoSplit(num int64) (*Transaction, error) {
 		// 有背书或者有 reserved contract 时，会有多个 response，最后一个 response 为本次交易的合约执行结果。
 		// server 端实现代码在 xuperchain 项目：core/utxo/utxo.go:PreExec 接口。
 		ContractResponse = preExeRes.GetResponse().GetResponses()[len(preExeRes.GetResponse().GetResponses())-1]
+	}
+
+	if p.cfg.ComplianceCheck.IsNeedComplianceCheck{
+		req, err := p.genPreExecUtxoRequest()
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	transaction := &Transaction{
@@ -870,11 +877,11 @@ func (p *Proposal) genUtxoSplitInputs(totalNeed *big.Int) ([]*pb.TxInput, *pb.Tx
 
 	utxoOutputs, err := p.xclient.xc.SelectUTXO(context.Background(), utxoInput)
 	if err != nil {
-		return nil, nil, fmt.Errorf("%v, details:%v", cmd.ErrSelectUtxo, err)
+		return nil, nil, fmt.Errorf("select utxo error, details:%v", err)
 	}
 
 	if utxoOutputs.Header.Error != pb.XChainErrorEnum_SUCCESS {
-		return nil, nil, fmt.Errorf("%v, details:%v", cmd.ErrSelectUtxo, utxoOutputs.Header.Error)
+		return nil, nil, fmt.Errorf("select utxo error, details:%v", utxoOutputs.Header.Error)
 	}
 
 	// 组装 tx inputs
