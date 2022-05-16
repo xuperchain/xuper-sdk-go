@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"github.com/xuperchain/xuper-sdk-go/v2/account"
 	"math/big"
 
 	"github.com/xuperchain/xuper-sdk-go/v2/common"
@@ -399,4 +400,17 @@ func (x *XClient) queryAccountByAK(address string, opts ...QueryOption) ([]strin
 		return nil, errors.New(resp.GetHeader().GetError().String())
 	}
 	return resp.GetAccount(), nil
+}
+
+func (x *XClient) queryUtxoRecord(from *account.Account, num int64, opts ...QueryOption) (*pb.UtxoRecordDetail, error) {
+	opt, err := initQueryOpts(opts...)
+	if err != nil {
+		return nil, err
+	}
+	utxoRecordDetail := &pb.UtxoRecordDetail{
+		Bcname:       getBCname(opt),
+		AccountName:  from.Address,
+		DisplayCount: num,
+	}
+	return x.xc.QueryUtxoRecord(context.Background(), utxoRecordDetail)
 }

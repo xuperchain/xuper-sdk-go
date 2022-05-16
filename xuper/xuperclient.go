@@ -562,6 +562,11 @@ func (x *XClient) postTx(tx *pb.Transaction, bcname string) error {
 	return nil
 }
 
+// UtxoSplit query the tx by txID
+//
+// Parameters
+//  - `from` : the account
+//	- `num` : the utxo split counts
 func (x *XClient) UtxoSplit(from *account.Account, num int64, opts ...RequestOption) (*Transaction, error) {
 	bcname := defaultChainName
 	opt, err := initOpts(opts...)
@@ -598,6 +603,22 @@ func (x *XClient) UtxoSplit(from *account.Account, num int64, opts ...RequestOpt
 		return nil, err
 	}
 	return x.PostTx(transaction)
+}
+
+// UtxoMerge
+//
+//Parameters
+//  - `from` : the account
+func (x *XClient) UtxoMerge(from *account.Account, opts ...RequestOption) (*Transaction, error) {
+	return x.UtxoSplit(from, 1)
+}
+
+// UtxoList
+//
+//Parameters
+//  - `from` : the account
+func (x *XClient) UtxoList(from *account.Account, num int64, opts ...QueryOption) (*pb.UtxoRecordDetail, error) {
+	return x.queryUtxoRecord(from, num, opts...)
 }
 
 // QueryTxByID query the tx by txID
