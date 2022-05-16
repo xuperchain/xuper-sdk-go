@@ -69,7 +69,6 @@ func (p *Proposal) Build() (*Transaction, error) {
 		return nil, err
 	}
 	p.tx = tx
-
 	return tx, nil
 }
 
@@ -442,12 +441,10 @@ func (p *Proposal) calcSelfAmount(totalSelected *big.Int) (string, error) {
 }
 
 func (p *Proposal) genTx() (*pb.Transaction, error) {
-	utxoOutput := &pb.UtxoOutput{}
+	utxoOutput :=  &pb.UtxoOutput{}
 	totalSelected := big.NewInt(0)
 	preResp := p.preResp
-
 	utxolist := []*pb.Utxo{}
-
 	if p.complianceCheckTx != nil {
 		for index, txOutput := range p.complianceCheckTx.TxOutputs {
 			if string(txOutput.ToAddr) == p.getInitiator() {
@@ -794,98 +791,57 @@ func (p *Proposal) calcTotalAmount() (int64, error) {
 
 // split the utxo
 func (p *Proposal) utxoSplit(num int64) (*Transaction, error) {
-
-	totalNeed, ok := big.NewInt(0).SetString(p.request.transferAmount, 10)
-	if !ok {
-		return nil, errors.New("get totalNeed error")
-	}
-	// 构造交易
-	tx := &pb.Transaction{
-		Version:   p.txVersion,
-		Coinbase:  false,
-		Nonce:     common.GetNonce(),
-		Timestamp: time.Now().UnixNano(),
-		Initiator: p.getInitiator(),
-	}
-
-	txInputs, txOutput, err := p.genUtxoSplitInputs(totalNeed)
-	if err != nil {
-		return nil, err
-	}
-	tx.TxInputs = txInputs
-
-	txOutputs, err := p.genUtxoSplitOutputs(totalNeed, num)
-	if err != nil {
-		return nil, err
-	}
-	if txOutput != nil {
-		txOutputs = append(txOutputs, txOutput)
-	}
-	tx.TxOutputs = txOutputs
-	invokeReq, err := p.genInvokeRPCRequest()
-	if err != nil {
-		return nil, err
-	}
-
-	preExeRes, err := p.xclient.xc.PreExec(context.Background(), invokeReq)
-	if err != nil {
-		return nil, err
-	}
-
-	tx.ContractRequests = preExeRes.GetResponse().GetRequests()
-	tx.TxInputsExt = preExeRes.GetResponse().GetInputs()
-	tx.TxOutputsExt = preExeRes.GetResponse().GetOutputs()
-	tx.AuthRequire = []string{p.getInitiator()}
-
-	// 背书服务相关
 	if p.cfg.ComplianceCheck.IsNeedComplianceCheck {
-		req, err := p.genPreExecUtxoRequest()
-		if err != nil {
-			return nil, err
-		}
-		requestData, err := json.Marshal(req)
-		if err != nil {
-			return nil, err
-		}
-		endorserRequest := &pb.EndorserRequest{
-			RequestName: "PreExecWithFee",
-			BcName:      req.Bcname,
-			RequestData: requestData,
-		}
-		c := p.xclient.ec
-		endorserResponse, err := c.EndorserCall(context.Background(), endorserRequest)
-		if err != nil {
-			return nil, errors.New("EndorserCall PreExecWithFee failed")
-		}
-		preExecWithSelectUTXOResponse := new(pb.PreExecWithSelectUTXOResponse)
-		responseData := endorserResponse.ResponseData
-		err = json.Unmarshal(responseData, preExecWithSelectUTXOResponse)
-		if err != nil {
-			return nil, err
-		}
-		p.preResp = preExecWithSelectUTXOResponse
-		complianceCheckTx, err := p.genComplianceCheckTx()
-		if err != nil {
-			return nil, err
-		}
-		p.complianceCheckTx = complianceCheckTx
+		transferAmount, _ := strconv.ParseInt(p.request.transferAmount, 10, 64)
+		amount := transferAmount - int64(p.cfg.ComplianceCheck.ComplianceCheckEndorseServiceFee)
+		p.request.transferAmount = strconv.FormatInt(amount,10)
+	}
+	err := p.PreExecWithSelectUtxo() // T_T!，开放网络所有交易都是通过 AK 支付手续费，除了开放网络，其他的根据是否设置了合约账户，以及是否只是合约账户支付手续费来判断。
+	if err != nil {
+		return nil, err
+	}
+
+	tx, err := p.GenCompleteUtxoTx(num)
+	if err != nil {
+		return nil, err
+	}
+	return tx, nil
+}
+
+func (p *Proposal) GenCompleteUtxoTx(num int64) (*Transaction, error) {
+	var (
+		tx         *pb.Transaction
+		digestHash []byte
+		err        error
+
+		preResp = p.preResp
+	)
+	if preResp == nil {
+		return nil, errors.New("proposal preResp can not be nil")
+	}
+	tx, err = p.genUtxoTx(num)
+	if err != nil {
+		return nil, err
+	}
+	if p.cfg.ComplianceCheck.IsNeedComplianceCheck{
 		endorserSign, err := p.complianceCheck(tx)
 		if err != nil {
 			return nil, err
 		}
-		tx.AuthRequire = append(tx.AuthRequire, p.cfg.ComplianceCheck.ComplianceCheckEndorseServiceAddr)
 		tx.AuthRequireSigns = append(tx.AuthRequireSigns, endorserSign)
 	}
-	digestHash, err := p.signTx(tx)
-	if err != nil {
-		return nil, err
-	}
 	var ContractResponse *pb.ContractResponse
-	if len(preExeRes.GetResponse().GetResponses()) != 0 {
+	if len(preResp.GetResponse().GetResponses()) != 0 {
 		// 如果没有背书，那么一个合约调用应该有一个 response。
 		// 有背书或者有 reserved contract 时，会有多个 response，最后一个 response 为本次交易的合约执行结果。
 		// server 端实现代码在 xuperchain 项目：core/utxo/utxo.go:PreExec 接口。
-		ContractResponse = preExeRes.GetResponse().GetResponses()[len(preExeRes.GetResponse().GetResponses())-1]
+		ContractResponse = preResp.GetResponse().GetResponses()[len(preResp.GetResponse().GetResponses())-1]
+	}
+
+	// initiator sign tx and calc tx ID.
+	digestHash, err = p.signTx(tx)
+	if err != nil {
+		return nil, err
 	}
 
 	transaction := &Transaction{
@@ -893,10 +849,73 @@ func (p *Proposal) utxoSplit(num int64) (*Transaction, error) {
 		ContractResponse: ContractResponse,
 		Bcname:           p.getChainName(),
 		Fee:              p.request.opt.fee,
-		GasUsed:          preExeRes.GetResponse().GetGasUsed(),
+		GasUsed:          preResp.GetResponse().GetGasUsed(),
 		DigestHash:       digestHash,
 	}
 	return transaction, nil
+}
+
+func (p *Proposal) genUtxoTx(num int64) (*pb.Transaction, error){
+	var (
+		complianceCheckTx *pb.Transaction
+		err               error
+	)
+
+	totalNeed, err := p.calcTotalAmount()
+	if err != nil {
+		return nil, err
+	}
+
+	authRequire := make([]string, 0, 1)
+	if p.cfg.ComplianceCheck.IsNeedComplianceCheckFee{
+		complianceCheckTx, err = p.genComplianceCheckTx()
+		if err != nil {
+			return nil, err
+		}
+
+		p.complianceCheckTx = complianceCheckTx
+		authRequire = append(authRequire, p.cfg.ComplianceCheck.ComplianceCheckEndorseServiceAddr)
+
+	}
+
+	// 构造交易
+	tx := &pb.Transaction{
+		Desc:      []byte(p.request.opt.desc),
+		Version:   p.txVersion,
+		Coinbase:  false,
+		Nonce:     common.GetNonce(),
+		Timestamp: time.Now().UnixNano(),
+		Initiator: p.getInitiator(),
+		TxInputsExt:      p.preResp.GetResponse().GetInputs(),
+		TxOutputsExt:     p.preResp.GetResponse().GetOutputs(),
+		ContractRequests: p.preResp.GetResponse().GetRequests(),
+	}
+	txInputs, txOutput, err := p.genUtxoSplitInputs(big.NewInt(0).SetInt64(totalNeed))
+	if err != nil {
+		return nil, err
+	}
+	tx.TxInputs = txInputs
+
+	transferAmount, ok := big.NewInt(0).SetString(p.request.transferAmount,10)
+	if !ok {
+		return nil, errors.New("get transferAmount error")
+	}
+	txOutputs, err := p.genUtxoSplitOutputs(transferAmount, num)
+	if err != nil {
+		return nil, err
+	}
+	if txOutput != nil {
+		txOutputs = append(txOutputs, txOutput)
+	}
+	tx.TxOutputs = txOutputs
+	authRequire = append(authRequire, p.request.initiatorAccount.GetAuthRequire())
+
+	if len(p.request.opt.otherAuthRequire) > 0 {
+		authRequire = append(authRequire, p.request.opt.otherAuthRequire...)
+	}
+	tx.AuthRequire = authRequire
+	err = common.SetSeed()
+	return tx, nil
 }
 
 func (p *Proposal) genUtxoSplitInputs(totalNeed *big.Int) ([]*pb.TxInput, *pb.TxOutput, error) {
@@ -907,14 +926,35 @@ func (p *Proposal) genUtxoSplitInputs(totalNeed *big.Int) ([]*pb.TxInput, *pb.Tx
 		TotalNeed: totalNeed.String(),
 		NeedLock:  false,
 	}
+	totalSelected := big.NewInt(0)
+	utxoOutputs := &pb.UtxoOutput{}
+	var err error
 
-	utxoOutputs, err := p.xclient.xc.SelectUTXO(context.Background(), utxoInput)
-	if err != nil {
-		return nil, nil, fmt.Errorf("select utxo error, details:%v", err)
-	}
+	if p.complianceCheckTx != nil {
+		for index, txOutput := range p.complianceCheckTx.TxOutputs {
+			if string(txOutput.ToAddr) == p.getInitiator() {
+				utxo := &pb.Utxo{
+					Amount:    txOutput.Amount,
+					ToAddr:    txOutput.ToAddr,
+					RefTxid:   p.complianceCheckTx.Txid,
+					RefOffset: int32(index),
+				}
+				utxoAmount := big.NewInt(0).SetBytes(utxo.Amount)
+				totalSelected.Add(totalSelected, utxoAmount)
+				utxoOutputs.UtxoList = append(utxoOutputs.UtxoList, utxo)
+				utxoOutputs.TotalSelected = totalNeed.String()
+			}
+		}
+	}else {
+		utxoOutputs, err = p.xclient.xc.SelectUTXO(context.Background(), utxoInput)
 
-	if utxoOutputs.Header.Error != pb.XChainErrorEnum_SUCCESS {
-		return nil, nil, fmt.Errorf("select utxo error, details:%v", utxoOutputs.Header.Error)
+		if err != nil {
+			return nil, nil, fmt.Errorf("select utxo error, details:%v", err)
+		}
+
+		if utxoOutputs.Header.Error != pb.XChainErrorEnum_SUCCESS {
+			return nil, nil, fmt.Errorf("select utxo error, details:%v", utxoOutputs.Header.Error)
+		}
 	}
 
 	// 组装 tx inputs

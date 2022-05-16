@@ -12,7 +12,6 @@ import (
 	"context"
 	"crypto/tls"
 	"crypto/x509"
-	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -434,9 +433,6 @@ func (x *XClient) Do(req *Request) (*Transaction, error) {
 		return transaction, nil
 	}
 
-	// post tx.
-	res, err := json.Marshal(transaction)
-	fmt.Printf("%s", res)
 	return x.PostTx(transaction)
 }
 
@@ -601,8 +597,6 @@ func (x *XClient) UtxoSplit(from *account.Account, num int64, opts ...RequestOpt
 	if err != nil {
 		return nil, err
 	}
-	res, err := json.Marshal(transaction)
-	fmt.Printf("%s", res)
 	return x.PostTx(transaction)
 }
 
