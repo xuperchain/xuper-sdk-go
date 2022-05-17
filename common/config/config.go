@@ -26,7 +26,7 @@ type CommConfig struct {
 	MinNewChainAmount  string                `yaml:"minNewChainAmount,omitempty"`
 	Crypto             string                `yaml:"crypto,omitempty"`
 	TxVersion          int32                 `yaml:"txVersion,omitempty"`
-	MaxMsgSize	   	   int					 `yaml:"maxMsgSize,omitempty"`
+	MaxRecvMsgSize	   int					 `yaml:"maxRecvMsgSize,omitempty"`
 }
 
 const confPath = "./conf"
