@@ -121,7 +121,7 @@ func (x *XClient) initConn() error {
 		grpcOpts = append(grpcOpts, grpc.WithDefaultCallOptions(grpc.UseCompressor(gzip.Name)))
 	}
 
-	grpcOpts = append(grpcOpts, grpc.WithMaxMsgSize(64<<20-1))
+	grpcOpts = append(grpcOpts, grpc.WithMaxMsgSize(x.cfg.MaxMsgSize))
 
 	conn, err := grpc.Dial(
 		x.node,
