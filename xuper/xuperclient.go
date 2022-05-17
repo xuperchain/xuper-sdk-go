@@ -120,8 +120,11 @@ func (x *XClient) initConn() error {
 	if x.opt.useGrpcGZIP { // gzip enabled
 		grpcOpts = append(grpcOpts, grpc.WithDefaultCallOptions(grpc.UseCompressor(gzip.Name)))
 	}
-
-	grpcOpts = append(grpcOpts, grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(x.cfg.MaxRecvMsgSize)))
+	maxRecvMshSize := 64<<20-1
+	if x.cfg.MaxRecvMsgSize != 0 {
+		maxRecvMshSize = x.cfg.MaxRecvMsgSize
+	}
+	grpcOpts = append(grpcOpts, grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(maxRecvMshSize)))
 
 	conn, err := grpc.Dial(
 		x.node,
