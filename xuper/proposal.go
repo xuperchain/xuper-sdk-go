@@ -59,6 +59,11 @@ func NewProposal(xclient *XClient, request *Request, cfg *config.CommConfig) (*P
 
 // Build 发起预执行，构造交易。
 func (p *Proposal) Build() (*Transaction, error) {
+	if p.cfg.ComplianceCheck.IsNeedComplianceCheck && p.request.opt.num > 0 {
+		transferAmount, _ := strconv.ParseInt(p.request.transferAmount, 10, 64)
+		amount := transferAmount - int64(p.cfg.ComplianceCheck.ComplianceCheckEndorseServiceFee)
+		p.request.transferAmount = strconv.FormatInt(amount, 10)
+	}
 	err := p.PreExecWithSelectUtxo() // T_T!，开放网络所有交易都是通过 AK 支付手续费，除了开放网络，其他的根据是否设置了合约账户，以及是否只是合约账户支付手续费来判断。
 	if err != nil {
 		return nil, err
@@ -441,7 +446,7 @@ func (p *Proposal) calcSelfAmount(totalSelected *big.Int) (string, error) {
 }
 
 func (p *Proposal) genTx() (*pb.Transaction, error) {
-	utxoOutput :=  &pb.UtxoOutput{}
+	utxoOutput := &pb.UtxoOutput{}
 	totalSelected := big.NewInt(0)
 	preResp := p.preResp
 	utxolist := []*pb.Utxo{}
@@ -485,11 +490,19 @@ func (p *Proposal) genTx() (*pb.Transaction, error) {
 
 	selfAmount, err := p.calcSelfAmount(totalSelected)
 
-	txOutputs, err := p.generateMultiTxOutputs(selfAmount, big.NewInt(preResp.GetResponse().GetGasUsed()))
-	if err != nil {
-		return nil, err
+	var txOutputs []*pb.TxOutput
+	if p.request.opt.num > 0 {
+		transferAmount, ok := big.NewInt(0).SetString(p.request.transferAmount, 10)
+		if !ok {
+			return nil, errors.New("get transferAmount faild")
+		}
+		txOutputs, err = p.genUtxoSplitOutputs(transferAmount, p.request.opt.num)
+	} else {
+		txOutputs, err = p.generateMultiTxOutputs(selfAmount, big.NewInt(preResp.GetResponse().GetGasUsed()))
+		if err != nil {
+			return nil, err
+		}
 	}
-
 	txInputs := p.genPureTxInputs(utxoOutput)
 
 	authRequire := make([]string, 0, 1)
@@ -794,7 +807,7 @@ func (p *Proposal) utxoSplit(num int64) (*Transaction, error) {
 	if p.cfg.ComplianceCheck.IsNeedComplianceCheck {
 		transferAmount, _ := strconv.ParseInt(p.request.transferAmount, 10, 64)
 		amount := transferAmount - int64(p.cfg.ComplianceCheck.ComplianceCheckEndorseServiceFee)
-		p.request.transferAmount = strconv.FormatInt(amount,10)
+		p.request.transferAmount = strconv.FormatInt(amount, 10)
 	}
 	err := p.PreExecWithSelectUtxo() // T_T!，开放网络所有交易都是通过 AK 支付手续费，除了开放网络，其他的根据是否设置了合约账户，以及是否只是合约账户支付手续费来判断。
 	if err != nil {
@@ -823,7 +836,7 @@ func (p *Proposal) GenCompleteUtxoTx(num int64) (*Transaction, error) {
 	if err != nil {
 		return nil, err
 	}
-	if p.cfg.ComplianceCheck.IsNeedComplianceCheck{
+	if p.cfg.ComplianceCheck.IsNeedComplianceCheck {
 		endorserSign, err := p.complianceCheck(tx)
 		if err != nil {
 			return nil, err
@@ -855,7 +868,7 @@ func (p *Proposal) GenCompleteUtxoTx(num int64) (*Transaction, error) {
 	return transaction, nil
 }
 
-func (p *Proposal) genUtxoTx(num int64) (*pb.Transaction, error){
+func (p *Proposal) genUtxoTx(num int64) (*pb.Transaction, error) {
 	var (
 		complianceCheckTx *pb.Transaction
 		err               error
@@ -867,7 +880,7 @@ func (p *Proposal) genUtxoTx(num int64) (*pb.Transaction, error){
 	}
 
 	authRequire := make([]string, 0, 1)
-	if p.cfg.ComplianceCheck.IsNeedComplianceCheckFee{
+	if p.cfg.ComplianceCheck.IsNeedComplianceCheckFee {
 		complianceCheckTx, err = p.genComplianceCheckTx()
 		if err != nil {
 			return nil, err
@@ -880,12 +893,12 @@ func (p *Proposal) genUtxoTx(num int64) (*pb.Transaction, error){
 
 	// 构造交易
 	tx := &pb.Transaction{
-		Desc:      []byte(p.request.opt.desc),
-		Version:   p.txVersion,
-		Coinbase:  false,
-		Nonce:     common.GetNonce(),
-		Timestamp: time.Now().UnixNano(),
-		Initiator: p.getInitiator(),
+		Desc:             []byte(p.request.opt.desc),
+		Version:          p.txVersion,
+		Coinbase:         false,
+		Nonce:            common.GetNonce(),
+		Timestamp:        time.Now().UnixNano(),
+		Initiator:        p.getInitiator(),
 		TxInputsExt:      p.preResp.GetResponse().GetInputs(),
 		TxOutputsExt:     p.preResp.GetResponse().GetOutputs(),
 		ContractRequests: p.preResp.GetResponse().GetRequests(),
@@ -896,7 +909,7 @@ func (p *Proposal) genUtxoTx(num int64) (*pb.Transaction, error){
 	}
 	tx.TxInputs = txInputs
 
-	transferAmount, ok := big.NewInt(0).SetString(p.request.transferAmount,10)
+	transferAmount, ok := big.NewInt(0).SetString(p.request.transferAmount, 10)
 	if !ok {
 		return nil, errors.New("get transferAmount error")
 	}
@@ -945,7 +958,7 @@ func (p *Proposal) genUtxoSplitInputs(totalNeed *big.Int) ([]*pb.TxInput, *pb.Tx
 				utxoOutputs.TotalSelected = totalNeed.String()
 			}
 		}
-	}else {
+	} else {
 		utxoOutputs, err = p.xclient.xc.SelectUTXO(context.Background(), utxoInput)
 
 		if err != nil {

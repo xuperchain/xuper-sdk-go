@@ -587,22 +587,23 @@ func (x *XClient) UtxoSplit(from *account.Account, num int64, opts ...RequestOpt
 	if err != nil {
 		return nil, err
 	}
+	return x.Transfer(from, from.Address, bcs.Bcs[0].Balance, WithNum(num))
 
-	req, err := NewUtxoSplitRequest(from, bcs.Bcs[0].Balance, opts...)
-	if err != nil {
-		return nil, err
-	}
-
-	proposal, err := NewProposal(x, req, x.cfg)
-	if err != nil {
-		return nil, err
-	}
-
-	transaction, err := proposal.utxoSplit(num)
-	if err != nil {
-		return nil, err
-	}
-	return x.PostTx(transaction)
+	//req, err := NewUtxoSplitRequest(from, bcs.Bcs[0].Balance, opts...)
+	//if err != nil {
+	//	return nil, err
+	//}
+	//
+	//proposal, err := NewProposal(x, req, x.cfg)
+	//if err != nil {
+	//	return nil, err
+	//}
+	//
+	//transaction, err := proposal.utxoSplit(num)
+	//if err != nil {
+	//	return nil, err
+	//}
+	//return x.PostTx(transaction)
 }
 
 // UtxoMerge
@@ -610,7 +611,7 @@ func (x *XClient) UtxoSplit(from *account.Account, num int64, opts ...RequestOpt
 //Parameters
 //  - `from` : the account
 func (x *XClient) UtxoMerge(from *account.Account, opts ...RequestOption) (*Transaction, error) {
-	return x.UtxoSplit(from, 1)
+	return x.UtxoSplit(from, 1, opts...)
 }
 
 // UtxoList
