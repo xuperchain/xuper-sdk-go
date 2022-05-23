@@ -18,7 +18,7 @@ This SDK enables Go developers to build solutions that interact with open chain 
 
 Get xuper-sdk-go
 ```bash
-git clone https://github.com/godeamon/xuper-sdk-go.git
+git clone https://github.com/xuperchain/xuper-sdk-go.git
 
 cd xuper-sdk-go
 ```
@@ -64,7 +64,7 @@ SDK 可以使 go 的开发者更好的与 XuperChain 的公开链网络进行交
 
 克隆xuper-sdk-go仓库
 ```
-git clone https://github.com/godeamon/xuper-sdk-go.git
+git clone https://github.com/xuperchain/xuper-sdk-go.git
 
 cd xuper-sdk-go
 ```
