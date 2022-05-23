@@ -23,6 +23,7 @@ type requestOptions struct {
 	desc                 string
 	otherAuthRequire     []string
 	notPost              bool
+	num                  int64
 }
 
 type queryOption struct {
@@ -42,6 +43,14 @@ type QueryOption func(opt *queryOption) error
 func WithQueryBcname(bcname string) QueryOption {
 	return func(opts *queryOption) error {
 		opts.bcname = bcname
+		return nil
+	}
+}
+
+// WithNum 1: merge the utxo; >1: split the utxo
+func WithNum(num int64) RequestOption {
+	return func(opts *requestOptions) error {
+		opts.num = num
 		return nil
 	}
 }

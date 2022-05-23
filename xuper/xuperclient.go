@@ -433,7 +433,6 @@ func (x *XClient) Do(req *Request) (*Transaction, error) {
 		return transaction, nil
 	}
 
-	// post tx.
 	return x.PostTx(transaction)
 }
 
@@ -561,6 +560,66 @@ func (x *XClient) postTx(tx *pb.Transaction, bcname string) error {
 		return fmt.Errorf("Failed to post tx: %s", res.Header.Error.String())
 	}
 	return nil
+}
+
+// UtxoSplit query the tx by txID
+//
+// Parameters
+//  - `from` : the account
+//	- `num` : the utxo split counts
+func (x *XClient) UtxoSplit(from *account.Account, num int64, opts ...RequestOption) (*Transaction, error) {
+	bcname := defaultChainName
+	opt, err := initOpts(opts...)
+	if err != nil {
+		return nil, err
+	}
+	if opt.bcname != "" {
+		bcname = opt.bcname
+	}
+	as := &pb.AddressStatus{}
+	as.Address = from.Address
+	var tokens []*pb.TokenDetail
+	token := pb.TokenDetail{Bcname: bcname}
+	tokens = append(tokens, &token)
+	as.Bcs = tokens
+	ctx := context.Background()
+	bcs, err := x.xc.GetBalance(ctx, as)
+	if err != nil {
+		return nil, err
+	}
+	return x.Transfer(from, from.Address, bcs.Bcs[0].Balance, WithNum(num))
+
+	//req, err := NewUtxoSplitRequest(from, bcs.Bcs[0].Balance, opts...)
+	//if err != nil {
+	//	return nil, err
+	//}
+	//
+	//proposal, err := NewProposal(x, req, x.cfg)
+	//if err != nil {
+	//	return nil, err
+	//}
+	//
+	//transaction, err := proposal.utxoSplit(num)
+	//if err != nil {
+	//	return nil, err
+	//}
+	//return x.PostTx(transaction)
+}
+
+// UtxoMerge
+//
+//Parameters
+//  - `from` : the account
+func (x *XClient) UtxoMerge(from *account.Account, opts ...RequestOption) (*Transaction, error) {
+	return x.UtxoSplit(from, 1, opts...)
+}
+
+// UtxoList
+//
+//Parameters
+//  - `from` : the account
+func (x *XClient) UtxoList(from *account.Account, num int64, opts ...QueryOption) (*pb.UtxoRecordDetail, error) {
+	return x.queryUtxoRecord(from, num, opts...)
 }
 
 // QueryTxByID query the tx by txID
