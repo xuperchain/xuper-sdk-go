@@ -491,8 +491,10 @@ func (p *Proposal) genTx() (*pb.Transaction, error) {
 	if err != nil {
 		return nil, err
 	}
+	txOutputs = append(txOutputs, preResp.GetResponse().UtxoOutputs...)
 
 	txInputs := p.genPureTxInputs(utxoOutput)
+	txInputs = append(txInputs, preResp.GetResponse().UtxoInputs...)
 
 	authRequire := make([]string, 0, 1)
 	if p.complianceCheckTx != nil {
