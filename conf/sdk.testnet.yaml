@@ -16,3 +16,6 @@ complianceCheck:
 minNewChainAmount: "100"
 crypto: "xchain"
 txVersion: 1
+# maxRecvMsgSize set the max message size in bytes the server can receive.
+# If this is not set, gRPC uses the default 4MB.
+maxRecvMsgSize: 134217728
