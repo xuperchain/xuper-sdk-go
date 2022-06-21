@@ -1,6 +1,5 @@
 # IDE related
 .vscode/
-.idea/
 
 # output files
 output/
