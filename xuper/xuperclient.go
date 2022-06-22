@@ -120,8 +120,11 @@ func (x *XClient) initConn() error {
 	if x.opt.useGrpcGZIP { // gzip enabled
 		grpcOpts = append(grpcOpts, grpc.WithDefaultCallOptions(grpc.UseCompressor(gzip.Name)))
 	}
-
-	grpcOpts = append(grpcOpts, grpc.WithMaxMsgSize(64<<20-1))
+	maxRecvMshSize := 64<<20-1
+	if x.cfg.MaxRecvMsgSize != 0 {
+		maxRecvMshSize = x.cfg.MaxRecvMsgSize
+	}
+	grpcOpts = append(grpcOpts, grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(maxRecvMshSize)))
 
 	conn, err := grpc.Dial(
 		x.node,
@@ -655,11 +658,8 @@ func (x *XClient) QueryBlockChains(opts ...QueryOption) ([]string, error) {
 }
 
 // QueryBlockChainStatus query the block chain status
-//
-// Parameters:
-//   - `chainName`  : chainName
-func (x *XClient) QueryBlockChainStatus(chainName string, opts ...QueryOption) (*pb.BCStatus, error) {
-	return x.queryBlockChainStatus(chainName)
+func (x *XClient) QueryBlockChainStatus(opts ...QueryOption) (*pb.BCStatus, error) {
+	return x.queryBlockChainStatus(opts...)
 }
 
 // QueryNetURL query the net URL

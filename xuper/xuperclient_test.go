@@ -217,10 +217,9 @@ func TestXClient_QueryBlockChains(t *testing.T) {
 }
 
 func TestXClient_QueryBlockChainStatus(t *testing.T) {
-	bcName := "xuper"
 	client := newClient()
 
-	bcStatus, err := client.QueryBlockChainStatus(bcName)
+	bcStatus, err := client.QueryBlockChainStatus()
 	if err != nil {
 		t.Fatalf("err:%v\n", err)
 	}

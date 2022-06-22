@@ -361,7 +361,7 @@ func (x *XClient) queryBlockChains(opts ...QueryOption) ([]string, error) {
 	return bcs.GetBlockchains(), nil
 }
 
-func (x *XClient) queryBlockChainStatus(chainName string, opts ...QueryOption) (*pb.BCStatus, error) {
+func (x *XClient) queryBlockChainStatus(opts ...QueryOption) (*pb.BCStatus, error) {
 	opt, err := initQueryOpts(opts...)
 	if err != nil {
 		return nil, err
