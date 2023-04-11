@@ -23,7 +23,7 @@ type requestOptions struct {
 	desc                 string
 	otherAuthRequire     []string
 	notPost              bool
-	onlyAKPay            bool
+	gasFromAddress       bool
 }
 
 type queryOption struct {
@@ -85,9 +85,9 @@ func WithFeeFromAccount() RequestOption {
 	}
 }
 
-func WithOnlyAKPay() RequestOption {
+func WithGasFromAddress() RequestOption {
 	return func(opts *requestOptions) error {
-		opts.onlyAKPay = true
+		opts.gasFromAddress = true
 		return nil
 	}
 }
