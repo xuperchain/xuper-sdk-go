@@ -23,6 +23,7 @@ type requestOptions struct {
 	desc                 string
 	otherAuthRequire     []string
 	notPost              bool
+	onlyAKPay            bool
 }
 
 type queryOption struct {
@@ -80,6 +81,13 @@ func WithGrpcTLS(serverName, cacertFile, certFile, keyFile string) ClientOption 
 func WithFeeFromAccount() RequestOption {
 	return func(opts *requestOptions) error {
 		opts.onlyFeeFromAccount = true
+		return nil
+	}
+}
+
+func WithOnlyAKPay() RequestOption {
+	return func(opts *requestOptions) error {
+		opts.onlyAKPay = true
 		return nil
 	}
 }

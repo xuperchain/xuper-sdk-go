@@ -699,7 +699,7 @@ func (p *Proposal) getChainName() string {
 
 func (p *Proposal) getInitiator() string {
 	initiator := p.request.initiatorAccount.Address
-	if p.cfg.ComplianceCheck.IsNeedComplianceCheck || p.request.opt.onlyFeeFromAccount {
+	if p.cfg.ComplianceCheck.IsNeedComplianceCheck || p.request.opt.onlyFeeFromAccount || p.request.opt.onlyAKPay {
 		return initiator
 	}
 
