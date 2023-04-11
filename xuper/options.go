@@ -23,6 +23,7 @@ type requestOptions struct {
 	desc                 string
 	otherAuthRequire     []string
 	notPost              bool
+	gasFromAddress       bool
 }
 
 type queryOption struct {
@@ -80,6 +81,13 @@ func WithGrpcTLS(serverName, cacertFile, certFile, keyFile string) ClientOption 
 func WithFeeFromAccount() RequestOption {
 	return func(opts *requestOptions) error {
 		opts.onlyFeeFromAccount = true
+		return nil
+	}
+}
+
+func WithGasFromAddress() RequestOption {
+	return func(opts *requestOptions) error {
+		opts.gasFromAddress = true
 		return nil
 	}
 }
