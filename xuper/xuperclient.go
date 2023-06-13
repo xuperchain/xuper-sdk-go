@@ -120,7 +120,7 @@ func (x *XClient) initConn() error {
 	if x.opt.useGrpcGZIP { // gzip enabled
 		grpcOpts = append(grpcOpts, grpc.WithDefaultCallOptions(grpc.UseCompressor(gzip.Name)))
 	}
-	maxRecvMshSize := 64<<20-1
+	maxRecvMshSize := 64<<20 - 1
 	if x.cfg.MaxRecvMsgSize != 0 {
 		maxRecvMshSize = x.cfg.MaxRecvMsgSize
 	}
@@ -467,6 +467,7 @@ func (x *XClient) PreExecTx(req *Request) (*Transaction, error) {
 
 	return &Transaction{
 		ContractResponse: cr,
+		GasUsed:          proposal.preResp.GetResponse().GetGasUsed(),
 	}, nil
 }
 
