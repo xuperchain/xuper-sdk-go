@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"time"
 
 	"github.com/xuperchain/xuper-sdk-go/v2/common"
 	"github.com/xuperchain/xuperchain/service/pb"
@@ -29,6 +30,13 @@ func getBCname(opt *queryOption) string {
 		chainName = opt.bcname
 	}
 	return chainName
+}
+
+func getWaitTime(opt *queryOption) time.Duration {
+	if opt.waitTime == 0 {
+		opt.waitTime = 1
+	}
+	return time.Second * time.Duration(opt.waitTime)
 }
 
 func (x *XClient) queryTxByID(txID string, opts ...QueryOption) (*pb.Transaction, error) {
@@ -399,4 +407,47 @@ func (x *XClient) queryAccountByAK(address string, opts ...QueryOption) ([]strin
 		return nil, errors.New(resp.GetHeader().GetError().String())
 	}
 	return resp.GetAccount(), nil
+}
+
+
+func (x *XClient) queryTxStatus(txID string, opts ...QueryOption) (bool, error) {
+	opt, err := initQueryOpts(opts...)
+	if err != nil {
+		return false, err
+	}
+	waitTime := getWaitTime(opt)
+	blockNums := opt.blockNums
+	if blockNums ==0 {
+		blockNums = 3
+	}
+	// 交易所在区块高度
+	tx, err := x.queryTxByID(txID,opts...)
+	if err != nil {
+		return false, err
+	}
+	blockID := tx.GetBlockid()
+
+	block, err := x.queryBlockByID(fmt.Sprintf("%x", blockID), opts...)
+	blockHeight := block.GetBlock().Height
+	ch := make(chan bool)
+	go x.watchBlockHeight(ch, blockHeight, blockNums, opts...)
+	select {
+	case <-time.After(waitTime):
+		fmt.Println("wait timeout")
+		return false, nil
+	case v := <-ch:
+		return v, nil
+	}
+}
+
+func (x *XClient) watchBlockHeight(ch chan bool, height int64, blockNums int64, opts ...QueryOption) {
+	for {
+		sys, _ := x.querySystemStatus(opts...)
+		sysHeight := sys.GetSystemsStatus().BcsStatus[0].Block.Height
+		if sysHeight-height > blockNums {
+				ch<- true
+			return
+		}
+		time.Sleep(time.Second * 3)
+	}
 }

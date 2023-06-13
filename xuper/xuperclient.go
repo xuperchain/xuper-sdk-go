@@ -670,3 +670,11 @@ func (x *XClient) QueryNetURL(opts ...QueryOption) (string, error) {
 func (x *XClient) QueryAccountByAK(address string, opts ...QueryOption) ([]string, error) {
 	return x.queryAccountByAK(address, opts...)
 }
+
+// QueryTxStatus Check whether the tx is on the chain
+//
+// Parameters:
+//	- `txID` : the tx id
+func (x *XClient) QueryTxStatus(txID string, opts ...QueryOption) (bool, error) {
+	return x.queryTxStatus(txID, opts...)
+}

@@ -28,6 +28,8 @@ type requestOptions struct {
 
 type queryOption struct {
 	bcname string
+	blockNums int64
+	waitTime int64
 }
 
 // RequestOption tx opt.
@@ -46,6 +48,26 @@ func WithQueryBcname(bcname string) QueryOption {
 		return nil
 	}
 }
+
+// WithBlockNums query tx status
+func WithBlockNums(blockNums int64) QueryOption  {
+	return func(opts *queryOption) error {
+		if 0 < blockNums && blockNums < 100 {
+			opts.blockNums = blockNums
+			return nil
+		}
+		return errors.New("block nums must be between 0 and 100")
+	}
+}
+
+// WithMaxWaitTime query tx status max wait time
+func WithMaxWaitTime(waitTime int64) QueryOption {
+	return func(opts *queryOption) error {
+		opts.waitTime = waitTime
+		return nil
+	}
+}
+
 
 // WithConfigFile set xuperclient config file.
 func WithConfigFile(configFile string) ClientOption {
@@ -142,3 +164,5 @@ func WithOtherAuthRequires(authRequires []string) RequestOption {
 		return nil
 	}
 }
+
+
