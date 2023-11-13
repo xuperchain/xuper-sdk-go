@@ -11,7 +11,7 @@ import (
 
 // define blockchain node and blockchain name
 var (
-	node   = "14.215.179.74:37101"
+	node   = "14.215.183.139:37101"
 	bcname = "xuper"
 )
 
