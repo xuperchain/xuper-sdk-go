@@ -19,7 +19,7 @@ import (
 // define blockchain node and blockchain name
 var (
 	contractName = "counter"
-	node         = "14.215.179.74:37101"
+	node         = "14.215.183.139:37101"
 	//	node         = "127.0.0.1:37801"
 	bcname = "xuper"
 )
