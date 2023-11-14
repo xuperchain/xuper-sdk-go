@@ -90,6 +90,24 @@ func (x *XClient) queryBlockByID(blockID string, opts ...QueryOption) (*pb.Block
 	return block, nil
 }
 
+// queryContractCount query the number of contracts
+func (x *XClient) queryContractCount(opts ...QueryOption) (*pb.ContractStatDataResponse, error) {
+	opt, err := initQueryOpts(opts...)
+	if err != nil {
+		return nil, err
+	}
+	request := &pb.ContractStatDataRequest{
+		Header: &pb.Header{},
+		Bcname: getBCname(opt),
+	}
+
+	reply, err := x.xc.QueryContractStatData(context.TODO(), request)
+	if err != nil {
+		return nil, err
+	}
+	return reply, nil
+}
+
 func (x *XClient) queryBlockByHeight(height int64, opts ...QueryOption) (*pb.Block, error) {
 	opt, err := initQueryOpts(opts...)
 	if err != nil {
