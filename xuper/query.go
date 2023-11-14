@@ -90,6 +90,7 @@ func (x *XClient) queryBlockByID(blockID string, opts ...QueryOption) (*pb.Block
 	return block, nil
 }
 
+// queryContractCount query the number of contracts
 func (x *XClient) queryContractCount(opts ...QueryOption) (*pb.ContractStatDataResponse, error) {
 	opt, err := initQueryOpts(opts...)
 	if err != nil {

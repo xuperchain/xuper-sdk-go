@@ -120,7 +120,7 @@ func (x *XClient) initConn() error {
 	if x.opt.useGrpcGZIP { // gzip enabled
 		grpcOpts = append(grpcOpts, grpc.WithDefaultCallOptions(grpc.UseCompressor(gzip.Name)))
 	}
-	maxRecvMshSize := 64<<20-1
+	maxRecvMshSize := 64<<20 - 1
 	if x.cfg.MaxRecvMsgSize != 0 {
 		maxRecvMshSize = x.cfg.MaxRecvMsgSize
 	}
@@ -569,7 +569,7 @@ func (x *XClient) postTx(tx *pb.Transaction, bcname string) error {
 // QueryTxByID query the tx by txID
 //
 // Parameters
-//  - `txID` : transaction id
+//   - `txID` : transaction id
 func (x *XClient) QueryTxByID(txID string, opts ...QueryOption) (*pb.Transaction, error) {
 	return x.queryTxByID(txID, opts...)
 }
@@ -582,6 +582,7 @@ func (x *XClient) QueryBlockByID(blockID string, opts ...QueryOption) (*pb.Block
 	return x.queryBlockByID(blockID, opts...)
 }
 
+// QueryContractCount query the number of contracts
 func (x *XClient) QueryContractCount(opts ...QueryOption) (*pb.ContractStatDataResponse, error) {
 	return x.queryContractCount(opts...)
 }
