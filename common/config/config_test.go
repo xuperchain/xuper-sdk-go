@@ -21,7 +21,7 @@ func TestConfig(t *testing.T) {
 }
 
 func TestSetConfig(t *testing.T) {
-	SetConfig("a", "b", "c", "1", true, true, "1")
+	SetConfig("a", "b", "c", "1", true, true, "1", 3)
 	c := GetInstance()
 	if c == nil {
 		t.Error("GetInstance test failed")

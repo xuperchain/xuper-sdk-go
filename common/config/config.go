@@ -88,7 +88,7 @@ func GetConfig(confFile string) (*CommConfig, error) {
 }
 
 // SetConfig set config fileds.
-func SetConfig(checkHost, checkAddr, checkFeeAddr, checkFee string, isNeedCheck, isNeedCheckFee bool, minNewChainAmount string) {
+func SetConfig(checkHost, checkAddr, checkFeeAddr, checkFee string, isNeedCheck, isNeedCheckFee bool, minNewChainAmount string, txVersion int32) {
 	commConfig := &CommConfig{
 		EndorseServiceHost: "10.144.94.18:8848",
 		ComplianceCheck: ComplianceCheckConfig{
@@ -98,6 +98,7 @@ func SetConfig(checkHost, checkAddr, checkFeeAddr, checkFee string, isNeedCheck,
 		},
 		MinNewChainAmount: "100",
 		Crypto:            CRYPTO_XCHAIN,
+		TxVersion: 1,
 	}
 	if checkHost != "" {
 		commConfig.EndorseServiceHost = checkHost
@@ -115,8 +116,10 @@ func SetConfig(checkHost, checkAddr, checkFeeAddr, checkFee string, isNeedCheck,
 	if minNewChainAmount != "" {
 		commConfig.MinNewChainAmount = minNewChainAmount
 	}
+	if txVersion != 0 {
+		commConfig.TxVersion = txVersion
+	}
 	commConfig.ComplianceCheck.IsNeedComplianceCheck = isNeedCheck
 	commConfig.ComplianceCheck.IsNeedComplianceCheckFee = isNeedCheckFee
-
 	config = commConfig
 }
