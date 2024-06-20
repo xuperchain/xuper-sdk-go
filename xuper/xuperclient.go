@@ -467,6 +467,7 @@ func (x *XClient) PreExecTx(req *Request) (*Transaction, error) {
 
 	return &Transaction{
 		ContractResponse: cr,
+		GasUsed:          proposal.preResp.GetResponse().GetGasUsed(),
 	}, nil
 }
 

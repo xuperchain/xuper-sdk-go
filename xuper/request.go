@@ -6,6 +6,7 @@ import (
 
 	"github.com/golang/protobuf/proto"
 	"github.com/pkg/errors"
+	"regexp"
 
 	"github.com/xuperchain/xuper-sdk-go/v2/account"
 	"github.com/xuperchain/xuper-sdk-go/v2/common"
@@ -337,10 +338,20 @@ func convertToXuper3EvmArgs(args map[string]interface{}) (map[string][]byte, err
 
 func generateInvokeArgs(arg map[string]string, module string) (map[string][]byte, error) {
 	if module == EvmContractModule {
-		// todo
 		argsTmp := make(map[string]interface{}, len(arg))
 		for k, v := range arg {
-			argsTmp[k] = v
+			// 对evm合约请求中的切片参数进行处理
+			reg := regexp.MustCompile(`\[.*,?.*]`)
+			if reg.MatchString(v) {
+				sliceArg := make([]interface{}, 0)
+				err := json.Unmarshal([]byte(v), &sliceArg)
+				if err != nil {
+					return nil, err
+				}
+				argsTmp[k] = sliceArg
+			} else {
+				argsTmp[k] = v
+			}
 		}
 		return convertToXuper3EvmArgs(argsTmp)
 
